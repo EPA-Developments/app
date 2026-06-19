@@ -1,0 +1,153 @@
+// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-License-Identifier: Apache-2.0
+//
+// Cuestionario de ingreso de BioWellness.
+// Fuente: brief §6.1 (antecedentes, cirugías, medicación, alergias) + contraindicaciones
+// absolutas del Consentimiento Informado (HBOT / IHHT). El médico de la primera
+// entrevista valida y firma; este cuestionario solo registra lo declarado por el paciente.
+//
+// Nota: los linkId son descriptivos; el mapeo a códigos/tabla de contraindicaciones del
+// modelo FHIR se puede agregar más adelante.
+import type { Questionnaire } from '@medplum/fhirtypes';
+
+export const intakeQuestionnaire: Questionnaire = {
+  resourceType: 'Questionnaire',
+  status: 'active',
+  name: 'biowellness-intake-clinico',
+  title: 'Cuestionario de ingreso',
+  subjectType: ['Patient'],
+  item: [
+    {
+      linkId: 'antecedentes',
+      text: 'Antecedentes médicos',
+      type: 'group',
+      item: [
+        {
+          linkId: 'antecedentes-cronicos',
+          text: '¿Tenés alguna enfermedad crónica diagnosticada (cardiovascular, respiratoria, neurológica, oncológica, metabólica, etc.)?',
+          type: 'boolean',
+        },
+        {
+          linkId: 'antecedentes-detalle',
+          text: 'Contanos el detalle de tus antecedentes',
+          type: 'text',
+          enableWhen: [{ question: 'antecedentes-cronicos', operator: '=', answerBoolean: true }],
+        },
+      ],
+    },
+    {
+      linkId: 'cirugias',
+      text: 'Cirugías',
+      type: 'group',
+      item: [
+        { linkId: 'cirugias-tiene', text: '¿Te realizaron alguna cirugía?', type: 'boolean' },
+        {
+          linkId: 'cirugia-reciente-ont',
+          text: '¿Tuviste una cirugía de oído, nariz o tórax en los últimos 30 días?',
+          type: 'boolean',
+        },
+        {
+          linkId: 'cirugias-detalle',
+          text: 'Detalle de tus cirugías (cuáles y cuándo)',
+          type: 'text',
+          enableWhen: [{ question: 'cirugias-tiene', operator: '=', answerBoolean: true }],
+        },
+      ],
+    },
+    {
+      linkId: 'medicacion',
+      text: 'Medicación',
+      type: 'group',
+      item: [
+        {
+          linkId: 'medicacion-toma',
+          text: '¿Tomás alguna medicación actualmente? (incluí anticoagulantes y suplementos)',
+          type: 'boolean',
+        },
+        {
+          linkId: 'medicacion-detalle',
+          text: 'Detalle de tu medicación y dosis',
+          type: 'text',
+          enableWhen: [{ question: 'medicacion-toma', operator: '=', answerBoolean: true }],
+        },
+      ],
+    },
+    {
+      linkId: 'alergias',
+      text: 'Alergias',
+      type: 'group',
+      item: [
+        { linkId: 'alergias-tiene', text: '¿Tenés alergias conocidas?', type: 'boolean' },
+        {
+          linkId: 'alergias-detalle',
+          text: 'Detalle de tus alergias',
+          type: 'text',
+          enableWhen: [{ question: 'alergias-tiene', operator: '=', answerBoolean: true }],
+        },
+      ],
+    },
+    {
+      linkId: 'contraind-hbot',
+      text: 'Screening de seguridad — Cámara Hiperbárica (HBOT)',
+      type: 'group',
+      item: [
+        { linkId: 'hbot-neumotorax', text: '¿Tenés neumotórax no tratado?', type: 'boolean' },
+        {
+          linkId: 'hbot-infeccion-resp',
+          text: '¿Tenés una infección respiratoria alta aguda (resfrío, sinusitis u otitis)?',
+          type: 'boolean',
+        },
+        {
+          linkId: 'hbot-marcapasos',
+          text: '¿Tenés marcapasos o implantes electrónicos no certificados para uso hiperbárico?',
+          type: 'boolean',
+        },
+        { linkId: 'hbot-claustrofobia', text: '¿Tenés claustrofobia severa no controlada?', type: 'boolean' },
+        { linkId: 'hbot-convulsiones', text: '¿Tenés convulsiones no controladas?', type: 'boolean' },
+      ],
+    },
+    {
+      linkId: 'contraind-ihht',
+      text: 'Screening de seguridad — Entrenamiento Hipóxico (IHHT)',
+      type: 'group',
+      item: [
+        {
+          linkId: 'ihht-insuf-cardiaca',
+          text: '¿Tenés insuficiencia cardíaca descompensada o tuviste un infarto en los últimos 6 meses?',
+          type: 'boolean',
+        },
+        {
+          linkId: 'ihht-hta',
+          text: '¿Tenés presión arterial no controlada (mayor a 180/110 mmHg)?',
+          type: 'boolean',
+        },
+        { linkId: 'ihht-epoc', text: '¿Tenés EPOC severa (estadio IV)?', type: 'boolean' },
+        { linkId: 'ihht-tvp', text: '¿Tenés trombosis venosa profunda activa?', type: 'boolean' },
+      ],
+    },
+    {
+      linkId: 'general',
+      text: 'Otros datos',
+      type: 'group',
+      item: [
+        {
+          linkId: 'embarazo',
+          text: '¿Estás o podrías estar embarazada?',
+          type: 'choice',
+          answerOption: [{ valueString: 'Sí' }, { valueString: 'No' }, { valueString: 'No aplica' }],
+        },
+        {
+          linkId: 'contacto-emergencia',
+          text: 'Contacto de emergencia (nombre y teléfono)',
+          type: 'string',
+        },
+      ],
+    },
+    {
+      linkId: 'declaracion',
+      text: 'Declaro que la información provista es completa y veraz.',
+      type: 'boolean',
+      required: true,
+    },
+  ],
+};

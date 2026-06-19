@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { Box, Stack, Text, Title, useMantineTheme } from '@mantine/core';
+import { Box, Button, Group, Stack, Text, Title, useMantineTheme } from '@mantine/core';
 import { formatDateTime, getReferenceString } from '@medplum/core';
 import type { Patient } from '@medplum/fhirtypes';
 import { useMedplum, useMedplumProfile } from '@medplum/react';
@@ -21,7 +21,12 @@ export function Responses(): JSX.Element {
 
   return (
     <Box p="xl">
-      <Title mb="lg">Cuestionarios</Title>
+      <Group justify="space-between" mb="lg">
+        <Title>Cuestionarios</Title>
+        <Button onClick={() => navigate('/patient-intake-questionnaire')?.catch(console.error)}>
+          Completar cuestionario de ingreso
+        </Button>
+      </Group>
       <InfoSection title="Cuestionarios">
         <Stack gap={0}>
           {responses.map((resp) => (
