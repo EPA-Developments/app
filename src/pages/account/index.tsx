@@ -7,11 +7,11 @@ import { Outlet } from 'react-router';
 import { SideMenu } from '../../components/SideMenu';
 
 const sideMenu = {
-  title: 'Account',
+  title: 'Mi cuenta',
   menu: [
-    { name: 'Profile', href: '/account/profile' },
-    { name: 'Provider', href: '/account/provider' },
-    { name: 'Membership & Billing', href: '/account/membership-and-billing' },
+    { name: 'Perfil', href: '/account/profile' },
+    { name: 'Médico de cabecera', href: '/account/provider' },
+    { name: 'Membresía y Facturación', href: '/account/membership-and-billing' },
   ],
 };
 
@@ -21,7 +21,7 @@ export function AccountPage(): JSX.Element {
       <Group align="top">
         <SideMenu {...sideMenu} />
         <div style={{ width: 800, flex: 800 }}>
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<div>Cargando...</div>}>
             <Outlet />
           </Suspense>
         </div>

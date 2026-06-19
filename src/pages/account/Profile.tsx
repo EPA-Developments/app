@@ -36,8 +36,8 @@ export function Profile(): JSX.Element | null {
       .then((profile) => {
         showNotification({
           icon: <IconCircleCheck />,
-          title: 'Success',
-          message: 'Profile edited',
+          title: 'Listo',
+          message: 'Perfil actualizado',
         });
         window.scrollTo(0, 0);
         return profile;
@@ -63,33 +63,39 @@ export function Profile(): JSX.Element | null {
         <Stack align="center">
           <ResourceAvatar size={200} radius={100} value={profile} />
           <Title order={2}>{formatHumanName(profile.name?.[0])}</Title>
-          <InfoSection title="Personal Information">
+          <InfoSection title="Datos personales">
             <Box p="xl">
               <Stack>
                 <TextInput
-                  label="First Name"
+                  label="Nombre"
                   name="givenName"
                   defaultValue={formatGivenName(profile.name?.[0] as HumanName)}
                 />
                 <TextInput
-                  label="Last Name"
+                  label="Apellido"
                   name="familyName"
                   defaultValue={formatFamilyName(profile.name?.[0] as HumanName)}
                 />
                 <NativeSelect
-                  label="Gender"
+                  label="Género"
                   name="gender"
                   defaultValue={profile.gender}
-                  data={['', 'female', 'male', 'other', 'unknown']}
+                  data={[
+                    { value: '', label: '' },
+                    { value: 'female', label: 'Femenino' },
+                    { value: 'male', label: 'Masculino' },
+                    { value: 'other', label: 'Otro' },
+                    { value: 'unknown', label: 'Sin especificar' },
+                  ]}
                 />
-                <TextInput label="Birth Date" name="birthDate" type="date" defaultValue={profile.birthDate} />
+                <TextInput label="Fecha de nacimiento" name="birthDate" type="date" defaultValue={profile.birthDate} />
                 <Button type="submit" mr="auto">
-                  Save
+                  Guardar
                 </Button>
               </Stack>
             </Box>
           </InfoSection>
-          <InfoSection title="Contact Information">
+          <InfoSection title="Datos de contacto">
             <Box p="xl">
               <Stack>
                 <TextInput
@@ -99,7 +105,7 @@ export function Profile(): JSX.Element | null {
                   disabled
                 />
                 <Stack gap={0}>
-                  <InputLabel htmlFor="address">Address</InputLabel>
+                  <InputLabel htmlFor="address">Domicilio</InputLabel>
                   <AddressInput
                     name="address"
                     path="Patient.address"
@@ -108,7 +114,7 @@ export function Profile(): JSX.Element | null {
                   />
                 </Stack>
                 <Button type="submit" mr="auto">
-                  Save
+                  Guardar
                 </Button>
               </Stack>
             </Box>

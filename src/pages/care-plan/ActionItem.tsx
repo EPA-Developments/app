@@ -17,7 +17,7 @@ export function ActionItem(): JSX.Element {
       <Title order={2} mb="md">
         {resource.title}
       </Title>
-      <InfoSection title="Action Item">
+      <InfoSection title="Paso del plan">
         <ResourceTable value={resource} ignoreMissingValues />
       </InfoSection>
     </Box>

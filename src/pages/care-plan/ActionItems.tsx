@@ -19,8 +19,8 @@ export function ActionItems(): JSX.Element {
 
   return (
     <Box p="xl">
-      <Title mb="lg">Action Items</Title>
-      <InfoSection title="Action Items">
+      <Title mb="lg">Pasos del plan</Title>
+      <InfoSection title="Pasos del plan">
         <Stack gap={0}>
           {carePlans.map((resource) => (
             <InfoButton key={resource.id} onClick={() => navigate(`./${resource.id}`)?.catch(console.error)}>

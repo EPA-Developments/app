@@ -8,8 +8,8 @@ import { Loading } from '../../components/Loading';
 import { SideMenu } from '../../components/SideMenu';
 
 const sideMenu = {
-  title: 'Care Plan',
-  menu: [{ name: 'Action Items', href: '/care-plan/action-items' }],
+  title: 'Plan de Cuidado',
+  menu: [{ name: 'Pasos del plan', href: '/care-plan/action-items' }],
 };
 
 export function CarePlanPage(): JSX.Element {
