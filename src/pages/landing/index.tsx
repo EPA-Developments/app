@@ -40,7 +40,7 @@ export function LandingPage(): JSX.Element {
   const theme = useMantineTheme();
   const navigate = useNavigate();
   return (
-    <AppShell className={classes.outer} header={{ height: 100 }}>
+    <AppShell className={classes.outer} header={{ height: 64 }}>
       <Header />
       <AppShell.Main className={classes.outer}>
         <img className={classes.heroImage1} src={WorkingEnvironmentImage} alt="Working Environment" />
