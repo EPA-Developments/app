@@ -96,8 +96,8 @@ export function GetCare(): JSX.Element {
   if (!schedule) {
     return (
       <Document width={800}>
-        <Alert variant="outline" color="red" title="Schedule unavailable" icon={<IconInfoCircle />}>
-          Loading the schedule failed.
+        <Alert variant="outline" color="red" title="Agenda no disponible" icon={<IconInfoCircle />}>
+          No se pudo cargar la agenda.
         </Alert>
       </Document>
     );
@@ -106,8 +106,8 @@ export function GetCare(): JSX.Element {
   if (!healthcareServiceRef) {
     return (
       <Document width={800}>
-        <Alert variant="outline" color="red" title="Schedule unavailable" icon={<IconInfoCircle />}>
-          No appointment type is configured for this schedule.
+        <Alert variant="outline" color="red" title="Agenda no disponible" icon={<IconInfoCircle />}>
+          No hay un tipo de turno configurado para esta agenda.
         </Alert>
       </Document>
     );
@@ -120,14 +120,14 @@ export function GetCare(): JSX.Element {
       <BaseScheduler actor={actor} fetchOptions={fetchAppointments} onSelectOption={holdAppointment}>
         {holdLoading && <Loader />}
         {!!holdError && (
-          <Alert variant="outline" color="red" title="Hold failed" icon={<IconInfoCircle />}>
+          <Alert variant="outline" color="red" title="No se pudo reservar" icon={<IconInfoCircle />}>
             {normalizeErrorString(holdError)}
           </Alert>
         )}
         {holdSuccess && (
           <div>
-            <h3>You're all set!</h3>
-            <p>Your appointment has been created.</p>
+            <h3>¡Listo!</h3>
+            <p>Tu turno fue creado.</p>
           </div>
         )}
       </BaseScheduler>

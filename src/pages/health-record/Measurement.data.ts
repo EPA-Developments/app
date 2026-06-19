@@ -23,19 +23,19 @@ export const measurementsMeta: Record<string, ObservationType> = {
   'blood-pressure': {
     id: 'blood-pressure',
     code: '85354-9',
-    title: 'Blood Pressure',
+    title: 'Presión arterial',
     description:
-      'Your blood pressure is the pressure exerted on the walls of your blood vessels. When this pressure is high, it can damage your blood vessels and increase your risk for a heart attack or stroke. We measure your blood pressure periodically to make sure it is not staying high. Hypertention is a condition that refers to consistantly high blood pressure.',
+      'La presión arterial es la fuerza que ejerce la sangre sobre las paredes de tus vasos sanguíneos. Cuando es alta, puede dañarlos y aumentar el riesgo de infarto o ACV. La medimos periódicamente para controlar que no se mantenga elevada. La hipertensión es la condición de tener la presión arterial alta de forma sostenida.',
     chartDatasets: [
       {
-        label: 'Diastolic',
+        label: 'Diastólica',
         code: '8462-4',
         unit: 'mm[Hg]',
         backgroundColor: secondBackgroundColor,
         borderColor: secondBorderColor,
       },
       {
-        label: 'Systolic',
+        label: 'Sistólica',
         code: '8480-6',
         unit: 'mm[Hg]',
         backgroundColor,
@@ -46,12 +46,12 @@ export const measurementsMeta: Record<string, ObservationType> = {
   'body-temperature': {
     id: 'body-temperature',
     code: '8310-5',
-    title: 'Body Temperature',
-    description: 'Your body temperature values',
+    title: 'Temperatura corporal',
+    description: 'Tus valores de temperatura corporal',
     chartDatasets: [
       {
-        label: 'Body Temperature',
-        unit: 'C',
+        label: 'Temperatura corporal',
+        unit: '°C',
         backgroundColor,
         borderColor,
       },
@@ -60,12 +60,12 @@ export const measurementsMeta: Record<string, ObservationType> = {
   height: {
     id: 'height',
     code: '8302-2',
-    title: 'Height',
-    description: 'Your height values',
+    title: 'Altura',
+    description: 'Tus valores de altura',
     chartDatasets: [
       {
-        label: 'Height',
-        unit: 'in',
+        label: 'Altura',
+        unit: 'cm',
         backgroundColor,
         borderColor,
       },
@@ -74,12 +74,12 @@ export const measurementsMeta: Record<string, ObservationType> = {
   'respiratory-rate': {
     id: 'respiratory-rate',
     code: '9279-1',
-    title: 'Respiratory Rate',
-    description: 'Your respiratory rate values',
+    title: 'Frecuencia respiratoria',
+    description: 'Tus valores de frecuencia respiratoria',
     chartDatasets: [
       {
-        label: 'Respiratory Rate',
-        unit: 'breaths/minute',
+        label: 'Frecuencia respiratoria',
+        unit: 'resp/min',
         backgroundColor,
         borderColor,
       },
@@ -88,12 +88,12 @@ export const measurementsMeta: Record<string, ObservationType> = {
   'heart-rate': {
     id: 'heart-rate',
     code: '8867-4',
-    title: 'Heart Rate',
-    description: 'Your heart rate values',
+    title: 'Frecuencia cardíaca',
+    description: 'Tus valores de frecuencia cardíaca',
     chartDatasets: [
       {
-        label: 'Heart Rate',
-        unit: 'beats/minute',
+        label: 'Frecuencia cardíaca',
+        unit: 'lpm',
         backgroundColor,
         borderColor,
       },
@@ -102,12 +102,12 @@ export const measurementsMeta: Record<string, ObservationType> = {
   weight: {
     id: 'weight',
     code: '29463-7',
-    title: 'Weight',
-    description: 'Your weight values',
+    title: 'Peso',
+    description: 'Tus valores de peso',
     chartDatasets: [
       {
-        label: 'Weight',
-        unit: 'lbs',
+        label: 'Peso',
+        unit: 'kg',
         backgroundColor,
         borderColor,
       },
