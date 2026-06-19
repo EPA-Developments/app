@@ -153,7 +153,7 @@ export function HomePage(): JSX.Element {
         />
         <Container className={classes.heroContainer}>
           <Title className={classes.heroTitle}>
-            Hola <span className="text-teal-600">{profileName}</span>,<br /> optimizá tu biología y extendé tu Healthspan
+            Hola <span>{profileName}</span>,<br /> optimizá tu biología y extendé tu Healthspan
           </Title>
           <Text c="white" size="lg" maw={640} mt="md" style={{ position: 'relative', zIndex: 1 }}>
             Medicina 3.0: detectamos, prevenimos y optimizamos tu salud antes de los síntomas. Centro de longevidad y

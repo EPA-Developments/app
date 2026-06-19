@@ -101,7 +101,7 @@ export function GetCare(): JSX.Element {
     return (
       <Document width={800}>
         <Stack align="center" gap="md" py="xl">
-          <ThemeIcon size={56} radius="xl" variant="light" color="teal">
+          <ThemeIcon size={56} radius="xl" variant="light">
             <IconCalendarEvent size={30} stroke={1.5} />
           </ThemeIcon>
           <Title order={3} ta="center">

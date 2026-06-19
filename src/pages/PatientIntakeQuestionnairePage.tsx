@@ -57,7 +57,7 @@ export function PatientIntakeQuestionnairePage(): JSX.Element {
     <Document width={800}>
       {isSubmitted ? (
         <Stack align="center" gap="md" py="xl">
-          <ThemeIcon size={56} radius="xl" color="teal" variant="light">
+          <ThemeIcon size={56} radius="xl" variant="light">
             <IconCircleCheck size={30} stroke={1.5} />
           </ThemeIcon>
           <Title order={3} ta="center">

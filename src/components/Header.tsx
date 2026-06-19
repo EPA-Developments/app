@@ -67,7 +67,7 @@ export function Header(): JSX.Element {
                 </Menu.Target>
                 <Menu.Dropdown>
                   <Menu.Item
-                    leftSection={<IconUserCircle size={16} color={theme.colors.teal[6]} stroke={1.5} />}
+                    leftSection={<IconUserCircle size={16} color="var(--mantine-primary-color-filled)" stroke={1.5} />}
                     onClick={() => navigate('/account/profile')?.catch(console.error)}
                   >
                     Mi perfil
