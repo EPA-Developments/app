@@ -11,14 +11,14 @@ export function Footer(): JSX.Element {
         <Container p="xl">
           <Stack gap="xl">
             <SimpleGrid cols={4}>
-              <Anchor href="https://www.medplum.com/docs/tutorials/api-basics/create-fhir-data">Getting started</Anchor>
-              <Anchor href="https://www.medplum.com/docs/tutorials">Playing with Medplum</Anchor>
-              <Anchor href="https://github.com/medplum/foomedical">Open Source</Anchor>
-              <Anchor href="https://www.medplum.com/docs">Documentation</Anchor>
+              <Anchor href="https://www.medplum.com/docs/tutorials/api-basics/create-fhir-data">Primeros pasos</Anchor>
+              <Anchor href="https://www.medplum.com/docs/tutorials">Tutoriales Medplum</Anchor>
+              <Anchor href="https://github.com/biowellness/portal">Código fuente</Anchor>
+              <Anchor href="https://www.medplum.com/docs">Documentación</Anchor>
             </SimpleGrid>
             <Divider />
             <Text c="dimmed" size="sm">
-              &copy; {new Date().getFullYear()} Foo Medical, Inc. All rights reserved.
+              &copy; {new Date().getFullYear()} BioWellness. Todos los derechos reservados.
             </Text>
           </Stack>
         </Container>

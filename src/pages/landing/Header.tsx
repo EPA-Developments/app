@@ -157,9 +157,9 @@ export function Header(): JSX.Element {
 
             <Group className={classes.hiddenMobile}>
               <Button variant="default" onClick={() => navigate('/signin')?.catch(console.error)}>
-                Log in
+                Iniciar sesión
               </Button>
-              <Button onClick={() => navigate('/register')?.catch(console.error)}>Sign up</Button>
+              <Button onClick={() => navigate('/register')?.catch(console.error)}>Crear cuenta</Button>
             </Group>
 
             <Burger opened={drawerOpened} onClick={toggleDrawer} className={classes.hiddenDesktop} />
@@ -172,7 +172,7 @@ export function Header(): JSX.Element {
         onClose={closeDrawer}
         size="100%"
         padding="md"
-        title="Navigation"
+        title="Navegación"
         className={classes.hiddenDesktop}
         zIndex={1000000}
       >

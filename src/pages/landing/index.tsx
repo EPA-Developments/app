@@ -3,6 +3,7 @@
 import { AppShell, Box, Button, Container, Group, Stack, Text, Title, useMantineTheme } from '@mantine/core';
 import cx from 'clsx';
 import type { JSX } from 'react';
+import { useNavigate } from 'react-router';
 import { Footer } from '../../components/Footer';
 import DoctorImage from '../../img/landingPage/doctor.jpg';
 import EngineeringImage from '../../img/landingPage/engineering.jpg';
@@ -11,24 +12,25 @@ import WorkingEnvironmentImage from '../../img/landingPage/working-environment.j
 import { Header } from './Header';
 import classes from './index.module.css';
 
+// NOTA: descripciones placeholder (lorem) — reemplazar por contenido real de BioWellness.
 const features = [
   {
-    title: 'Comprehsive Care Plans',
+    title: 'Planes de cuidado integrales',
     description:
       'Lorem ipsum, dolor sit amet consectetur adipisicing elit. Maiores impedit perferendis suscipit eaque, iste dolor cupiditate blanditiis ratione.',
   },
   {
-    title: 'No hidden fees',
+    title: 'Sin costos ocultos',
     description:
       'Lorem ipsum, dolor sit amet consectetur adipisicing elit. Maiores impedit perferendis suscipit eaque, iste dolor cupiditate blanditiis ratione.',
   },
   {
-    title: '24/7 Messaging',
+    title: 'Mensajería 24/7',
     description:
       'Lorem ipsum, dolor sit amet consectetur adipisicing elit. Maiores impedit perferendis suscipit eaque, iste dolor cupiditate blanditiis ratione.',
   },
   {
-    title: 'Clinically rigorous',
+    title: 'Rigor clínico',
     description:
       'Lorem ipsum, dolor sit amet consectetur adipisicing elit. Maiores impedit perferendis suscipit eaque, iste dolor cupiditate blanditiis ratione.',
   },
@@ -36,6 +38,7 @@ const features = [
 
 export function LandingPage(): JSX.Element {
   const theme = useMantineTheme();
+  const navigate = useNavigate();
   return (
     <AppShell className={classes.outer} header={{ height: 100 }}>
       <Header />
@@ -45,20 +48,30 @@ export function LandingPage(): JSX.Element {
           <div className={classes.inner}>
             <div className={classes.content}>
               <Title className={classes.title}>
-                An extraordinary
+                Longevidad y
                 <br />
-                <span className={classes.highlight}>doctor&apos;s office</span>
+                <span className={classes.highlight}>medicina integrativa</span>
               </Title>
               <Text size="lg" c="dimmed" mt="md">
-                This is not actually a medical practice, this is a sample open source application for developers to
-                clone, customize and run.
+                Centro premium de longevidad y medicina integrativa en San Isidro.
               </Text>
               <Group mt={30}>
-                <Button radius="xl" size="md" className={classes.control}>
-                  Get started
+                <Button
+                  radius="xl"
+                  size="md"
+                  className={classes.control}
+                  onClick={() => navigate('/register')?.catch(console.error)}
+                >
+                  Crear cuenta
                 </Button>
-                <Button variant="default" radius="xl" size="md" className={classes.control}>
-                  Source code
+                <Button
+                  variant="default"
+                  radius="xl"
+                  size="md"
+                  className={classes.control}
+                  onClick={() => navigate('/signin')?.catch(console.error)}
+                >
+                  Iniciar sesión
                 </Button>
               </Group>
             </div>
@@ -69,10 +82,10 @@ export function LandingPage(): JSX.Element {
           <div className={classes.inner}>
             <div style={{ width: 500 }}>
               <Title order={3} fw={500} c={theme.primaryColor} mb="lg">
-                Healthcare
+                Salud
               </Title>
               <Title order={1} fw={500} mb="md">
-                A better way to get care
+                Una mejor forma de cuidar tu salud
               </Title>
               <Text size="xl" c="gray">
                 Lorem ipsum dolor sit amet consect adipisicing elit. Possimus magnam voluptatum cupiditate veritatis in
