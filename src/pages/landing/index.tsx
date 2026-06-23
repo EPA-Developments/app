@@ -115,10 +115,24 @@ export function LandingPage(): JSX.Element {
               Viví más años <span className={classes.accent}>en plena forma</span>
             </Title>
             <Text className={classes.lead}>
-              Optimización biológica y medicina integrativa para extender tu Healthspan. Detectamos, prevenimos y
-              optimizamos tu salud antes de los síntomas.
+              Medicina integrativa y optimización biológica para extender tu Healthspan: actuamos antes de los síntomas.
             </Text>
-            <Group mt="md">
+            {/* CTAs: en mobile apiladas y full-width; en tablet+ en línea */}
+            <Stack gap="sm" mt="md" hiddenFrom="xs">
+              <Button
+                fullWidth
+                size="md"
+                radius="xl"
+                rightSection={<IconArrowRight size={18} />}
+                onClick={() => go('/register')}
+              >
+                Crear cuenta
+              </Button>
+              <Button fullWidth size="md" radius="xl" variant="default" onClick={() => go('/signin')}>
+                Ya tengo cuenta
+              </Button>
+            </Stack>
+            <Group mt="md" visibleFrom="xs">
               <Button size="md" radius="xl" rightSection={<IconArrowRight size={18} />} onClick={() => go('/register')}>
                 Crear cuenta
               </Button>
@@ -130,7 +144,7 @@ export function LandingPage(): JSX.Element {
         </Container>
 
         {/* Medicina 3.0 */}
-        <Container size="lg" py={64}>
+        <Container size="lg" py={{ base: 44, md: 64 }}>
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing={48} verticalSpacing="xl" style={{ alignItems: 'center' }}>
             <div>
               <Text className={classes.eyebrow}>Medicina 3.0</Text>
@@ -148,7 +162,7 @@ export function LandingPage(): JSX.Element {
 
         {/* Hormesis */}
         <Box className={classes.band}>
-          <Container size="lg" py={64}>
+          <Container size="lg" py={{ base: 44, md: 64 }}>
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing={48} verticalSpacing="xl" style={{ alignItems: 'center' }}>
               <img src={DoctorImage} alt="Profesional de BioWellness" className={classes.editorialImg} />
               <div>
@@ -167,7 +181,7 @@ export function LandingPage(): JSX.Element {
         </Box>
 
         {/* Terapias */}
-        <Container size="lg" py={64}>
+        <Container size="lg" py={{ base: 44, md: 64 }}>
           <Stack align="center" gap="xs" mb="xl">
             <Text className={classes.eyebrow}>Nuestras terapias</Text>
             <Title className={classes.sectionTitle} ta="center" maw={760}>
@@ -193,7 +207,7 @@ export function LandingPage(): JSX.Element {
 
         {/* Protocolo */}
         <Box className={classes.dark}>
-          <Container size="lg" py={72}>
+          <Container size="lg" py={{ base: 48, md: 72 }}>
             <Stack align="center" gap="xs" mb="xl">
               <Text className={classes.eyebrowLight}>Cómo funciona</Text>
               <Title className={classes.sectionTitle} ta="center" c="white">
@@ -219,7 +233,7 @@ export function LandingPage(): JSX.Element {
         </Box>
 
         {/* Para quién */}
-        <Container size="lg" py={64}>
+        <Container size="lg" py={{ base: 44, md: 64 }}>
           <Stack align="center" gap="xs" mb="xl">
             <Text className={classes.eyebrow}>Pensado para vos</Text>
             <Title className={classes.sectionTitle} ta="center">
@@ -244,9 +258,9 @@ export function LandingPage(): JSX.Element {
         </Container>
 
         {/* CTA final */}
-        <Container size="lg" pb={80}>
+        <Container size="lg" pb={{ base: 56, md: 80 }}>
           <Box className={classes.ctaCard}>
-            <Stack align="center" gap="md" p={48}>
+            <Stack align="center" gap="md" p={{ base: 28, md: 48 }}>
               <Title className={classes.sectionTitle} ta="center" c="white">
                 Empezá tu camino hacia la longevidad
               </Title>

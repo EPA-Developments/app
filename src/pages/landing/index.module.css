@@ -13,9 +13,9 @@
 }
 
 .heroTitle {
-  font-size: clamp(42px, 7.5vw, 76px);
+  font-size: clamp(33px, 8.5vw, 76px);
   font-weight: 700;
-  line-height: 1.04;
+  line-height: 1.06;
   letter-spacing: -0.02em;
   color: var(--mantine-color-dark-9);
 }
