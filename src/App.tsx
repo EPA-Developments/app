@@ -10,6 +10,7 @@ import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Loading } from './components/Loading';
 import { RegisterPage } from './pages/RegisterPage';
+import { SetPasswordPage } from './pages/SetPasswordPage';
 import { SignInPage } from './pages/SignInPage';
 import { LandingPage } from './pages/landing';
 
@@ -26,6 +27,7 @@ export function App(): JSX.Element | null {
         <Route path="/" element={<LandingPage />} />
         <Route path="signin" element={<SignInPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="setpassword/:id/:secret" element={<SetPasswordPage />} />
         <Route path="*" element={<Navigate replace to="/" />} />
       </Routes>
     );
