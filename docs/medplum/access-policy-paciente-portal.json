@@ -1,0 +1,32 @@
+{
+  "resourceType": "AccessPolicy",
+  "id": "45ff9a4e-e1c6-48d8-aaae-1932aadf216c",
+  "meta": {
+    "project": "7f068d7d-4633-46e9-9eff-d52bc03625b9",
+    "compartment": [
+      { "reference": "Project/7f068d7d-4633-46e9-9eff-d52bc03625b9" }
+    ]
+  },
+  "name": "Paciente — Portal",
+  "resource": [
+    { "resourceType": "Patient", "criteria": "Patient?_id=%patient.id" },
+    { "resourceType": "Observation", "criteria": "Observation?subject=%patient" },
+    { "resourceType": "DiagnosticReport", "criteria": "DiagnosticReport?subject=%patient" },
+    { "resourceType": "CarePlan", "criteria": "CarePlan?subject=%patient" },
+    { "resourceType": "MedicationRequest", "criteria": "MedicationRequest?patient=%patient" },
+    { "resourceType": "Immunization", "criteria": "Immunization?patient=%patient" },
+    { "resourceType": "QuestionnaireResponse", "criteria": "QuestionnaireResponse?subject=%patient" },
+    { "resourceType": "Coverage", "criteria": "Coverage?beneficiary=%patient" },
+    { "resourceType": "DocumentReference", "criteria": "DocumentReference?subject=%patient" },
+    { "resourceType": "Communication", "criteria": "Communication?subject=%patient" },
+    { "resourceType": "Appointment", "criteria": "Appointment?actor=%patient" },
+    { "resourceType": "ObservationDefinition", "readonly": true },
+    { "resourceType": "Questionnaire", "readonly": true },
+    { "resourceType": "Schedule", "readonly": true },
+    { "resourceType": "Slot", "readonly": true },
+    { "resourceType": "HealthcareService", "readonly": true },
+    { "resourceType": "Practitioner", "readonly": true },
+    { "resourceType": "Organization", "readonly": true },
+    { "resourceType": "Binary", "readonly": true }
+  ]
+}
