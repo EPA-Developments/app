@@ -8,9 +8,11 @@ import {
   Group,
   Overlay,
   SimpleGrid,
+  Stack,
   Text,
   ThemeIcon,
   Title,
+  UnstyledButton,
   useMantineTheme,
 } from '@mantine/core';
 import { formatHumanName } from '@medplum/core';
@@ -19,6 +21,7 @@ import { useMedplumProfile } from '@medplum/react';
 import {
   IconActivity,
   IconCalendarEvent,
+  IconChevronRight,
   IconClipboardHeart,
   IconFileCheck,
   IconFileText,
@@ -29,11 +32,27 @@ import {
   IconSnowflake,
   IconSun,
   IconVaccine,
+  IconWallet,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import classes from './HomePage.module.css';
+
+// Tablero mobile: 3 acciones rápidas + filas compactas a las secciones.
+const mobileTiles: { icon: Icon; title: string; href: string }[] = [
+  { icon: IconReportMedical, title: 'Cargar resultado', href: '/health-record/biomarkers' },
+  { icon: IconCalendarEvent, title: 'Reservar', href: '/get-care' },
+  { icon: IconMessage, title: 'Mensajes', href: '/Communication' },
+];
+
+const mobileRows: { icon: Icon; title: string; description: string; href: string }[] = [
+  { icon: IconReportMedical, title: 'Mis biomarcadores', description: 'Resultados y evolución', href: '/health-record/biomarkers' },
+  { icon: IconFileText, title: 'Historia clínica', description: 'Estudios y registros', href: '/health-record' },
+  { icon: IconClipboardHeart, title: 'Mi plan', description: 'Los pasos de tu tratamiento', href: '/care-plan' },
+  { icon: IconFileCheck, title: 'Consentimiento', description: 'Leé y firmá', href: '/health-record/consent' },
+  { icon: IconWallet, title: 'Mi membresía', description: 'Turnos, sesiones y pagos', href: '/membership' },
+];
 
 interface CardItem {
   readonly icon: Icon;
@@ -141,9 +160,71 @@ export function HomePage(): JSX.Element {
   const theme = useMantineTheme();
   const profile = useMedplumProfile() as Patient | Practitioner;
   const profileName = profile.name ? formatHumanName(profile.name[0]) : '';
+  const go = (href: string): void => {
+    navigate(href)?.catch(console.error);
+  };
 
   return (
-    <Box bg="gray.0">
+    <>
+      {/* MOBILE — tablero estilo app */}
+      <Box hiddenFrom="sm" bg="gray.0" px="md" py="lg" mih="100%">
+        <Text fz="sm" c="dimmed">
+          Hola,
+        </Text>
+        <Title order={2} mb="md" style={{ letterSpacing: '-0.01em' }}>
+          {profileName || 'qué bueno verte'}
+        </Title>
+
+        {/* Tarjeta de prioridad */}
+        <Card radius="lg" p="lg" mb="lg" style={{ backgroundColor: 'var(--mantine-primary-color-filled)' }}>
+          <Text c="white" fw={700} fz="lg">
+            Empezá tu protocolo
+          </Text>
+          <Text c="gray.3" fz="sm" mt={4} mb="md">
+            Reservá tu primera sesión o cargá tus biomarcadores y el equipo arma tu plan.
+          </Text>
+          <Button variant="white" radius="xl" size="sm" onClick={() => go('/get-care')}>
+            Reservar turno
+          </Button>
+        </Card>
+
+        {/* Acciones rápidas */}
+        <SimpleGrid cols={3} spacing="sm" mb="lg">
+          {mobileTiles.map((t) => (
+            <UnstyledButton key={t.title} className={classes.tile} onClick={() => go(t.href)}>
+              <ThemeIcon size={44} radius="md" variant="light" color={theme.primaryColor}>
+                <t.icon size={22} stroke={1.5} />
+              </ThemeIcon>
+              <Text fz="xs" fw={600} ta="center" mt={6}>
+                {t.title}
+              </Text>
+            </UnstyledButton>
+          ))}
+        </SimpleGrid>
+
+        {/* Filas a las secciones */}
+        <Stack gap="xs">
+          {mobileRows.map((r) => (
+            <UnstyledButton key={r.title} className={classes.row} onClick={() => go(r.href)}>
+              <ThemeIcon size={38} radius="md" variant="light" color={theme.primaryColor}>
+                <r.icon size={20} stroke={1.5} />
+              </ThemeIcon>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Text fw={600} fz="sm">
+                  {r.title}
+                </Text>
+                <Text fz="xs" c="dimmed">
+                  {r.description}
+                </Text>
+              </div>
+              <IconChevronRight size={18} color="var(--mantine-color-gray-5)" />
+            </UnstyledButton>
+          ))}
+        </Stack>
+      </Box>
+
+      {/* DESKTOP — home completa */}
+      <Box visibleFrom="sm" bg="gray.0">
       {/* Hero */}
       <div className={classes.hero}>
         <Overlay
@@ -259,6 +340,7 @@ export function HomePage(): JSX.Element {
           ))}
         </SimpleGrid>
       </Container>
-    </Box>
+      </Box>
+    </>
   );
 }

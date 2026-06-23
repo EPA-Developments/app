@@ -3,7 +3,6 @@
 import type { JSX } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AccountPage } from './pages/account';
-import { MembershipAndBilling } from './pages/account/MembershipAndBilling';
 import { Profile } from './pages/account/Profile';
 import { Provider } from './pages/account/Provider';
 import { CarePlanPage } from './pages/care-plan';
@@ -24,6 +23,7 @@ import { Vaccine } from './pages/health-record/Vaccine';
 import { Vaccines } from './pages/health-record/Vaccines';
 import { Vitals } from './pages/health-record/Vitals';
 import { HomePage } from './pages/HomePage';
+import { MembershipPage } from './pages/membership';
 import { MessagesPage } from './pages/MessagesPage';
 import { ObservationPage } from './pages/ObservationPage';
 import { PatientIntakeQuestionnairePage } from './pages/PatientIntakeQuestionnairePage';
@@ -64,11 +64,13 @@ export function Router(): JSX.Element {
         <Route path="action-items/:itemId" element={<ActionItem />} />
       </Route>
       <Route path="get-care" element={<GetCare />} />
+      <Route path="membership" element={<MembershipPage />} />
       <Route path="account" element={<AccountPage />}>
         <Route index element={<Navigate replace to="/account/profile" />} />
         <Route path="profile" element={<Profile />} />
         <Route path="provider" element={<Provider />} />
-        <Route path="membership-and-billing" element={<MembershipAndBilling />} />
+        {/* La facturación/membresía se movió a la pestaña Membresía (eje Cliente). */}
+        <Route path="membership-and-billing" element={<Navigate replace to="/membership" />} />
       </Route>
       <Route path="signout" element={<SignOutPage />} />
     </Routes>

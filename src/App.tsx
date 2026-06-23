@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { AppShell } from '@mantine/core';
+import { AppShell, Box } from '@mantine/core';
 import { ErrorBoundary, useMedplum } from '@medplum/react';
 import { Suspense } from 'react';
 import type { JSX } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Router } from './Router';
+import { BottomNav } from './components/BottomNav';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Loading } from './components/Loading';
@@ -36,14 +37,19 @@ export function App(): JSX.Element | null {
   return (
     <AppShell header={{ height: 60 }}>
       <Header />
-      <AppShell.Main>
+      <AppShell.Main pb={{ base: 80, sm: 0 }}>
         <ErrorBoundary>
           <Suspense fallback={<Loading />}>
             <Router />
           </Suspense>
         </ErrorBoundary>
+        {/* El pie es ruidoso en mobile; en smartphone manda el menú inferior. */}
+        <Box visibleFrom="sm">
+          <Footer />
+        </Box>
       </AppShell.Main>
-      <Footer />
+      {/* Menú inferior fijo (solo mobile). */}
+      <BottomNav />
     </AppShell>
   );
 }

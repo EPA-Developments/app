@@ -11,7 +11,6 @@ const sideMenu = {
   menu: [
     { name: 'Perfil', href: '/account/profile' },
     { name: 'Médico de cabecera', href: '/account/provider' },
-    { name: 'Membresía y Facturación', href: '/account/membership-and-billing' },
   ],
 };
 
