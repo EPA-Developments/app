@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { Alert, Button, Loader, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Alert, Button, Divider, Loader, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import type { Appointment, Bundle, HealthcareService, Patient, Reference, Slot } from '@medplum/fhirtypes';
 import { createReference, getExtensionValue, getReferenceString, isDefined, normalizeErrorString } from '@medplum/core';
 import { Document, BaseScheduler, useMedplum } from '@medplum/react';
@@ -10,6 +10,7 @@ import { IconCalendarEvent, IconInfoCircle } from '@tabler/icons-react';
 import { useCallback, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
+import { MyAppointments } from './MyAppointments';
 
 const SERVICE_TYPE_REFERENCE_URI = 'https://medplum.com/fhir/service-type-reference';
 
@@ -87,40 +88,32 @@ export function GetCare(): JSX.Element {
       .finally(() => setHoldLoading(false));
   };
 
+  // Bloque de reserva (escritura). Hoy depende de la agenda del servidor; cuando esté
+  // lista se cablea a los bots de recepción para respetar las reglas de negocio.
+  let reservation: JSX.Element;
   if (loading) {
-    return (
-      <Document width={800}>
-        <Loader />
-      </Document>
+    reservation = <Loader />;
+  } else if (!schedule || !healthcareServiceRef) {
+    // Todavía no hay agenda configurada (sin Schedule o sin servicio asociado): en vez
+    // de un error, mostramos un estado amable e invitamos a escribir.
+    reservation = (
+      <Stack align="center" gap="md" py="xl">
+        <ThemeIcon size={56} radius="xl" variant="light">
+          <IconCalendarEvent size={30} stroke={1.5} />
+        </ThemeIcon>
+        <Title order={3} ta="center">
+          Reserva de turnos en preparación
+        </Title>
+        <Text c="dimmed" ta="center" maw={460}>
+          Estamos terminando de configurar la reserva online. Mientras tanto, escribinos y coordinamos tu turno con el
+          equipo de BioWellness.
+        </Text>
+        <Button onClick={() => navigate('/Communication')?.catch(console.error)}>Enviar un mensaje</Button>
+      </Stack>
     );
-  }
-
-  // Todavía no hay agenda configurada en el servidor (sin Schedule o sin servicio
-  // asociado). En vez de un error, mostramos un estado amable e invitamos a escribir.
-  if (!schedule || !healthcareServiceRef) {
-    return (
-      <Document width={800}>
-        <Stack align="center" gap="md" py="xl">
-          <ThemeIcon size={56} radius="xl" variant="light">
-            <IconCalendarEvent size={30} stroke={1.5} />
-          </ThemeIcon>
-          <Title order={3} ta="center">
-            Reserva de turnos en preparación
-          </Title>
-          <Text c="dimmed" ta="center" maw={460}>
-            Estamos terminando de configurar la reserva online. Mientras tanto, escribinos y coordinamos tu turno con el
-            equipo de BioWellness.
-          </Text>
-          <Button onClick={() => navigate('/Communication')?.catch(console.error)}>Enviar un mensaje</Button>
-        </Stack>
-      </Document>
-    );
-  }
-
-  const actor = schedule.actor.length === 1 ? schedule.actor[0] : undefined;
-
-  return (
-    <Document width={800}>
+  } else {
+    const actor = schedule.actor.length === 1 ? schedule.actor[0] : undefined;
+    reservation = (
       <BaseScheduler actor={actor} fetchOptions={fetchAppointments} onSelectOption={holdAppointment}>
         {holdLoading && <Loader />}
         {!!holdError && (
@@ -135,6 +128,20 @@ export function GetCare(): JSX.Element {
           </div>
         )}
       </BaseScheduler>
+    );
+  }
+
+  return (
+    <Document width={800}>
+      <Title order={2} mb="md">
+        Mis turnos
+      </Title>
+      <MyAppointments patient={patient} />
+      <Divider my="xl" />
+      <Title order={2} mb="md">
+        Reservar un turno
+      </Title>
+      {reservation}
     </Document>
   );
 }
