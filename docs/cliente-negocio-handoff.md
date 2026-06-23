@@ -78,29 +78,39 @@ Objetivo: cablear en el portal las **Sesiones** y **Pagos** del eje Cliente, y l
 | Descubrir disponibilidad | nuevo `src/fhir/booking.ts` | Listar terapias reservables + slots según D. |
 | Permisos | `docs/medplum/access-policy-paciente-portal.json` | Sumar recursos de A/B; aplicar en el server. |
 
-## Reserva online — modelo de **solicitud** (próxima sesión)
+## ✅ Reserva online — modelo de **solicitud** (implementado)
 
-Decisión de negocio/seguridad tomada con el cliente: el paciente **no** escribe
-`Appointment` ni ejecuta bots directamente. El portal genera una **solicitud** que
-Recepción confirma desde su app (donde corren las reglas: R-01 HBOT primero,
-R-07 capacidad/desfasaje, R-13 ventana, seña 50%). Beneficio: no abre permisos de
-ejecución de bots ni reescritura de agenda al paciente.
+Decisión de negocio/seguridad: el paciente **no** escribe `Appointment` ni ejecuta
+bots de reserva. El portal crea una **solicitud** y Recepción la confirma con los
+bots de reserva (que corren las reglas: R-01 HBOT primero, R-07 capacidad/desfasaje,
+R-13 ventana, seña 50%).
 
-Pendiente para implementarlo (sin tocar lo de esta sesión):
-1. **Recepción** define el recurso de la solicitud (recomendado `Task`, o
-   `Communication` con `category=solicitud-turno`) y un bot que la cree/atienda.
-2. **Portal** (`GetCarePage`): reemplazar el `$find`/`$hold` por un formulario que
-   cree la solicitud (terapia + franja preferida + nota) acotada al paciente.
-3. **AccessPolicy**: si se usa `Task`, sumar `Task` (escritura acotada a
-   `Task?requester=%patient` o equivalente) en ambos archivos espejo.
-4. Si en el futuro se decide **reserva inmediata por bots**, antes hay que endurecer
-   `bw-reservar-turno`/`bw-reservar-combo` para derivar el paciente del login (no del
-   input) y dar permiso de ejecutar **solo** esos bots.
+Cómo quedó:
+1. **Portal** (`src/pages/GetCarePage.tsx`): reemplazado el `$find`/`$hold` por un
+   formulario (terapia de `src/fhir/solicitudes.ts` → `TERAPIAS`, preferencia de
+   horario y nota). Al enviar ejecuta el bot **`bw-solicitar-turno`** y lista "Mis
+   solicitudes" con su estado.
+2. **Recepción** (`recepcionistas`): bot `bw-solicitar-turno` crea un `Task`
+   (`code=solicitud-turno`, `status=requested`) y avisa a Recepción por WhatsApp
+   (secret `RECEPCION_WHATSAPP_TO`). Lógica pura en `src/lib/solicitudes.ts` (testeada).
+   Nueva vista **"Solicitudes"** en la app de recepción para atender/confirmar.
+3. **AccessPolicy** (ambos espejos): el paciente solo **lee** sus `Task`
+   (`Task?patient=%patient`) y solo puede **ejecutar** `bw-solicitar-turno`
+   (`Bot?name=bw-solicitar-turno`). No puede crear `Appointment` ni ejecutar otros bots.
+
+> Para activarlo en el server: `npm run deploy:bots` (deploya `bw-solicitar-turno`),
+> `npm run seed` (AccessPolicy) y el Project Secret `RECEPCION_WHATSAPP_TO`.
+> Endurecimiento opcional: crear el bot con `runAsUser` para que `requester` no se
+> pueda falsificar (mientras tanto, Recepción verifica al confirmar).
+
+Futuro (si se quisiera **reserva inmediata** por bots): endurecer
+`bw-reservar-turno`/`bw-reservar-combo` para derivar el paciente del login (no del
+input) antes de habilitar su ejecución al paciente.
 
 ## Checklist
 - [x] Leer el modelo en `recepcionistas` (Sesiones/Pagos/Cobertura).
 - [x] `src/fhir/membership.ts`: fetch de sesiones y pagos por paciente.
 - [x] Cablear secciones *Sesiones* y *Pagos* en `/membership`.
 - [x] Reconciliar AccessPolicy (sumar `Invoice`; unificar con el seed). **Falta aplicarla en el server.**
+- [x] Reserva online por **solicitud** (`Task` + bot `bw-solicitar-turno` + vista Recepción).
 - [x] `npm run build` verde.
-- [ ] Reserva online por **solicitud** (Task/Communication) — próxima sesión.

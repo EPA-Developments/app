@@ -21,6 +21,7 @@
     { "resourceType": "CarePlan", "readonly": true, "criteria": "CarePlan?subject=%patient" },
     { "resourceType": "MedicationRequest", "readonly": true, "criteria": "MedicationRequest?patient=%patient" },
     { "resourceType": "Immunization", "readonly": true, "criteria": "Immunization?patient=%patient" },
+    { "resourceType": "Task", "readonly": true, "criteria": "Task?patient=%patient" },
     { "resourceType": "ObservationDefinition", "readonly": true },
     { "resourceType": "Questionnaire", "readonly": true },
     { "resourceType": "Schedule", "readonly": true },
@@ -28,6 +29,7 @@
     { "resourceType": "HealthcareService", "readonly": true },
     { "resourceType": "Practitioner", "readonly": true },
     { "resourceType": "Organization", "readonly": true },
-    { "resourceType": "Binary", "readonly": true }
+    { "resourceType": "Binary", "readonly": true },
+    { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=bw-solicitar-turno" }
   ]
 }

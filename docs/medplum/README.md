@@ -25,11 +25,15 @@ Cubre todo lo que el portal lee/escribe:
   `DocumentReference` (consentimiento), `Communication` (mensajes).
 - **Compartimento del paciente** — **solo lectura**: `Appointment`, `Coverage`,
   `Invoice` (pagos/señas), `DiagnosticReport`, `CarePlan`, `MedicationRequest`,
-  `Immunization`. La agenda y los planes/pagos los gestiona Recepción; reservar es
-  por *modelo de solicitud*, así que el paciente no escribe `Appointment`.
+  `Immunization`, `Task` (sus solicitudes de turno). La agenda y los planes/pagos
+  los gestiona Recepción; reservar es por *modelo de solicitud*, así que el paciente
+  no escribe `Appointment`.
 - **Definicional / compartido** (`readonly`): `ObservationDefinition` (rangos),
   `Questionnaire`, `Schedule`, `Slot`, `HealthcareService`, `Practitioner`,
   `Organization`, `Binary`.
+- **Bot** (`readonly`, acotado): solo `bw-solicitar-turno` (criteria
+  `Bot?name=bw-solicitar-turno`). Es el único bot que el paciente puede ejecutar
+  (crea su `Task` de solicitud); no puede ejecutar ningún otro bot.
 
 `%patient` lo resuelve Medplum al `Patient` del login. Si en tu server no
 resuelve, usar `%profile` (para un login de paciente es el mismo `Patient`).
