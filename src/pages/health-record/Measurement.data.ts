@@ -71,20 +71,6 @@ export const measurementsMeta: Record<string, ObservationType> = {
       },
     ],
   },
-  'respiratory-rate': {
-    id: 'respiratory-rate',
-    code: '9279-1',
-    title: 'Frecuencia respiratoria',
-    description: 'Tus valores de frecuencia respiratoria',
-    chartDatasets: [
-      {
-        label: 'Frecuencia respiratoria',
-        unit: 'resp/min',
-        backgroundColor,
-        borderColor,
-      },
-    ],
-  },
   'heart-rate': {
     id: 'heart-rate',
     code: '8867-4',
