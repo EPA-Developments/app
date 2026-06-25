@@ -10,10 +10,14 @@ import { LE8_QUESTIONNAIRES } from '../../le8';
 import { biomarkerPanels } from './Biomarkers.data';
 import { measurementsMeta } from './Measurement.data';
 
+// Nota: las rutas y componentes de Resultados de Laboratorio, Medicación y Vacunas
+// se mantienen (no se borran); solo se ocultan del menú.
+//  - Resultados de Laboratorio: oculto por ahora; los estudios se van a cargar desde
+//    otro proyecto (agente-archivo). Volver a sumar acá cuando esté listo.
+//  - Medicación / Vacunas: ocultos del menú por pedido.
 const sideMenu = {
   title: 'Historia Clínica',
   menu: [
-    { name: 'Resultados de Laboratorio', href: '/health-record/lab-results' },
     {
       name: 'Mi salud cardiovascular',
       href: '/health-record/cuestionarios',
@@ -38,8 +42,6 @@ const sideMenu = {
         href: `/health-record/vitals/${id}`,
       })),
     },
-    { name: 'Medicación', href: '/health-record/medications' },
-    { name: 'Vacunas', href: '/health-record/vaccines' },
     { name: 'Cuestionarios', href: '/health-record/questionnaire-responses' },
     { name: 'Consentimiento Informado', href: '/health-record/consent' },
   ],
