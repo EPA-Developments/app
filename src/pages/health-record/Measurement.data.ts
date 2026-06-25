@@ -19,7 +19,23 @@ const borderColor = 'rgba(29, 112, 214, 1)';
 const secondBackgroundColor = 'rgba(255, 119, 0, 0.7)';
 const secondBorderColor = 'rgba(255, 119, 0, 1)';
 
+// Orden de aparición en el submenú de Signos Vitales:
+// Temperatura · Presión arterial · Frecuencia cardíaca · Altura · Peso.
 export const measurementsMeta: Record<string, ObservationType> = {
+  'body-temperature': {
+    id: 'body-temperature',
+    code: '8310-5',
+    title: 'Temperatura corporal',
+    description: 'Tus valores de temperatura corporal',
+    chartDatasets: [
+      {
+        label: 'Temperatura corporal',
+        unit: '°C',
+        backgroundColor,
+        borderColor,
+      },
+    ],
+  },
   'blood-pressure': {
     id: 'blood-pressure',
     code: '85354-9',
@@ -43,15 +59,15 @@ export const measurementsMeta: Record<string, ObservationType> = {
       },
     ],
   },
-  'body-temperature': {
-    id: 'body-temperature',
-    code: '8310-5',
-    title: 'Temperatura corporal',
-    description: 'Tus valores de temperatura corporal',
+  'heart-rate': {
+    id: 'heart-rate',
+    code: '8867-4',
+    title: 'Frecuencia cardíaca',
+    description: 'Tus valores de frecuencia cardíaca',
     chartDatasets: [
       {
-        label: 'Temperatura corporal',
-        unit: '°C',
+        label: 'Frecuencia cardíaca',
+        unit: 'lpm',
         backgroundColor,
         borderColor,
       },
@@ -66,20 +82,6 @@ export const measurementsMeta: Record<string, ObservationType> = {
       {
         label: 'Altura',
         unit: 'cm',
-        backgroundColor,
-        borderColor,
-      },
-    ],
-  },
-  'heart-rate': {
-    id: 'heart-rate',
-    code: '8867-4',
-    title: 'Frecuencia cardíaca',
-    description: 'Tus valores de frecuencia cardíaca',
-    chartDatasets: [
-      {
-        label: 'Frecuencia cardíaca',
-        unit: 'lpm',
         backgroundColor,
         borderColor,
       },
