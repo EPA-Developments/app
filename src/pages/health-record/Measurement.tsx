@@ -5,46 +5,59 @@ import { createReference, formatDate, formatDateTime, formatObservationValue, ge
 import type { Observation, ObservationComponent, Patient } from '@medplum/fhirtypes';
 import { Document, Form, useMedplum } from '@medplum/react';
 import { IconAlertCircle } from '@tabler/icons-react';
-import type { ChartData, ChartDataset } from 'chart.js';
-import { useEffect, useState } from 'react';
+import type { ChartData } from 'chart.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { useParams } from 'react-router';
 import { LineChart } from '../../components/LineChart';
+import { showErrorNotification } from '../../utils/notifications';
 import { measurementsMeta } from './Measurement.data';
 
-export function Measurement(): JSX.Element | null {
+export function Measurement(): JSX.Element {
   const { measurementId } = useParams();
   const { code, title, description, chartDatasets } = measurementsMeta[measurementId as string];
   const medplum = useMedplum();
   const patient = medplum.getProfile() as Patient;
   const [modalOpen, setModalOpen] = useState(false);
-  const [chartData, setChartData] = useState<ChartData<'line', number[]>>();
+  const [submitting, setSubmitting] = useState(false);
+  const [observations, setObservations] = useState<Observation[]>();
 
-  const observations = medplum
-    .searchResources('Observation', `code=${code}&patient=${getReferenceString(patient)}`)
-    .read();
+  // Carga con estado (no Suspense): el `.read()` re-suspendía al guardar y dejaba el
+  // Modal de Mantine a medio cerrar (scroll-lock activo) → la página quedaba "frizada".
+  const loadData = useCallback(() => {
+    medplum
+      .searchResources('Observation', `code=${code}&patient=${getReferenceString(patient)}&_sort=-date&_count=200`)
+      .then(setObservations)
+      .catch(showErrorNotification);
+  }, [medplum, code, patient]);
 
   useEffect(() => {
-    if (observations) {
-      const labels: string[] = [];
-      const datasets: ChartDataset<'line', number[]>[] = chartDatasets.map((item) => ({ ...item, data: [] }));
-      for (const obs of observations) {
-        labels.push(formatDate(obs.effectiveDateTime));
-        if (chartDatasets.length === 1) {
-          datasets[0].data.push(obs.valueQuantity?.value as number);
-        } else {
-          for (let i = 0; i < chartDatasets.length; i++) {
-            datasets[i].data.push((obs.component as ObservationComponent[])[i].valueQuantity?.value as number);
-          }
+    loadData();
+  }, [loadData]);
+
+  const chartData = useMemo<ChartData<'line', number[]> | undefined>(() => {
+    if (!observations) {
+      return undefined;
+    }
+    // Las observaciones vienen ordenadas de la más nueva a la más vieja; el gráfico
+    // las quiere cronológicas.
+    const ascending = [...observations].reverse();
+    const labels: string[] = [];
+    const datasets = chartDatasets.map((item) => ({ ...item, data: [] as number[] }));
+    for (const obs of ascending) {
+      labels.push(formatDate(obs.effectiveDateTime));
+      if (chartDatasets.length === 1) {
+        datasets[0].data.push(obs.valueQuantity?.value as number);
+      } else {
+        for (let i = 0; i < chartDatasets.length; i++) {
+          datasets[i].data.push((obs.component as ObservationComponent[])[i].valueQuantity?.value as number);
         }
       }
-      setChartData({ labels, datasets });
     }
-  }, [chartDatasets, observations]);
+    return { labels, datasets };
+  }, [observations, chartDatasets]);
 
   function addObservation(formData: Record<string, string>): void {
-    console.log(formData);
-
     const obs: Observation = {
       resourceType: 'Observation',
       status: 'preliminary',
@@ -101,10 +114,15 @@ export function Measurement(): JSX.Element | null {
       }));
     }
 
+    setSubmitting(true);
     medplum
       .createResource(obs)
-      .then(() => setModalOpen(false))
-      .catch(console.error);
+      .then(() => {
+        setModalOpen(false);
+        loadData();
+      })
+      .catch(showErrorNotification)
+      .finally(() => setSubmitting(false));
   }
 
   return (
@@ -119,7 +137,7 @@ export function Measurement(): JSX.Element | null {
           {description}
         </Alert>
       </Box>
-      {observations?.length && (
+      {observations && observations.length > 0 && (
         <Table>
           <Table.Thead>
             <Table.Tr>
@@ -146,7 +164,9 @@ export function Measurement(): JSX.Element | null {
               ))}
             </Group>
             <Group justify="flex-end">
-              <Button type="submit">Guardar</Button>
+              <Button type="submit" loading={submitting}>
+                Guardar
+              </Button>
             </Group>
           </Stack>
         </Form>
