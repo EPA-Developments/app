@@ -43,7 +43,8 @@ export function Router(): JSX.Element {
       <Route path="screening-questionnaire" element={<ScreeningQuestionnairePage />} />
       <Route path="patient-intake-questionnaire" element={<PatientIntakeQuestionnairePage />} />
       <Route path="health-record" element={<HealthRecord />}>
-        <Route index element={<Navigate replace to="/health-record/lab-results" />} />
+        {/* Lab-results sigue existiendo pero está oculto del menú; el landing va a Biomarcadores. */}
+        <Route index element={<Navigate replace to="/health-record/biomarkers" />} />
         <Route path="lab-results" element={<LabResults />} />
         <Route path="lab-results/:resultId" element={<LabResult />} />
         <Route path="biomarkers" element={<Navigate replace to="/health-record/biomarkers/endocrinologia" />} />
