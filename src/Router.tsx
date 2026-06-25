@@ -77,6 +77,8 @@ export function Router(): JSX.Element {
         <Route path="membership-and-billing" element={<Navigate replace to="/membership" />} />
       </Route>
       <Route path="signout" element={<SignOutPage />} />
+      {/* Ya autenticado: cualquier ruta pública (signin/register/...) redirige a Inicio. */}
+      <Route path="*" element={<Navigate replace to="/" />} />
     </Routes>
   );
 }
