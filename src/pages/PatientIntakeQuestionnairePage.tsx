@@ -9,6 +9,7 @@ import { IconCircleCheck } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { showErrorNotification } from '../utils/notifications';
+import { fixQuestionnaireResponseTimes } from '../utils/questionnaire';
 import { INTAKE_QUESTIONNAIRE_URL, intakeQuestionnaire } from './intake.questionnaire';
 
 export function PatientIntakeQuestionnairePage(): JSX.Element {
@@ -36,6 +37,7 @@ export function PatientIntakeQuestionnairePage(): JSX.Element {
     try {
       await medplum.createResource<QuestionnaireResponse>({
         ...formData,
+        item: fixQuestionnaireResponseTimes(formData.item),
         status: 'completed',
         subject: createReference(patient),
         source: createReference(patient),

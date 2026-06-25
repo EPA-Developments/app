@@ -9,6 +9,7 @@ import { useCallback } from 'react';
 import type { JSX } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Loading } from '../components/Loading';
+import { fixQuestionnaireResponseTimes } from '../utils/questionnaire';
 
 export function QuestionnairePage(): JSX.Element {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export function QuestionnairePage(): JSX.Element {
       }
 
       medplum
-        .createResource(response)
+        .createResource({ ...response, item: fixQuestionnaireResponseTimes(response.item) })
         .then(() => {
           showNotification({
             icon: <IconCircleCheck />,
