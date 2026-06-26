@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Normaliza una QuestionnaireResponse antes de guardarla.

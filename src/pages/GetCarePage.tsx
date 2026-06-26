@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Reservar un turno — modelo de "solicitud". El paciente pide (terapia + preferencia)
@@ -110,12 +110,12 @@ export function GetCare(): JSX.Element {
         Pedir un turno
       </Title>
       <Text c="dimmed" size="sm" mb="md">
-        Elegí la terapia y tu preferencia de horario. El equipo de BioWellness te confirma el turno (día y hora exactos)
+        Elegí la terapia y tu preferencia de horario. El equipo de Segunda Opinión Médica te confirma el turno (día y hora exactos)
         según disponibilidad.
       </Text>
 
       {ok && (
-        <Alert color="biowellness" variant="light" icon={<IconCircleCheck />} mb="md" title="¡Solicitud enviada!">
+        <Alert color="segundaOpinion" variant="light" icon={<IconCircleCheck />} mb="md" title="¡Solicitud enviada!">
           La recibimos. Te confirmamos el turno a la brevedad; vas a verlo en "Mis turnos".
         </Alert>
       )}

@@ -156,7 +156,7 @@ export function LandingPage(): JSX.Element {
                 revertimos los signos del envejecimiento para extender tus años de vida en plena forma.
               </Text>
             </div>
-            <img src={LabImage} alt="Laboratorio BioWellness" className={classes.editorialImg} />
+            <img src={LabImage} alt="Laboratorio Segunda Opinión Médica" className={classes.editorialImg} />
           </SimpleGrid>
         </Container>
 
@@ -164,7 +164,7 @@ export function LandingPage(): JSX.Element {
         <Box className={classes.band}>
           <Container size="lg" py={{ base: 44, md: 64 }}>
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing={48} verticalSpacing="xl" style={{ alignItems: 'center' }}>
-              <img src={DoctorImage} alt="Profesional de BioWellness" className={classes.editorialImg} />
+              <img src={DoctorImage} alt="Profesional de Segunda Opinión Médica" className={classes.editorialImg} />
               <div>
                 <Text className={classes.eyebrow}>Por qué funciona</Text>
                 <Title className={classes.sectionTitle} mt="sm" mb="md">
@@ -217,7 +217,7 @@ export function LandingPage(): JSX.Element {
             <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl">
               {steps.map((s) => (
                 <div key={s.n}>
-                  <ThemeIcon size={48} radius="xl" variant="white" color="biowellness">
+                  <ThemeIcon size={48} radius="xl" variant="white" color="segundaOpinion">
                     <Text fw={700}>{s.n}</Text>
                   </ThemeIcon>
                   <Text fw={600} fz="lg" c="white" mt="md">
@@ -265,7 +265,7 @@ export function LandingPage(): JSX.Element {
                 Empezá tu camino hacia la longevidad
               </Title>
               <Text c="gray.3" ta="center" maw={540}>
-                Creá tu cuenta y cargá tus biomarcadores para que el equipo de BioWellness diseñe tu protocolo.
+                Creá tu cuenta y cargá tus biomarcadores para que el equipo de Segunda Opinión Médica diseñe tu protocolo.
               </Text>
               <Button size="lg" radius="xl" variant="white" mt="xs" onClick={() => go('/register')}>
                 Crear cuenta

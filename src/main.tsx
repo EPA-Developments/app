@@ -17,24 +17,24 @@ const medplum = new MedplumClient({
   baseUrl: import.meta.env.MEDPLUM_BASE_URL,
 });
 
-// Paleta de marca BioWellness (marrón). El tono 8 (#4a2c1a) es el color principal.
-const biowellness: MantineColorsTuple = [
-  '#f6f4f3',
-  '#e7e2df',
-  '#ccc4bf',
-  '#b3a69f',
-  '#9a897f',
-  '#887468',
-  '#755f51',
-  '#604536',
-  '#4a2c1a',
-  '#3f2516',
+// Paleta de marca Segunda Opinión Médica (azul). El tono 6 (#007ce8) es el color principal.
+const segundaOpinion: MantineColorsTuple = [
+  '#e6f3ff',
+  '#cce4ff',
+  '#99c8ff',
+  '#66abff',
+  '#338fff',
+  '#0073f0',
+  '#007ce8',
+  '#0061b8',
+  '#004d92',
+  '#003a6e',
 ];
 
 const theme = createTheme({
-  primaryColor: 'biowellness',
-  primaryShade: 8,
-  colors: { biowellness },
+  primaryColor: 'segundaOpinion',
+  primaryShade: 6,
+  colors: { segundaOpinion },
   fontSizes: {
     xs: '0.6875rem',
     sm: '0.875rem',

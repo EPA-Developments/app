@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Modelo de Membresía (eje Cliente) — SOLO LECTURA.
 //
 // Espeja el modelo que gestiona Recepción (repo `recepcionistas`): los planes del
-// paciente son recursos `Coverage` con extensiones BioWellness, y los pagos son
+// paciente son recursos `Coverage` con extensiones Segunda Opinión Médica, y los pagos son
 // recursos `Invoice`. El portal NO calcula reglas de negocio ni precios: solo lee
 // esos recursos (ya acotados al paciente por la AccessPolicy "Paciente — Portal")
 // y arma el saldo para mostrarlo, igual que el panel de la app de recepción.
@@ -20,7 +20,7 @@ import type { Appointment, Coverage, Invoice, Patient } from '@medplum/fhirtypes
 
 const BASE = 'https://biowellness.ar/fhir';
 
-/** Extensiones BioWellness usadas para leer planes y pagos (deben coincidir con recepción). */
+/** Extensiones Segunda Opinión Médica usadas para leer planes y pagos (deben coincidir con recepción). */
 const EXT = {
   tipoCobertura: `${BASE}/StructureDefinition/tipo-cobertura`,
   planCodigo: `${BASE}/StructureDefinition/plan-codigo`,
@@ -202,7 +202,7 @@ export async function cargarPagos(medplum: MedplumClient, patient: Patient): Pro
 export const ESTADO_PAGO: Record<string, { label: string; color: string }> = {
   draft: { label: 'Borrador', color: 'gray' },
   issued: { label: 'A pagar', color: 'yellow' },
-  balanced: { label: 'Pagado', color: 'biowellness' },
+  balanced: { label: 'Pagado', color: 'segundaOpinion' },
   cancelled: { label: 'Anulado', color: 'red' },
   'entered-in-error': { label: 'Error de carga', color: 'red' },
 };

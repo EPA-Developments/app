@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Membresía (eje Cliente/negocio): turnos, sesiones, cobertura y pagos. Solo lectura.
@@ -122,7 +122,7 @@ export function MembershipPage(): JSX.Element {
           ) : sesiones.length === 0 ? (
             <Group gap="xs" c="dimmed">
               <IconCalendarEvent size={18} />
-              <Text>No tenés planes con sesiones activos. Consultá con el equipo de BioWellness.</Text>
+              <Text>No tenés planes con sesiones activos. Consultá con el equipo de Segunda Opinión Médica.</Text>
             </Group>
           ) : (
             <Stack gap="sm">

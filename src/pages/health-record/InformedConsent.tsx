@@ -150,7 +150,7 @@ export function InformedConsent(): JSX.Element {
       docStatus: 'final',
       type: {
         coding: [{ system: CONSENT_TYPE_SYSTEM, code: CONSENT_TYPE_CODE, display: 'Patient Consent' }],
-        text: 'Consentimiento Informado BIOWELLNESS',
+        text: 'Consentimiento Informado SEGUNDA OPINIÓN MÉDICA',
       },
       category: [{ text: 'Consentimiento Informado' }],
       subject: createReference(patient),
@@ -161,7 +161,7 @@ export function InformedConsent(): JSX.Element {
         {
           attachment: {
             contentType: 'text/plain; charset=utf-8',
-            title: 'Consentimiento Informado BIOWELLNESS.txt',
+            title: 'Consentimiento Informado SEGUNDA OPINIÓN MÉDICA.txt',
             data: toBase64Utf8(text),
             creation: timestamp,
           },
@@ -202,7 +202,7 @@ export function InformedConsent(): JSX.Element {
           mb="lg"
         >
           Firmaste este consentimiento el {formatDateTime(signed.date)}. Si necesitás revocarlo, escribí a
-          info@biowellness.ar. Podés volver a firmarlo si se actualiza el documento.
+          info@segundaopinion.org. Podés volver a firmarlo si se actualiza el documento.
         </Alert>
       )}
 
@@ -244,7 +244,7 @@ export function InformedConsent(): JSX.Element {
         <Checkbox
           checked={accepted}
           onChange={(e) => setAccepted(e.currentTarget.checked)}
-          label="He leído y comprendido este documento, y consiento libre y voluntariamente recibir los servicios de BIOWELLNESS. La información declarada sobre mi estado de salud es completa y veraz."
+          label="He leído y comprendido este documento, y consiento libre y voluntariamente recibir los servicios de SEGUNDA OPINIÓN MÉDICA. La información declarada sobre mi estado de salud es completa y veraz."
         />
         <TextInput
           label="Aclaración (nombre completo)"

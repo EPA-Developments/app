@@ -4,7 +4,7 @@ import type { JSX } from 'react';
 import { Navigate } from 'react-router';
 
 // El screening de contraindicaciones (HBOT/IHHT) ahora forma parte del
-// cuestionario de ingreso de BioWellness. Mantenemos la ruta antigua como
+// cuestionario de ingreso de Segunda Opinión Médica. Mantenemos la ruta antigua como
 // redirección para no romper enlaces existentes.
 export function ScreeningQuestionnairePage(): JSX.Element {
   return <Navigate replace to="/patient-intake-questionnaire" />;
