@@ -1,9 +1,9 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Página PÚBLICA para fijar la contraseña desde el link de activación.
 // Recepción (app aparte) invita al paciente con `invite` y `sendEmail:false`, y genera
-// un link mágico https://bio.medplum.com.ar/setpassword/:id/:secret que envía por
+// un link mágico https://app.segundaopinion.org/setpassword/:id/:secret que envía por
 // WhatsApp / email / QR. Esta página resuelve ese link, fija la contraseña y manda al
 // paciente al login del portal.
 //
@@ -85,7 +85,7 @@ export function SetPasswordPage(): JSX.Element {
                     Activá tu cuenta
                   </Title>
                   <Text ta="center" c="dimmed" size="sm">
-                    Creá tu contraseña para acceder al portal de BioWellness.
+                    Creá tu contraseña para acceder al portal de Segunda Opinión Médica.
                   </Text>
                 </Stack>
 

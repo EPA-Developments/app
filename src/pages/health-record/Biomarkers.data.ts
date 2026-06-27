@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Catálogo de paneles de biomarcadores de BioWellness.
+ * Catálogo de paneles de biomarcadores de Segunda Opinión Médica.
  *
  * Cada panel se expone como una sección de menú dentro de "Biomarcadores"
  * (Historia Clínica) y permite al paciente cargar y visualizar sus resultados
  * de laboratorio. Cada biomarcador se persiste como un recurso FHIR
  * `Observation` (category=laboratory) en el servidor Medplum.
  *
- * FUENTES (validado contra los documentos de BioWellness en junio 2026):
+ * FUENTES (validado contra los documentos de Segunda Opinión Médica en junio 2026):
  *  - Rangos FUNCIONALES / óptimos: `Tabla_Biomarcadores_Biowellness_v1.xlsx`
  *    (referencia clínica institucional).
  *  - Rangos CONVENCIONALES: rango de laboratorio (lab Stamboulian), según
@@ -17,17 +17,17 @@
  *  - El `BW_Manual_Protocolos_v8.docx` NO contiene datos de laboratorio
  *    (es catálogo de servicios y precios), por lo que no aplica acá.
  *
- * ⚠️ LOINC: ninguna fuente de BioWellness especifica códigos LOINC. Los códigos
+ * ⚠️ LOINC: ninguna fuente de Segunda Opinión Médica especifica códigos LOINC. Los códigos
  * `http://loinc.org` de abajo provienen del estándar internacional y son
  * PROVISIONALES: deben validarse contra el mapeo real del laboratorio. Los
  * marcadores sin LOINC estándar (HOMA-IR, ratios, edad biológica, etc.) usan
- * el sistema de códigos local de BioWellness (`BW_SYSTEM`).
+ * el sistema de códigos local de Segunda Opinión Médica (`BW_SYSTEM`).
  *
  * Las unidades son las informadas por la fuente; su normalización a UCUM
  * estricto es una mejora pendiente.
  */
 
-/** Sistema de códigos local de BioWellness para analitos sin LOINC estándar. */
+/** Sistema de códigos local de Segunda Opinión Médica para analitos sin LOINC estándar. */
 export const BW_SYSTEM = 'https://biowellness.ar/fhir/CodeSystem/biomarker';
 
 export interface BiomarkerRange {
@@ -42,7 +42,7 @@ export interface SexRanges {
 }
 
 export interface Biomarker {
-  /** Código del analito (LOINC por defecto, o local de BioWellness). */
+  /** Código del analito (LOINC por defecto, o local de Segunda Opinión Médica). */
   readonly code: string;
   /** Sistema de códigos. Omitido = LOINC (`http://loinc.org`). */
   readonly system?: string;
@@ -54,7 +54,7 @@ export interface Biomarker {
   readonly description: string;
   /** Rango de referencia convencional del laboratorio (por defecto / unisex). */
   readonly conventional?: BiomarkerRange;
-  /** Rango funcional / óptimo (Tabla institucional BioWellness, por defecto / unisex). */
+  /** Rango funcional / óptimo (Tabla institucional Segunda Opinión Médica, por defecto / unisex). */
   readonly functional?: BiomarkerRange;
   /** Rangos para pacientes masculinos (sobrescriben los de arriba). */
   readonly male?: SexRanges;

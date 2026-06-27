@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Cuestionarios de Life's Essential 8 que completa el paciente en el portal.

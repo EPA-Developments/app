@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Solicitudes de turno (modelo de "solicitud"): el paciente PIDE un turno y
@@ -77,8 +77,8 @@ export async function cargarMisSolicitudes(medplum: MedplumClient, patient: Pati
 export const ESTADO_SOLICITUD: Record<string, { label: string; color: string }> = {
   requested: { label: 'Pendiente', color: 'yellow' },
   received: { label: 'Recibida', color: 'yellow' },
-  accepted: { label: 'En proceso', color: 'biowellness' },
-  'in-progress': { label: 'En proceso', color: 'biowellness' },
+  accepted: { label: 'En proceso', color: 'segundaOpinion' },
+  'in-progress': { label: 'En proceso', color: 'segundaOpinion' },
   completed: { label: 'Resuelta', color: 'gray' },
   cancelled: { label: 'Cancelada', color: 'red' },
   rejected: { label: 'Rechazada', color: 'red' },

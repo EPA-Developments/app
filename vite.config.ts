@@ -16,7 +16,7 @@ export default defineConfig({
   preview: {
     port: 3006,
     allowedHosts: true,
-    host: 'bio.medplum.com.ar',
+    host: 'app.segundaopinion.org',
   },
   server: {
     port: 3006,

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Menú inferior fijo para smartphone (estilo billetera): 4 ejes + botón "+" central.
@@ -57,7 +57,7 @@ const quickActions: QuickAction[] = [
     description: 'Sumá un valor de laboratorio.',
     href: '/health-record/biomarkers',
   },
-  { icon: IconMessage, label: 'Enviar mensaje', description: 'Escribile al equipo de BioWellness.', href: '/Communication' },
+  { icon: IconMessage, label: 'Enviar mensaje', description: 'Escribile al equipo de Segunda Opinión Médica.', href: '/Communication' },
 ];
 
 function isActive(pathname: string, tab: Tab): boolean {

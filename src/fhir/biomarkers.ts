@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Puente entre el portal y el modelo FHIR de biomarcadores en Medplum.
@@ -8,7 +8,7 @@ import type { MedplumClient } from '@medplum/core';
 import type { ObservationDefinition } from '@medplum/fhirtypes';
 import type { Biomarker, BiomarkerRange, PatientSex } from '../pages/health-record/Biomarkers.data';
 
-/** CodeSystems canónicos de BioWellness (deben coincidir con el modelo FHIR en Medplum). */
+/** CodeSystems canónicos de Segunda Opinión Médica (deben coincidir con el modelo FHIR en Medplum). */
 export const PANEL_SYSTEM = 'https://biowellness.ar/fhir/CodeSystem/panel-biomarcador';
 export const TIPO_RANGO_SYSTEM = 'https://biowellness.ar/fhir/CodeSystem/tipo-rango';
 export const BIOMARKER_SYSTEM = 'https://biowellness.ar/fhir/CodeSystem/biomarker';

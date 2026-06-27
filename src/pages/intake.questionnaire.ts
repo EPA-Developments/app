@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Cuestionario de ingreso de BioWellness.
+// Cuestionario de ingreso de Segunda Opinión Médica.
 // Fuente: brief §6.1 (antecedentes, cirugías, medicación, alergias) + contraindicaciones
 // absolutas del Consentimiento Informado (HBOT / IHHT). El médico de la primera
 // entrevista valida y firma; este cuestionario solo registra lo declarado por el paciente.

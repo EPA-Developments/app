@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Contenido del Consentimiento Informado de BIOWELLNESS (Shanti Om SRL).
+ * Contenido del Consentimiento Informado de SEGUNDA OPINIÓN MÉDICA (Shanti Om SRL).
  *
- * Fuente: documento oficial provisto por BioWellness. La sección 1 (Datos del
+ * Fuente: documento oficial provisto por Segunda Opinión Médica. La sección 1 (Datos del
  * cliente) se completa dinámicamente con los datos del paciente logueado y la
  * firma. El resto del texto se reproduce de forma fiel para su lectura y para
  * almacenarlo en el DocumentReference firmado.
@@ -21,7 +21,7 @@ export interface ConsentSection {
 }
 
 export const consentTitle = 'Consentimiento Informado';
-export const consentSubtitle = 'Válido para todos los protocolos y terapias ofrecidos en BIOWELLNESS';
+export const consentSubtitle = 'Válido para todos los protocolos y terapias ofrecidos en SEGUNDA OPINIÓN MÉDICA';
 
 export const consentSections: ConsentSection[] = [
   {
@@ -29,7 +29,7 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'BIOWELLNESS es un centro de optimización biológica que ofrece protocolos orientados a la recuperación, el rendimiento y el bienestar integral. Los servicios incluidos en este consentimiento son:',
+        text: 'SEGUNDA OPINIÓN MÉDICA es un centro de optimización biológica que ofrece protocolos orientados a la recuperación, el rendimiento y el bienestar integral. Los servicios incluidos en este consentimiento son:',
       },
       {
         type: 'ul',
@@ -47,7 +47,7 @@ export const consentSections: ConsentSection[] = [
       },
       {
         type: 'p',
-        text: 'Cada sesión es supervisada por personal capacitado. Las terapias biológicas (ítem 5) requieren adicionalmente una evaluación médica previa con el Director Médico de BIOWELLNESS.',
+        text: 'Cada sesión es supervisada por personal capacitado. Las terapias biológicas (ítem 5) requieren adicionalmente una evaluación médica previa con el Director Médico de SEGUNDA OPINIÓN MÉDICA.',
       },
     ],
   },
@@ -56,21 +56,21 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'Declaro que he informado verazmente a BIOWELLNESS sobre mi estado de salud actual. En particular, declaro que:',
+        text: 'Declaro que he informado verazmente a SEGUNDA OPINIÓN MÉDICA sobre mi estado de salud actual. En particular, declaro que:',
       },
       {
         type: 'ul',
         items: [
           'No padezco ninguna de las contraindicaciones absolutas detalladas en la sección 4 de este documento.',
           'He informado sobre todas las condiciones médicas, cirugías recientes, medicamentos que consumo (incluyendo suplementos y anticoagulantes) y alergias conocidas.',
-          'En caso de embarazo, lo he comunicado expresamente al staff de BIOWELLNESS antes de iniciar cualquier protocolo.',
+          'En caso de embarazo, lo he comunicado expresamente al staff de SEGUNDA OPINIÓN MÉDICA antes de iniciar cualquier protocolo.',
           'No me encuentro bajo los efectos de alcohol, drogas ni medicamentos que alteren la conciencia o el equilibrio.',
           'He consultado con mi médico tratante en caso de padecer enfermedades cardiovasculares, respiratorias, neurológicas, oncológicas o cualquier condición crónica relevante.',
         ],
       },
       {
         type: 'p',
-        text: 'Entiendo que la veracidad de esta declaración es mi responsabilidad y que la omisión de información puede generar riesgos para mi salud, eximiendo a BIOWELLNESS y a su personal de responsabilidad ante dichos eventos.',
+        text: 'Entiendo que la veracidad de esta declaración es mi responsabilidad y que la omisión de información puede generar riesgos para mi salud, eximiendo a SEGUNDA OPINIÓN MÉDICA y a su personal de responsabilidad ante dichos eventos.',
       },
     ],
   },
@@ -79,7 +79,7 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'Las siguientes condiciones constituyen contraindicaciones absolutas para uno o más de los servicios de BIOWELLNESS. Declaro no presentar ninguna de las siguientes sin haber informado al staff:',
+        text: 'Las siguientes condiciones constituyen contraindicaciones absolutas para uno o más de los servicios de SEGUNDA OPINIÓN MÉDICA. Declaro no presentar ninguna de las siguientes sin haber informado al staff:',
       },
       { type: 'sub', text: 'Contraindicaciones absolutas (HBOT y cámara hiperbárica):' },
       {
@@ -123,7 +123,7 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'He sido informado/a de que los servicios de BIOWELLNESS, si bien son seguros dentro de los protocolos establecidos, pueden presentar efectos adversos en algunos casos, entre ellos:',
+        text: 'He sido informado/a de que los servicios de SEGUNDA OPINIÓN MÉDICA, si bien son seguros dentro de los protocolos establecidos, pueden presentar efectos adversos en algunos casos, entre ellos:',
       },
       {
         type: 'ul',
@@ -145,7 +145,7 @@ export const consentSections: ConsentSection[] = [
   {
     heading: '6. Normas de conducta y seguridad',
     blocks: [
-      { type: 'p', text: 'Me comprometo a cumplir las siguientes normas durante mi estadía en BIOWELLNESS:' },
+      { type: 'p', text: 'Me comprometo a cumplir las siguientes normas durante mi estadía en SEGUNDA OPINIÓN MÉDICA:' },
       {
         type: 'ul',
         items: [
@@ -154,7 +154,7 @@ export const consentSections: ConsentSection[] = [
           'No ingresar a las instalaciones bajo efectos de alcohol o sustancias psicoactivas.',
           'Respetar los tiempos de sesión indicados por el operador; no extender ni interrumpir los protocolos sin comunicarlo.',
           'Hidratarme adecuadamente antes y después de cada sesión según las indicaciones del staff.',
-          'No utilizar los equipos de forma autónoma sin supervisión del personal de BIOWELLNESS.',
+          'No utilizar los equipos de forma autónoma sin supervisión del personal de SEGUNDA OPINIÓN MÉDICA.',
           'Consultar sobre mis prótesis o implantes antes de ingresar a cualquier dispositivo electromagnético.',
           'En caso de menores de edad, el acompañante adulto responsable es quien firma este consentimiento y asume plena responsabilidad.',
         ],
@@ -166,19 +166,19 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'De conformidad con la Ley N° 25.326 de Protección de Datos Personales, BIOWELLNESS (Shanti Om SRL) se compromete a:',
+        text: 'De conformidad con la Ley N° 25.326 de Protección de Datos Personales, SEGUNDA OPINIÓN MÉDICA (Shanti Om SRL) se compromete a:',
       },
       {
         type: 'ul',
         items: [
           'Tratar los datos personales y de salud del cliente con carácter confidencial y únicamente para la gestión de sus servicios.',
           'No ceder, vender ni compartir la información personal del cliente con terceros, salvo requerimiento judicial o autorización expresa.',
-          'Garantizar al titular el acceso, rectificación y supresión de sus datos mediante solicitud escrita a info@biowellness.ar.',
+          'Garantizar al titular el acceso, rectificación y supresión de sus datos mediante solicitud escrita a info@segundaopinion.org.',
         ],
       },
       {
         type: 'p',
-        text: 'El cliente autoriza a BIOWELLNESS a registrar y conservar los datos de salud provistos en este formulario en su legajo personal, con acceso restringido al Director Médico y al personal autorizado.',
+        text: 'El cliente autoriza a SEGUNDA OPINIÓN MÉDICA a registrar y conservar los datos de salud provistos en este formulario en su legajo personal, con acceso restringido al Director Médico y al personal autorizado.',
       },
     ],
   },
@@ -191,7 +191,7 @@ export const consentSections: ConsentSection[] = [
         items: [
           'He leído y comprendido completamente el contenido de este documento.',
           'He tenido la oportunidad de realizar preguntas y todas han sido respondidas satisfactoriamente.',
-          'Consiento libre y voluntariamente recibir los servicios de BIOWELLNESS, habiendo sido informado/a de sus características, beneficios, riesgos y contraindicaciones.',
+          'Consiento libre y voluntariamente recibir los servicios de SEGUNDA OPINIÓN MÉDICA, habiendo sido informado/a de sus características, beneficios, riesgos y contraindicaciones.',
           'La información declarada sobre mi estado de salud es completa y veraz.',
           'Entiendo que puedo revocar este consentimiento en cualquier momento, lo cual implicará la interrupción del servicio, sin afectar mis derechos como usuario.',
         ],
@@ -201,4 +201,4 @@ export const consentSections: ConsentSection[] = [
 ];
 
 export const consentFooter =
-  'BIOWELLNESS — Shanti Om SRL  |  Roque Sáenz Peña 530, San Isidro, Buenos Aires  |  info@biowellness.ar';
+  'SEGUNDA OPINIÓN MÉDICA — Shanti Om SRL  |  Roque Sáenz Peña 530, San Isidro, Buenos Aires  |  info@segundaopinion.org';

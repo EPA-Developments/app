@@ -299,7 +299,7 @@ export function BiomarkerPanel(): JSX.Element {
 
       <Box mt="xl">
         <Alert icon={<IconInfoCircle size={16} />} color="gray" radius="md">
-          Los valores que cargás quedan registrados como preliminares hasta que un profesional de BioWellness los valide.
+          Los valores que cargás quedan registrados como preliminares hasta que un profesional de Segunda Opinión Médica los valide.
           El rango funcional representa el valor óptimo; puede ser más estricto que el rango del laboratorio.
         </Alert>
       </Box>

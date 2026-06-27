@@ -84,7 +84,7 @@ const quickActions: CardItem[] = [
   {
     icon: IconMessage,
     title: 'Mensajes',
-    description: 'Comunicate con el equipo de BioWellness.',
+    description: 'Comunicate con el equipo de Segunda Opinión Médica.',
     href: '/Communication',
   },
   {
@@ -322,7 +322,7 @@ export function HomePage(): JSX.Element {
           Cómo funciona
         </Title>
         <Text c="dimmed" mb="lg" maw={720}>
-          La arquitectura de un protocolo BioWellness, en tres pasos.
+          La arquitectura de un protocolo Segunda Opinión Médica, en tres pasos.
         </Text>
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
           {steps.map((step) => (

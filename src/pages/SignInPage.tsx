@@ -22,7 +22,7 @@ export function SignInPage(): JSX.Element {
             clientId={import.meta.env.MEDPLUM_CLIENT_ID}
             onSuccess={() => navigate('/')?.catch(console.error)}
           >
-            <h2>Iniciar sesión en BioWellness</h2>
+            <h2>Iniciar sesión en Segunda Opinión Médica</h2>
           </SignInForm>
         </Box>
         {/* Desktop: imagen al lateral (split). */}

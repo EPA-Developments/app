@@ -24,7 +24,7 @@ export function RegisterPage(): JSX.Element {
             recaptchaSiteKey={import.meta.env.RECAPTCHA_SITE_KEY}
             onSuccess={() => navigate('/')?.catch(console.error)}
           >
-            <h2>Crear cuenta en BioWellness</h2>
+            <h2>Crear cuenta en Segunda Opinión Médica</h2>
           </RegisterForm>
         </Box>
         {/* Desktop: imagen al lateral (split). */}

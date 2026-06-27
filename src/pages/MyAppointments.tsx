@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // "Mis turnos" — vista de SOLO LECTURA de los turnos del paciente.
@@ -19,9 +19,9 @@ import { showErrorNotification } from '../utils/notifications';
 const STATUS: Record<string, { label: string; color: string }> = {
   proposed: { label: 'Propuesto', color: 'gray' },
   pending: { label: 'Pendiente', color: 'yellow' },
-  booked: { label: 'Confirmado', color: 'biowellness' },
-  arrived: { label: 'Presente', color: 'biowellness' },
-  'checked-in': { label: 'Check-in', color: 'biowellness' },
+  booked: { label: 'Confirmado', color: 'segundaOpinion' },
+  arrived: { label: 'Presente', color: 'segundaOpinion' },
+  'checked-in': { label: 'Check-in', color: 'segundaOpinion' },
   waitlist: { label: 'En espera', color: 'yellow' },
   fulfilled: { label: 'Realizado', color: 'gray' },
   cancelled: { label: 'Cancelado', color: 'red' },

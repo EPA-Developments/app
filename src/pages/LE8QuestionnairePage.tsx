@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright BioWellness
+// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
 // Página del portal del paciente: renderiza uno de los cuestionarios de Life's
@@ -59,7 +59,7 @@ export function LE8QuestionnairePage(): JSX.Element {
     return (
       <Document width={800}>
         <Text c="dimmed">
-          Todavía no está disponible el cuestionario “{meta.label}”. Pedile al equipo de BioWellness que lo cargue.
+          Todavía no está disponible el cuestionario “{meta.label}”. Pedile al equipo de Segunda Opinión Médica que lo cargue.
         </Text>
       </Document>
     );
@@ -99,7 +99,7 @@ export function LE8QuestionnairePage(): JSX.Element {
             ¡Gracias por completar tu cuestionario!
           </Title>
           <Text c="dimmed" ta="center" maw={460}>
-            Tus respuestas quedaron registradas. El equipo de BioWellness las usa para tu evaluación cardiovascular
+            Tus respuestas quedaron registradas. El equipo de Segunda Opinión Médica las usa para tu evaluación cardiovascular
             (Life's Essential 8).
           </Text>
         </Stack>
