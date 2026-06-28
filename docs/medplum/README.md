@@ -48,7 +48,7 @@ resuelve, usar `%profile` (para un login de paciente es el mismo `Patient`).
 1. En la app de Medplum, abrir `AccessPolicy/45ff9a4e-e1c6-48d8-aaae-1932aadf216c`,
    pestaña **JSON**, pegar el contenido del archivo y guardar. (Por API:
    `PUT /fhir/R4/AccessPolicy/45ff9a4e-e1c6-48d8-aaae-1932aadf216c`.)
-2. **Project → Default Patient Access Policy** = "Paciente — Portal" (para que los
+2. **Project → Default Patient Access Policy** = "Paciente SOM — Portal" (para que los
    nuevos pacientes invitados la hereden).
 3. Para pacientes ya creados, confirmar que su `ProjectMembership.access.policy`
    apunta a esta AccessPolicy. Editar este recurso es **retroactivo** para los
