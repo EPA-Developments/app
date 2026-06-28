@@ -19,20 +19,18 @@ import { formatHumanName } from '@medplum/core';
 import type { Patient, Practitioner } from '@medplum/fhirtypes';
 import { useMedplumProfile } from '@medplum/react';
 import {
-  IconActivity,
-  IconCalendarEvent,
   IconChevronRight,
   IconClipboardHeart,
+  IconDeviceWatch,
+  IconDna2,
   IconFileCheck,
   IconFileText,
-  IconLungs,
+  IconGenderFemale,
   IconMessage,
-  IconMountain,
   IconReportMedical,
-  IconSnowflake,
   IconStethoscope,
-  IconSun,
-  IconVaccine,
+  IconUserPlus,
+  IconUsers,
   IconWallet,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
@@ -42,8 +40,8 @@ import classes from './HomePage.module.css';
 
 // Tablero mobile: 3 acciones rápidas + filas compactas a las secciones.
 const mobileTiles: { icon: Icon; title: string; href: string }[] = [
-  { icon: IconReportMedical, title: 'Cargar resultado', href: '/health-record/biomarkers' },
-  { icon: IconCalendarEvent, title: 'Reservar', href: '/get-care' },
+  { icon: IconStethoscope, title: 'Segunda Opinión', href: '/solicitar-som' },
+  { icon: IconReportMedical, title: 'Biomarcadores', href: '/health-record/biomarkers' },
   { icon: IconMessage, title: 'Mensajes', href: '/Communication' },
 ];
 
@@ -51,7 +49,7 @@ const mobileRows: { icon: Icon; title: string; description: string; href: string
   { icon: IconStethoscope, title: 'Mi Segunda Opinión', description: 'Estado e informe de tu consulta', href: '/mi-segunda-opinion' },
   { icon: IconReportMedical, title: 'Mis biomarcadores', description: 'Resultados y evolución', href: '/health-record/biomarkers' },
   { icon: IconFileText, title: 'Historia clínica', description: 'Estudios y registros', href: '/health-record' },
-  { icon: IconClipboardHeart, title: 'Mi plan', description: 'Los pasos de tu tratamiento', href: '/care-plan' },
+  { icon: IconClipboardHeart, title: 'Mi plan', description: 'Los pasos de tu seguimiento', href: '/care-plan' },
   { icon: IconFileCheck, title: 'Consentimiento', description: 'Leé y firmá', href: '/health-record/consent' },
   { icon: IconWallet, title: 'Mi membresía', description: 'Turnos, sesiones y pagos', href: '/membership' },
 ];
@@ -66,6 +64,12 @@ interface CardItem {
 // Accesos rápidos a las funciones reales del portal.
 const quickActions: CardItem[] = [
   {
+    icon: IconStethoscope,
+    title: 'Pedir Segunda Opinión',
+    description: 'Iniciá tu segunda opinión cardiológica: cargá tu caso y tus estudios.',
+    href: '/solicitar-som',
+  },
+  {
     icon: IconReportMedical,
     title: 'Biomarcadores',
     description: 'Cargá tus resultados de laboratorio y seguí su evolución.',
@@ -78,12 +82,6 @@ const quickActions: CardItem[] = [
     href: '/health-record',
   },
   {
-    icon: IconCalendarEvent,
-    title: 'Solicitar atención',
-    description: 'Reservá tu próxima sesión o consulta.',
-    href: '/get-care',
-  },
-  {
     icon: IconMessage,
     title: 'Mensajes',
     description: 'Comunicate con el equipo de Segunda Opinión Médica.',
@@ -92,7 +90,7 @@ const quickActions: CardItem[] = [
   {
     icon: IconClipboardHeart,
     title: 'Plan de cuidado',
-    description: 'Los pasos de tu plan personalizado.',
+    description: 'Los pasos de tu seguimiento personalizado.',
     href: '/care-plan',
   },
   {
@@ -103,57 +101,57 @@ const quickActions: CardItem[] = [
   },
 ];
 
-// "Nuestras terapias" — descripciones en voz de paciente, tomadas del playbook
-// (reformuladas; sin precios ni lenguaje interno de venta).
-const therapies: CardItem[] = [
+// "Nuestros servicios" — la oferta cardiovascular de Segunda Opinión Médica
+// (segundaopinionmedica.org). Salud convencional cardiovascular, centrada en datos y prevención.
+const services: CardItem[] = [
   {
-    icon: IconLungs,
-    title: 'Oxigenoterapia Hiperbárica (HBOT)',
-    description: 'Hasta 6 veces más oxígeno en tus células: activa la regeneración profunda y reduce la inflamación.',
+    icon: IconStethoscope,
+    title: 'Segunda Opinión Cardiológica',
+    description: 'Una revisión experta de tu caso por cardiólogos de prestigio internacional.',
   },
   {
-    icon: IconMountain,
-    title: 'IHHT — Entrenamiento mitocondrial',
-    description: 'Como entrenar tus células en los Andes sin salir de San Isidro: fortalecés tus mitocondrias en 45 minutos.',
+    icon: IconUsers,
+    title: 'Líderes globales en salud',
+    description: 'Conectamos tu caso con especialistas y referentes globales en cardiología.',
   },
   {
-    icon: IconSun,
-    title: 'Red Light — Fotobiomodulación',
-    description: 'Luz roja e infrarroja que repara tu piel y desinflama músculos y articulaciones en 30 minutos.',
+    icon: IconUserPlus,
+    title: 'Derivación de colegas',
+    description: 'Si sos profesional, derivá a tu paciente y recibí una copia del informe.',
   },
   {
-    icon: IconSnowflake,
-    title: 'Recovery Pro',
-    description: 'El circuito completo que usan los centros de longevidad del mundo —sauna, frío y red light— en un gabinete privado.',
+    icon: IconDeviceWatch,
+    title: 'Monitoreo remoto',
+    description: 'Seguimiento de tus datos para prevenir antes de los síntomas (Salud 3.0).',
   },
   {
-    icon: IconActivity,
-    title: 'Compresión y Crioterapia',
-    description: 'Compresión neumática para el drenaje linfático y frío localizado para recuperar lesiones e inflamación.',
+    icon: IconDna2,
+    title: 'Genómica',
+    description: 'Información genética aplicada a tu prevención cardiovascular.',
   },
   {
-    icon: IconVaccine,
-    title: 'Terapias IV y Medicina Regenerativa',
-    description: 'Sueros endovenosos y medicina regenerativa avanzada, siempre con evaluación médica previa.',
+    icon: IconGenderFemale,
+    title: 'Corazón y Mujer',
+    description: 'Atención cardiovascular pensada para la salud de la mujer.',
   },
 ];
 
-// "Cómo funciona" — la arquitectura de un protocolo en 3 pasos (playbook L09).
+// "Cómo funciona" — el recorrido de una Segunda Opinión, en 3 pasos (refleja el flujo real del portal).
 const steps = [
   {
     n: 1,
-    title: 'Preparar el terreno',
-    description: 'La HBOT satura tu sangre de oxígeno, baja la inflamación y prepara tus células.',
+    title: 'Contanos tu caso',
+    description: 'Cargá el motivo de consulta, tus antecedentes y subí tus estudios.',
   },
   {
     n: 2,
-    title: 'Adaptar y regenerar',
-    description: 'Sobre ese terreno, el IHHT o las terapias médicas logran una adaptación más profunda.',
+    title: 'Análisis cardiológico',
+    description: 'Estimamos tu riesgo (score PREVENT) y revisamos tu información según las guías.',
   },
   {
     n: 3,
-    title: 'Recuperar',
-    description: 'Frío, sauna y fotobiomodulación desinflaman y reparan para cerrar el ciclo.',
+    title: 'Recibí tu informe',
+    description: 'Un informe de segunda opinión claro y accionable, con recomendaciones.',
   },
 ];
 
@@ -180,13 +178,13 @@ export function HomePage(): JSX.Element {
         {/* Tarjeta de prioridad */}
         <Card radius="lg" p="lg" mb="lg" style={{ backgroundColor: 'var(--mantine-primary-color-filled)' }}>
           <Text c="white" fw={700} fz="lg">
-            Empezá tu protocolo
+            Pedí tu Segunda Opinión
           </Text>
           <Text c="gray.3" fz="sm" mt={4} mb="md">
-            Reservá tu primera sesión o cargá tus biomarcadores y el equipo arma tu plan.
+            Cargá tu caso y tus estudios, y recibí un informe cardiológico con recomendaciones.
           </Text>
-          <Button variant="white" radius="xl" size="sm" onClick={() => go('/get-care')}>
-            Reservar turno
+          <Button variant="white" radius="xl" size="sm" onClick={() => go('/solicitar-som')}>
+            Pedir Segunda Opinión
           </Button>
         </Card>
 
@@ -236,15 +234,15 @@ export function HomePage(): JSX.Element {
         />
         <Container className={classes.heroContainer}>
           <Title className={classes.heroTitle}>
-            Hola <span>{profileName}</span>,<br /> optimizá tu biología y extendé tu Healthspan
+            Hola <span>{profileName}</span>,<br /> tu segunda opinión cardiológica, con líderes globales en salud
           </Title>
           <Text c="white" size="lg" maw={640} mt="md" style={{ position: 'relative', zIndex: 1 }}>
-            Medicina 3.0: detectamos, prevenimos y optimizamos tu salud antes de los síntomas. Centro de longevidad y
-            medicina integrativa en San Isidro.
+            Salud 3.0: datos y prevención. Subí tu caso y tus estudios y recibí un informe de segunda opinión
+            cardiológica, basado en las guías y en tu riesgo cardiovascular.
           </Text>
           <Group mt="xl" style={{ position: 'relative', zIndex: 1 }}>
-            <Button size="lg" radius="xl" className={classes.heroButton} onClick={() => navigate('/get-care')?.catch(console.error)}>
-              Solicitar atención
+            <Button size="lg" radius="xl" className={classes.heroButton} onClick={() => go('/solicitar-som')}>
+              Pedir Segunda Opinión
             </Button>
             <Button
               size="lg"
@@ -290,18 +288,17 @@ export function HomePage(): JSX.Element {
         </SimpleGrid>
       </Container>
 
-      {/* Nuestras terapias */}
+      {/* Nuestros servicios */}
       <Box bg="white">
         <Container py={48}>
           <Title order={2} mb={4}>
-            Nuestras terapias
+            Nuestros servicios
           </Title>
           <Text c="dimmed" mb="lg" maw={720}>
-            Optimización biológica basada en hormesis: estímulos precisos para que tu cuerpo se vuelva más fuerte y
-            eficiente.
+            Atención cardiovascular centrada en datos y prevención: una segunda opinión experta para decidir mejor.
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
-            {therapies.map((item) => (
+            {services.map((item) => (
               <Card key={item.title} withBorder radius="md" p="lg" className={classes.card}>
                 <ThemeIcon size={44} radius="md" variant="light" color={theme.primaryColor}>
                   <item.icon size={24} stroke={1.5} />
@@ -324,7 +321,7 @@ export function HomePage(): JSX.Element {
           Cómo funciona
         </Title>
         <Text c="dimmed" mb="lg" maw={720}>
-          La arquitectura de un protocolo Segunda Opinión Médica, en tres pasos.
+          El recorrido de tu Segunda Opinión Médica, en tres pasos.
         </Text>
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
           {steps.map((step) => (

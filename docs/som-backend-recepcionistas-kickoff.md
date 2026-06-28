@@ -17,7 +17,7 @@ acá.
 - **Proyecto canónico de SOM: `78ead38c-0f59-4576-b196-71685537588c` — "HeartInnovations".**
   Tanto el backend (`recepcionistas`) como el portal (`app`) deben apuntar a este proyecto.
 - ⚠️ **Acción pendiente en `app`:** hoy `app/.env.defaults` apunta a `7f068d7d-…`
-  (ex-BioWellness / "Segunda Opinión Médica"). Para que el flujo SOM funcione end-to-end,
+  (proyecto "Segunda Opinión Médica", 221 recursos FHIR). Para que el flujo SOM funcione end-to-end,
   el portal debe repuntarse a `78ead38c-…` (HeartInnovations) — front y back tienen que
   compartir el mismo proyecto FHIR. Confirmar y actualizar `MEDPLUM_PROJECT_ID`,
   `MEDPLUM_CLIENT_ID` y la AccessPolicy del paciente en ese proyecto.
