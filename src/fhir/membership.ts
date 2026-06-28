@@ -18,7 +18,7 @@ import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { Appointment, Coverage, Invoice, Patient } from '@medplum/fhirtypes';
 
-const BASE = 'https://biowellness.ar/fhir';
+const BASE = 'https://segundaopinionmedica.org/fhir';
 
 /** Extensiones Segunda Opinión Médica usadas para leer planes y pagos (deben coincidir con recepción). */
 const EXT = {

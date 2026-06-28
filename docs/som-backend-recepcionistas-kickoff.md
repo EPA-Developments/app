@@ -22,6 +22,23 @@ acá.
   compartir el mismo proyecto FHIR. Confirmar y actualizar `MEDPLUM_PROJECT_ID`,
   `MEDPLUM_CLIENT_ID` y la AccessPolicy del paciente en ese proyecto.
 
+## ⚠️ Systems FHIR canónicos renombrados (el seed DEBE coincidir)
+
+El portal (`app`) ya migró todos los `system`/`url` canónicos de `biowellness.ar` /
+`bio.medplum.com.ar` a **`segundaopinionmedica.org`**. El seed de `recepcionistas` y los
+recursos FHIR del server (proyecto HeartInnovations) **deben re-seedearse con estos mismos
+valores**, o el portal deja de matchear los datos:
+
+| Concepto | Nuevo valor canónico |
+|---|---|
+| CodeSystem biomarcadores | `https://segundaopinionmedica.org/fhir/CodeSystem/biomarker` |
+| CodeSystem panel | `https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador` |
+| CodeSystem tipo de rango | `https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango` |
+| Base extensiones (Coverage/planes) | `https://segundaopinionmedica.org/fhir` |
+| Questionnaires LE8 | `https://segundaopinionmedica.org/fhir/Questionnaire/le8-*` |
+| Questionnaire intake clínico | `https://segundaopinionmedica.org/Questionnaire/intake-clinico` (name `som-intake-clinico`) |
+| Services / categorías / extensiones SOM | ver `app/src/fhir/som.ts` (ya en `segundaopinionmedica.org`) |
+
 ---
 
 ## Prompt de arranque (pegar en la sesión de `recepcionistas`)

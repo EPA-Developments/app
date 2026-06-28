@@ -7,25 +7,25 @@
 export const LE8_QUESTIONNAIRES = [
   {
     slug: 'le8-sleep-psqi-v1',
-    url: 'https://bio.medplum.com.ar/fhir/Questionnaire/le8-sleep-psqi-v1',
+    url: 'https://segundaopinionmedica.org/fhir/Questionnaire/le8-sleep-psqi-v1',
     label: 'Calidad del sueño',
     description: 'Cuestionario de sueño (PSQI).',
   },
   {
     slug: 'le8-diet-mepa-v1',
-    url: 'https://bio.medplum.com.ar/fhir/Questionnaire/le8-diet-mepa-v1',
+    url: 'https://segundaopinionmedica.org/fhir/Questionnaire/le8-diet-mepa-v1',
     label: 'Alimentación',
     description: 'Patrón alimentario mediterráneo (MEPA).',
   },
   {
     slug: 'le8-activity-evs-v1',
-    url: 'https://bio.medplum.com.ar/fhir/Questionnaire/le8-activity-evs-v1',
+    url: 'https://segundaopinionmedica.org/fhir/Questionnaire/le8-activity-evs-v1',
     label: 'Actividad física',
     description: 'Minutos de actividad por semana.',
   },
   {
     slug: 'le8-tobacco-v1',
-    url: 'https://bio.medplum.com.ar/fhir/Questionnaire/le8-tobacco-v1',
+    url: 'https://segundaopinionmedica.org/fhir/Questionnaire/le8-tobacco-v1',
     label: 'Tabaco',
     description: 'Situación tabáquica.',
   },

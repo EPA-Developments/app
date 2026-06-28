@@ -10,25 +10,25 @@
  * `Observation` (category=laboratory) en el servidor Medplum.
  *
  * FUENTES (validado contra los documentos de Segunda Opinión Médica en junio 2026):
- *  - Rangos FUNCIONALES / óptimos: `Tabla_Biomarcadores_Biowellness_v1.xlsx`
+ *  - Rangos FUNCIONALES / óptimos: tabla institucional de biomarcadores (v1)
  *    (referencia clínica institucional).
  *  - Rangos CONVENCIONALES: rango de laboratorio (lab Stamboulian), según
  *    decisión del equipo (es lo que el paciente ve en su estudio).
- *  - El `BW_Manual_Protocolos_v8.docx` NO contiene datos de laboratorio
+ *  - El manual de protocolos institucional NO contiene datos de laboratorio
  *    (es catálogo de servicios y precios), por lo que no aplica acá.
  *
  * ⚠️ LOINC: ninguna fuente de Segunda Opinión Médica especifica códigos LOINC. Los códigos
  * `http://loinc.org` de abajo provienen del estándar internacional y son
  * PROVISIONALES: deben validarse contra el mapeo real del laboratorio. Los
  * marcadores sin LOINC estándar (HOMA-IR, ratios, edad biológica, etc.) usan
- * el sistema de códigos local de Segunda Opinión Médica (`BW_SYSTEM`).
+ * el sistema de códigos local de Segunda Opinión Médica (`SOM_BIOMARKER_SYSTEM`).
  *
  * Las unidades son las informadas por la fuente; su normalización a UCUM
  * estricto es una mejora pendiente.
  */
 
 /** Sistema de códigos local de Segunda Opinión Médica para analitos sin LOINC estándar. */
-export const BW_SYSTEM = 'https://biowellness.ar/fhir/CodeSystem/biomarker';
+export const SOM_BIOMARKER_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem/biomarker';
 
 export interface BiomarkerRange {
   readonly low?: number;
@@ -104,7 +104,7 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: '30187-9',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'T3 Reversa (rT3)',
         unit: 'ng/dL',
         description: 'Forma inactiva de la T3; se eleva en estrés y enfermedad.',
@@ -245,7 +245,7 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: 'aa-epa-ratio',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'Ratio AA/EPA',
         unit: 'ratio',
         description: 'Relación ácido araquidónico / EPA; índice del balance inflamatorio de la dieta.',
@@ -277,7 +277,7 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: 'homa-ir',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'Índice HOMA-IR',
         unit: 'índice',
         description: 'Estima la resistencia a la insulina a partir de glucemia e insulina en ayunas.',
@@ -328,7 +328,7 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: 'ldl-p',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'LDL Partículas (LDL-P)',
         unit: 'nmol/L',
         description: 'Número de partículas LDL; complementa al colesterol LDL.',
@@ -399,7 +399,7 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: 'omega3-index',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'Índice Omega-3 (EPA+DHA)',
         unit: '%',
         description: 'Porcentaje de omega-3 en la membrana de los glóbulos rojos.',
@@ -407,7 +407,7 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: 'yodo-urinario',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'Yodo urinario',
         unit: 'ug/g creat',
         description: 'Estado de yodo, esencial para la función tiroidea.',
@@ -416,7 +416,7 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: 'dunedin-pace',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'DunedinPACE (ritmo de envejecimiento)',
         unit: 'ritmo/año',
         description: 'Ritmo de envejecimiento biológico por metilación del ADN (1.0 = promedio).',
@@ -425,21 +425,21 @@ export const biomarkerPanels: Record<string, BiomarkerPanelType> = {
       },
       {
         code: 'edad-biologica',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'Edad biológica (metilación ADN)',
         unit: 'años',
         description: 'Edad biológica estimada por relojes epigenéticos; ideal ≤ edad cronológica.',
       },
       {
         code: 'telomeros',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'Longitud telomérica',
         unit: 'kb',
         description: 'Largo de los telómeros; marcador de envejecimiento celular.',
       },
       {
         code: 'nad',
-        system: BW_SYSTEM,
+        system: SOM_BIOMARKER_SYSTEM,
         title: 'NAD+ intracelular',
         unit: 'uM',
         description: 'Coenzima clave en la producción de energía celular; tiende a bajar con la edad.',

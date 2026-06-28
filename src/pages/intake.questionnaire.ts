@@ -11,7 +11,7 @@
 import type { Questionnaire } from '@medplum/fhirtypes';
 
 /** URL canónica del cuestionario de ingreso (compartida con la app clínica vía Medplum). */
-export const INTAKE_QUESTIONNAIRE_URL = 'https://biowellness.ar/Questionnaire/intake-clinico';
+export const INTAKE_QUESTIONNAIRE_URL = 'https://segundaopinionmedica.org/Questionnaire/intake-clinico';
 
 // Definición local: se usa como fallback si el Questionnaire no está cargado en el server.
 // La fuente de verdad es el recurso Questionnaire en Medplum (mismo url canónico).
@@ -20,7 +20,7 @@ export const intakeQuestionnaire: Questionnaire = {
   url: INTAKE_QUESTIONNAIRE_URL,
   version: '1.0.0',
   status: 'active',
-  name: 'biowellness-intake-clinico',
+  name: 'som-intake-clinico',
   title: 'Cuestionario de ingreso',
   subjectType: ['Patient'],
   item: [
