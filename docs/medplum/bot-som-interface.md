@@ -1,9 +1,11 @@
 # Contrato de los bots de Segunda Opinión Médica (SOM)
 
 Los bots **no viven en este repo** (el portal): viven en el repo de bots
-(`recepcionistas` u otro repo de backend) y se despliegan en `api.medplum.com.ar`,
-proyecto `7f068d7d-4633-46e9-9eff-d52bc03625b9`. Este documento es el **contrato** que
-el portal espera, para que el backend lo implemente de forma compatible.
+(`recepcionistas`) y se despliegan en `api.medplum.com.ar`, proyecto
+`78ead38c-0f59-4576-b196-71685537588c` ("HeartInnovations"), que es el proyecto canónico
+de SOM. Front y back comparten ese proyecto (ver
+`som-backend-recepcionistas-kickoff.md`). Este documento es el **contrato** que el portal
+espera, para que el backend lo implemente de forma compatible.
 
 El portal (`src/fhir/som.ts`) define las constantes canónicas que **deben coincidir**:
 

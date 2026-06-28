@@ -30,6 +30,7 @@ import {
   IconMountain,
   IconReportMedical,
   IconSnowflake,
+  IconStethoscope,
   IconSun,
   IconVaccine,
   IconWallet,
@@ -47,6 +48,7 @@ const mobileTiles: { icon: Icon; title: string; href: string }[] = [
 ];
 
 const mobileRows: { icon: Icon; title: string; description: string; href: string }[] = [
+  { icon: IconStethoscope, title: 'Mi Segunda Opinión', description: 'Estado e informe de tu consulta', href: '/mi-segunda-opinion' },
   { icon: IconReportMedical, title: 'Mis biomarcadores', description: 'Resultados y evolución', href: '/health-record/biomarkers' },
   { icon: IconFileText, title: 'Historia clínica', description: 'Estudios y registros', href: '/health-record' },
   { icon: IconClipboardHeart, title: 'Mi plan', description: 'Los pasos de tu tratamiento', href: '/care-plan' },
