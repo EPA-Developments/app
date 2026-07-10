@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
+import { PlanBienestarRoutes } from '@epa/plan-bienestar-react';
 import type { JSX } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AccountPage } from './pages/account';
@@ -33,11 +34,14 @@ import { ScreeningQuestionnairePage } from './pages/ScreeningQuestionnairePage';
 import { MiSegundaOpinion } from './pages/MiSegundaOpinion';
 import { SignOutPage } from './pages/SignOutPage';
 import { SolicitarSOM } from './pages/SolicitarSOM';
+import { Welcome } from './pages/Welcome';
 
 export function Router(): JSX.Element {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      {/* Patient Journey: Bienvenida (auto-registrado) / Onboarding (invitado por Recepción o derivado). */}
+      <Route path="bienvenida" element={<Welcome />} />
       <Route path="Communication" element={<MessagesPage />}>
         <Route path=":messageId" element={<MessagesPage />} />
       </Route>
@@ -69,6 +73,8 @@ export function Router(): JSX.Element {
         <Route index element={<Navigate replace to="/care-plan/action-items" />} />
         <Route path="action-items" element={<ActionItems />} />
         <Route path="action-items/:itemId" element={<ActionItem />} />
+        {/* Plan Bienestar · 100 días (módulo drop-in; elegibilidad auto-gestionada por PlanDefinition). */}
+        <Route path="plan-100-dias/*" element={<PlanBienestarRoutes />} />
       </Route>
       <Route path="get-care" element={<GetCare />} />
       <Route path="solicitar-som" element={<SolicitarSOM />} />

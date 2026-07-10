@@ -262,6 +262,10 @@ export function HomePage(): JSX.Element {
 
       {/* Accesos rápidos */}
       <Container py={48}>
+        {/* Plan Bienestar · 100 días: la card se auto-gestiona (null si el paciente no es elegible). */}
+        <Box mb="xl">
+          <PlanBienestarCard />
+        </Box>
         <Title order={2} mb="lg">
           Accesos rápidos
         </Title>
@@ -280,7 +284,6 @@ export function HomePage(): JSX.Element {
                 <ThemeIcon size={44} radius="md" variant="light" color={theme.primaryColor}>
                   <item.icon size={24} stroke={1.5} />
                 </ThemeIcon>
-                <PlanBienestarCard />
                 <div>
                   <Text fw={600}>{item.title}</Text>
                   <Text size="sm" c="dimmed">

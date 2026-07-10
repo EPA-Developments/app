@@ -10,6 +10,7 @@ import { BottomNav } from './components/BottomNav';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Loading } from './components/Loading';
+import { OnboardingGate } from './components/OnboardingGate';
 import { RegisterPage } from './pages/RegisterPage';
 import { SetPasswordPage } from './pages/SetPasswordPage';
 import { SignInPage } from './pages/SignInPage';
@@ -40,7 +41,9 @@ export function App(): JSX.Element | null {
       <AppShell.Main pb={{ base: 80, sm: 0 }}>
         <ErrorBoundary>
           <Suspense fallback={<Loading />}>
-            <Router />
+            <OnboardingGate>
+              <Router />
+            </OnboardingGate>
           </Suspense>
         </ErrorBoundary>
         {/* El pie es ruidoso en mobile; en smartphone manda el menú inferior. */}

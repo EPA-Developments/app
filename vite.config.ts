@@ -13,6 +13,13 @@ if (!existsSync(path.join(__dirname, '.env'))) {
 export default defineConfig({
   envPrefix: ['MEDPLUM_', 'GOOGLE_', 'RECAPTCHA_'],
   plugins: [react()],
+  resolve: {
+    // Módulo Plan Bienestar vendorizado (ver src/vendor/plan-bienestar/README.md).
+    alias: {
+      '@epa/careplan-menopausia': path.resolve(__dirname, 'src/vendor/plan-bienestar/careplan-menopausia/index.ts'),
+      '@epa/plan-bienestar-react': path.resolve(__dirname, 'src/vendor/plan-bienestar/plan-bienestar-react/index.ts'),
+    },
+  },
   preview: {
     port: 3000,
     allowedHosts: true,

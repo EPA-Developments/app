@@ -9,8 +9,10 @@ import { SideMenu } from '../../components/SideMenu';
 
 const sideMenu = {
   title: 'Plan de Cuidado',
-  menu: [{ name: 'Pasos del plan', href: '/care-plan/action-items' }],
-  menu: [{ name: 'Plan Bienestar 100 Días', href: '/care-plan/plan-100-dias' }],
+  menu: [
+    { name: 'Pasos del plan', href: '/care-plan/action-items' },
+    { name: 'Plan Bienestar 100 Días', href: '/care-plan/plan-100-dias' },
+  ],
 };
 
 export function CarePlanPage(): JSX.Element {
