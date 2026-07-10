@@ -103,6 +103,9 @@ export function evaluateCkmStage(input: CkmInput): CkmResult {
   if (input.acrMgG !== undefined && input.acrMgG >= CKM_LIMITES.acrSevero) {
     marcar('albuminuria-severa', 3, 'Albuminuria severamente aumentada');
   }
+  if (condiciones.highPredictedRisk) {
+    marcar('riesgo-predicho-alto', 3, 'Riesgo cardiovascular predicho alto (PREVENT)');
+  }
 
   // Stage 2: metabolic risk factors / CKD -----------------------------------
   if (

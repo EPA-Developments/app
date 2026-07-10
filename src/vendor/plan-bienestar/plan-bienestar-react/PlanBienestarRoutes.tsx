@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import type { Patient } from '@medplum/fhirtypes';
 import { Route, Routes } from 'react-router';
+import { CargarDatosCkm } from './components/CargarDatosCkm';
 import { CuestionarioDelPlan } from './pages/CuestionarioDelPlan';
 import { MetasDelPlan } from './pages/MetasDelPlan';
 import { PasosDelPlan } from './pages/PasosDelPlan';
@@ -26,6 +27,7 @@ export function PlanBienestarRoutes(props: PlanBienestarRoutesProps): ReactEleme
     <Routes>
       <Route index element={<PasosDelPlan patient={props.patient} basePath={props.basePath} />} />
       <Route path="metas" element={<MetasDelPlan patient={props.patient} basePath={props.basePath} />} />
+      <Route path="mis-datos" element={<CargarDatosCkm patient={props.patient} />} />
       <Route
         path="cuestionario/:taskId"
         element={<CuestionarioDelPlan patient={props.patient} basePath={props.basePath} />}

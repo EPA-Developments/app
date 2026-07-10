@@ -12,6 +12,7 @@ const sideMenu = {
   menu: [
     { name: 'Pasos del plan', href: '/care-plan/action-items' },
     { name: 'Plan Bienestar 100 Días', href: '/care-plan/plan-100-dias' },
+    { name: 'Mis datos de salud', href: '/care-plan/plan-100-dias/mis-datos' },
   ],
 };
 

@@ -23,6 +23,11 @@ export interface CkmConditions {
   clinicalCvd?: boolean;
   /** Kidney failure (ESRD / dialysis): switches stage 4a -> 4b. */
   kidneyFailure?: boolean;
+  /**
+   * High predicted CVD risk (PREVENT), a stage-3 risk equivalent per Ndumele.
+   * Computed from the PREVENT module and passed in.
+   */
+  highPredictedRisk?: boolean;
 }
 
 /** Structured inputs for CKM staging. All measurements optional. */
