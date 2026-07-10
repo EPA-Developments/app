@@ -30,6 +30,7 @@ export {
 } from './hooks/useElegibilidad';
 export {
   usePlanBienestar,
+  esCarePlanDelPlan,
   type PlanBienestar,
   type UsePlanBienestarOptions,
 } from './hooks/usePlanBienestar';

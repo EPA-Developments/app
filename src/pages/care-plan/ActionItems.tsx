@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
+import { esCarePlanDelPlan } from '@epa/plan-bienestar-react';
 import { Box, Stack, Text, Title, useMantineTheme } from '@mantine/core';
 import { formatDate, getReferenceString } from '@medplum/core';
 import type { Patient } from '@medplum/fhirtypes';
@@ -23,7 +24,15 @@ export function ActionItems(): JSX.Element {
       <InfoSection title="Pasos del plan">
         <Stack gap={0}>
           {carePlans.map((resource) => (
-            <InfoButton key={resource.id} onClick={() => navigate(`./${resource.id}`)?.catch(console.error)}>
+            <InfoButton
+              key={resource.id}
+              // El Plan Bienestar tiene sus propias pantallas amigables; el resto va al detalle genérico.
+              onClick={() =>
+                navigate(esCarePlanDelPlan(resource) ? '/care-plan/plan-100-dias' : `./${resource.id}`)?.catch(
+                  console.error
+                )
+              }
+            >
               <div>
                 <Text c={theme.primaryColor} fw={500}>
                   {resource.title}

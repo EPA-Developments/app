@@ -33,7 +33,12 @@ export interface PlanBienestar {
   refrescar: () => void;
 }
 
-function esDelPlan(carePlan: CarePlan, url: string): boolean {
+/**
+ * Whether a CarePlan belongs to the Plan Bienestar (it instantiates the plan's
+ * PlanDefinition). Host apps use it to route the plan's CarePlan to the
+ * patient-friendly plan screens instead of a raw FHIR resource view.
+ */
+export function esCarePlanDelPlan(carePlan: CarePlan, url: string = MENOPAUSE_PLAN_DEFINITION_URL): boolean {
   return (carePlan.instantiatesCanonical ?? []).some(
     (canonical) => canonical === url || canonical.startsWith(`${url}|`),
   );
@@ -72,7 +77,7 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
         subject: getReferenceString(paciente),
         status: 'active',
       });
-      const plan = planes.find((candidate) => esDelPlan(candidate, url));
+      const plan = planes.find((candidate) => esCarePlanDelPlan(candidate, url));
       if (cancelado) return;
 
       if (!plan) {
