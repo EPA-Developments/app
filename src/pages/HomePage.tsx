@@ -37,6 +37,7 @@ import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import classes from './HomePage.module.css';
+import { PlanBienestarCard } from '@epa/plan-bienestar-react';
 
 // Tablero mobile: 3 acciones rápidas + filas compactas a las secciones.
 const mobileTiles: { icon: Icon; title: string; href: string }[] = [
@@ -187,6 +188,9 @@ export function HomePage(): JSX.Element {
             Pedir Segunda Opinión
           </Button>
         </Card>
+        <Container mt="md">
+          <PlanBienestarCard />
+        </Container>
 
         {/* Acciones rápidas */}
         <SimpleGrid cols={3} spacing="sm" mb="lg">
@@ -276,6 +280,7 @@ export function HomePage(): JSX.Element {
                 <ThemeIcon size={44} radius="md" variant="light" color={theme.primaryColor}>
                   <item.icon size={24} stroke={1.5} />
                 </ThemeIcon>
+                <PlanBienestarCard />
                 <div>
                   <Text fw={600}>{item.title}</Text>
                   <Text size="sm" c="dimmed">
