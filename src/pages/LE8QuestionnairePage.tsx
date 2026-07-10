@@ -5,7 +5,7 @@
 // Essential 8 (por slug) y, al enviarlo, crea un QuestionnaireResponse a nombre del
 // propio paciente logueado. El dashboard lo interpreta automáticamente: el portal solo
 // muestra el formulario y guarda la respuesta; no toca el Questionnaire ni el dashboard.
-import { Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Button, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { createReference } from '@medplum/core';
 import type { Patient, Questionnaire, QuestionnaireResponse } from '@medplum/fhirtypes';
@@ -33,6 +33,9 @@ export function LE8QuestionnairePage(): JSX.Element {
     if (!meta) {
       return;
     }
+    // Al cambiar de cuestionario (slug) reseteamos el estado: sin esto, la
+    // pantalla de "¡Gracias!" del anterior queda pegada y no deja cargar otro.
+    setIsSubmitted(false);
     setQuestionnaire(undefined);
     medplum
       .searchOne('Questionnaire', { url: meta.url })
@@ -41,7 +44,7 @@ export function LE8QuestionnairePage(): JSX.Element {
         setQuestionnaire(null);
         showErrorNotification(err);
       });
-  }, [medplum, meta]);
+  }, [medplum, meta?.url]);
 
   if (!meta) {
     return (
@@ -102,6 +105,9 @@ export function LE8QuestionnairePage(): JSX.Element {
             Tus respuestas quedaron registradas. El equipo de Segunda Opinión Médica las usa para tu evaluación cardiovascular
             (Life's Essential 8).
           </Text>
+          <Button variant="light" radius="xl" onClick={() => setIsSubmitted(false)}>
+            Responder de nuevo
+          </Button>
         </Stack>
       ) : (
         <>
