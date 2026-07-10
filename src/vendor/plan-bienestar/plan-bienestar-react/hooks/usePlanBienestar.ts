@@ -4,7 +4,7 @@ import {
   buildMenopauseCarePlanBundle,
 } from '@epa/careplan-menopausia';
 import { createReference, getReferenceString } from '@medplum/core';
-import type { Bundle, CarePlan, Goal, Patient, Task } from '@medplum/fhirtypes';
+import type { Bundle, CarePlan, Goal, Patient, Reference, Task } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { useCallback, useEffect, useState } from 'react';
 import { usePaciente } from '../PlanBienestarContext';
@@ -44,6 +44,11 @@ export function esCarePlanDelPlan(carePlan: CarePlan, url: string = MENOPAUSE_PL
   );
 }
 
+/** Sortable creation date of a CarePlan (created > period.start > lastUpdated). */
+function fechaDelPlan(carePlan: CarePlan): string {
+  return carePlan.created ?? carePlan.period?.start ?? carePlan.meta?.lastUpdated ?? '';
+}
+
 /**
  * Loads (and lets the patient start) their CarePlan instantiated from the
  * plan's PlanDefinition, plus its Tasks ("pasos") and Goals ("metas").
@@ -77,7 +82,10 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
         subject: getReferenceString(paciente),
         status: 'active',
       });
-      const plan = planes.find((candidate) => esCarePlanDelPlan(candidate, url));
+      // El mas reciente primero: si quedaron planes viejos de pruebas, gana el nuevo.
+      const plan = planes
+        .filter((candidate) => esCarePlanDelPlan(candidate, url))
+        .sort((a, b) => fechaDelPlan(b).localeCompare(fechaDelPlan(a)))[0];
       if (cancelado) return;
 
       if (!plan) {
@@ -88,19 +96,25 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
         return;
       }
 
+      // Tolerante a referencias rotas: un Goal/Task borrado en el servidor no
+      // puede tirar abajo la pagina entera (mostramos lo que si existe).
       const [tareas, objetivos] = await Promise.all([
-        medplum.searchResources('Task', { 'based-on': getReferenceString(plan) }),
+        medplum
+          .searchResources('Task', { 'based-on': getReferenceString(plan) })
+          .catch(() => [] as Task[]),
         Promise.all(
           (plan.goal ?? [])
             .filter((referencia) => referencia.reference)
-            .map((referencia) => medplum.readReference(referencia as { reference: string })),
+            .map((referencia) =>
+              medplum.readReference(referencia as Reference<Goal>).catch(() => undefined),
+            ),
         ),
       ]);
       if (cancelado) return;
 
       setCarePlan(plan);
       setPasos(tareas);
-      setMetas(objetivos as Goal[]);
+      setMetas(objetivos.filter((objetivo) => objetivo !== undefined));
       setCargando(false);
     })().catch(() => {
       if (!cancelado) setCargando(false);
