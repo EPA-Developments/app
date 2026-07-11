@@ -285,4 +285,3 @@ export function Profile(): JSX.Element | null {
     </Box>
   );
 }
-}
