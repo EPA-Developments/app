@@ -10,6 +10,16 @@ export interface PlanBienestarConfig {
   patient?: Patient;
   /** Base path where `PlanBienestarRoutes` is mounted. */
   basePath?: string;
+  /**
+   * Commercial gate. When false (default) the plan needs no Coverage: research
+   * cohorts and non-monetised installs behave exactly as before. Set to true to
+   * require an active Coverage carrying the plan code.
+   */
+  requiereCobertura?: boolean;
+  /** Extension URL carrying the plan code on Coverage. */
+  planCodigoExtension?: string;
+  /** Plan code that grants access. Defaults to `PB100D`. */
+  planCodigo?: string;
 }
 
 export const DEFAULT_BASE_PATH = '/care-plan/plan-100-dias';
