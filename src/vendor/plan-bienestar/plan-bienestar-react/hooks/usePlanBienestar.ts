@@ -4,6 +4,7 @@ import {
   buildMenopauseCarePlanBundle,
 } from '@epa/careplan-menopausia';
 import { createReference, getReferenceString } from '@medplum/core';
+import type { MedplumClient } from '@medplum/core';
 import type { Bundle, CarePlan, Goal, Patient, Reference, Task } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { useCallback, useEffect, useState } from 'react';
@@ -50,6 +51,24 @@ function fechaDelPlan(carePlan: CarePlan): string {
 }
 
 /**
+ * Busca en el servidor el CarePlan activo del plan para el paciente.
+ * El mas reciente primero: si quedaron planes viejos de pruebas, gana el nuevo.
+ */
+async function buscarPlanActivo(
+  medplum: MedplumClient,
+  paciente: Patient,
+  url: string,
+): Promise<CarePlan | undefined> {
+  const planes = await medplum.searchResources('CarePlan', {
+    subject: getReferenceString(paciente),
+    status: 'active',
+  });
+  return planes
+    .filter((candidato) => esCarePlanDelPlan(candidato, url))
+    .sort((a, b) => fechaDelPlan(b).localeCompare(fechaDelPlan(a)))[0];
+}
+
+/**
  * Loads (and lets the patient start) their CarePlan instantiated from the
  * plan's PlanDefinition, plus its Tasks ("pasos") and Goals ("metas").
  */
@@ -78,14 +97,7 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
 
     setCargando(true);
     (async () => {
-      const planes = await medplum.searchResources('CarePlan', {
-        subject: getReferenceString(paciente),
-        status: 'active',
-      });
-      // El mas reciente primero: si quedaron planes viejos de pruebas, gana el nuevo.
-      const plan = planes
-        .filter((candidate) => esCarePlanDelPlan(candidate, url))
-        .sort((a, b) => fechaDelPlan(b).localeCompare(fechaDelPlan(a)))[0];
+      const plan = await buscarPlanActivo(medplum, paciente, url);
       if (cancelado) return;
 
       if (!plan) {
@@ -95,6 +107,10 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
         setCargando(false);
         return;
       }
+
+      // El plan existe: publicarlo antes de cargar detalles, para que ninguna
+      // falla posterior lo haga parecer inexistente ("todavia no empezaste").
+      setCarePlan(plan);
 
       // Tolerante a referencias rotas: un Goal/Task borrado en el servidor no
       // puede tirar abajo la pagina entera (mostramos lo que si existe).
@@ -112,7 +128,6 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
       ]);
       if (cancelado) return;
 
-      setCarePlan(plan);
       setPasos(tareas);
       setMetas(objetivos.filter((objetivo) => objetivo !== undefined));
       setCargando(false);
@@ -127,6 +142,17 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
 
   const empezarPlan = useCallback(async (): Promise<CarePlan | undefined> => {
     if (!paciente?.id) return undefined;
+
+    // Guardia de idempotencia: si el servidor ya tiene un plan activo, usarlo.
+    // El estado local puede estar desactualizado (otra pestana, carga fallida);
+    // sin esta guardia cada toque de "Empezar mi plan" crea un CarePlan
+    // duplicado con todos sus Goals y Tasks.
+    const existente = await buscarPlanActivo(medplum, paciente, url).catch(() => undefined);
+    if (existente) {
+      refrescar();
+      return existente;
+    }
+
     // Preferir el Questionnaire ya publicado en el servidor: bajo politicas de
     // acceso restrictivas los pacientes no pueden crear Questionnaires.
     const cuestionarios = await medplum
