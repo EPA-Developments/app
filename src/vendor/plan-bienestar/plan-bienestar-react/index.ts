@@ -34,11 +34,22 @@ export {
   type PlanBienestar,
   type UsePlanBienestarOptions,
 } from './hooks/usePlanBienestar';
+export {
+  useCobertura,
+  PB100D_CODIGO,
+  PB100D_SERVICE_SYSTEM,
+  PLAN_CODIGO_EXT_DEFAULT,
+  type Cobertura,
+  type CoberturaConfig,
+  type EstadoCobertura,
+} from './hooks/useCobertura';
 export { PlanBienestarCard, type PlanBienestarCardProps } from './components/PlanBienestarCard';
+
+// Estadificacion CKM y riesgo PREVENT (AHA/Ndumele · AHA/Khan) -----------------
 export { EstadioCkmCard, type EstadioCkmCardProps } from './components/EstadioCkmCard';
-export { useCkm, type Ckm, type UseCkmOptions } from './hooks/useCkm';
 export { RiesgoPreventCard, type RiesgoPreventCardProps } from './components/RiesgoPreventCard';
 export { CargarDatosCkm, type CargarDatosCkmProps } from './components/CargarDatosCkm';
+export { useCkm, type Ckm, type UseCkmOptions } from './hooks/useCkm';
 export {
   useRiesgoPrevent,
   type RiesgoPrevent,
