@@ -16,12 +16,23 @@ export const PATIENT_ORIGIN_EXT = 'https://segundaopinionmedica.org/fhir/Structu
 export const ONBOARDING_COMPLETED_EXT =
   'https://segundaopinionmedica.org/fhir/StructureDefinition/onboarding-completed';
 
+/**
+ * Namespaces de las apps del ecosistema que escriben el origen. Cada marca usa el
+ * suyo (Recepción escribe bajo `biowellness.ar`), así que al LEER aceptamos todos:
+ * el portal no puede depender de qué backend dio de alta al paciente. Para escribir
+ * se usa siempre `PATIENT_ORIGIN_EXT`, el canónico de esta app.
+ */
+const PATIENT_ORIGIN_EXTS = [
+  PATIENT_ORIGIN_EXT,
+  'https://biowellness.ar/fhir/StructureDefinition/patient-origin',
+];
+
 /** Origen del paciente: auto-registrado, invitado por Recepción o derivado por un colega. */
 export type PatientOrigin = 'self' | 'reception' | 'referral';
 
 /** Lee el origen del paciente desde la extensión; sin marcador = auto-registrado. */
 export function getPatientOrigin(patient: Patient): PatientOrigin {
-  const code = patient.extension?.find((e) => e.url === PATIENT_ORIGIN_EXT)?.valueCode;
+  const code = patient.extension?.find((e) => PATIENT_ORIGIN_EXTS.includes(e.url))?.valueCode;
   return code === 'reception' || code === 'referral' ? code : 'self';
 }
 
