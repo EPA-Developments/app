@@ -20,28 +20,50 @@ import type { Appointment, Coverage, Invoice, Patient } from '@medplum/fhirtypes
 
 const BASE = 'https://segundaopinionmedica.org/fhir';
 
-/** Extensiones Segunda Opinión Médica usadas para leer planes y pagos (deben coincidir con recepción). */
+/**
+ * Namespaces del ecosistema EPA-Developments que escriben estas extensiones. Los
+ * recursos comerciales (Coverage/Invoice) los emite Recepción, que usa su propio
+ * namespace, así que al LEER aceptamos todos: el portal no puede depender de con
+ * qué marca se dio de alta el plan. Los nombres de extensión son los mismos en
+ * ambos repos; sólo cambia el prefijo.
+ */
+const BASES = [BASE, 'https://biowellness.ar/fhir'];
+
+/** URLs posibles de una extensión, una por namespace del ecosistema. */
+function urls(nombre: string): string[] {
+  return BASES.map((b) => `${b}/StructureDefinition/${nombre}`);
+}
+
+/** Extensiones usadas para leer planes y pagos (deben coincidir con recepción). */
 const EXT = {
-  tipoCobertura: `${BASE}/StructureDefinition/tipo-cobertura`,
-  planCodigo: `${BASE}/StructureDefinition/plan-codigo`,
-  sesionesMes: `${BASE}/StructureDefinition/sesiones-mes`,
-  sesionesTotal: `${BASE}/StructureDefinition/sesiones-total`,
-  sesionesUsadas: `${BASE}/StructureDefinition/sesiones-usadas`,
-  cicloMes: `${BASE}/StructureDefinition/ciclo-mes`,
-  coberturaUsada: `${BASE}/StructureDefinition/cobertura-usada`,
-  esSena: `${BASE}/StructureDefinition/es-sena`,
-  medioPago: `${BASE}/StructureDefinition/medio-pago`,
+  tipoCobertura: urls('tipo-cobertura'),
+  planCodigo: urls('plan-codigo'),
+  sesionesMes: urls('sesiones-mes'),
+  sesionesTotal: urls('sesiones-total'),
+  sesionesUsadas: urls('sesiones-usadas'),
+  cicloMes: urls('ciclo-mes'),
+  coberturaUsada: urls('cobertura-usada'),
+  esSena: urls('es-sena'),
+  medioPago: urls('medio-pago'),
 } as const;
 
-export type TipoCobertura = 'membresia' | 'paquete';
+/**
+ * `programa` es una cobertura por ventana de tiempo (Plan Bienestar 100 Días), no
+ * por sesiones: no tiene saldo que mostrar en Sesiones.
+ */
+export type TipoCobertura = 'membresia' | 'paquete' | 'programa';
 
 const ESTADOS_TURNO_OCULTOS = new Set(['cancelled', 'entered-in-error']);
 
-function extInteger(c: Coverage, url: string): number | undefined {
-  return c.extension?.find((e) => e.url === url)?.valueInteger;
+/** Busca una extensión por cualquiera de sus URLs posibles. */
+function ext(c: { extension?: { url: string }[] }, urls: readonly string[]) {
+  return c.extension?.find((e) => urls.includes(e.url));
 }
-function extString(c: Coverage, url: string): string | undefined {
-  return c.extension?.find((e) => e.url === url)?.valueString;
+function extInteger(c: Coverage, urls: readonly string[]): number | undefined {
+  return (ext(c, urls) as { valueInteger?: number } | undefined)?.valueInteger;
+}
+function extString(c: Coverage, urls: readonly string[]): string | undefined {
+  return (ext(c, urls) as { valueString?: string } | undefined)?.valueString;
 }
 
 /** Estado base de un plan, leído del Coverage (espeja `estadoDeCoverage` de recepción). */
@@ -56,7 +78,8 @@ export interface EstadoPlan {
 }
 
 export function estadoDeCoverage(c: Coverage): EstadoPlan {
-  const tipo = (c.extension?.find((e) => e.url === EXT.tipoCobertura)?.valueCode ?? 'membresia') as TipoCobertura;
+  const codigo = (ext(c, EXT.tipoCobertura) as { valueCode?: string } | undefined)?.valueCode;
+  const tipo = (codigo === 'paquete' || codigo === 'programa' ? codigo : 'membresia') as TipoCobertura;
   const totalUrl = tipo === 'membresia' ? EXT.sesionesMes : EXT.sesionesTotal;
   const total = extInteger(c, totalUrl) ?? 0;
   const usadas = extInteger(c, EXT.sesionesUsadas) ?? 0;
@@ -91,7 +114,7 @@ export interface SaldoSesiones {
 
 /** Etiqueta legible sin depender del catálogo (que vive en recepción). */
 function planLabel(tipo: TipoCobertura, planCodigo?: string): string {
-  const t = tipo === 'membresia' ? 'Membresía' : 'Paquete';
+  const t = tipo === 'membresia' ? 'Membresía' : tipo === 'programa' ? 'Programa' : 'Paquete';
   return planCodigo ? `${t} · ${planCodigo}` : t;
 }
 
@@ -115,7 +138,7 @@ export async function cargarSesiones(medplum: MedplumClient, patient: Patient): 
     if (!a.start || new Date(a.start).getTime() < now) {
       continue;
     }
-    const covRef = a.extension?.find((e) => e.url === EXT.coberturaUsada)?.valueString;
+    const covRef = (ext(a, EXT.coberturaUsada) as { valueString?: string } | undefined)?.valueString;
     const id = covRef?.startsWith('Coverage/') ? covRef.slice('Coverage/'.length) : undefined;
     if (id) {
       proximasPorCobertura.set(id, (proximasPorCobertura.get(id) ?? 0) + 1);
@@ -128,6 +151,12 @@ export async function cargarSesiones(medplum: MedplumClient, patient: Patient): 
       continue;
     }
     const estado = estadoDeCoverage(c);
+    // Los programas (Plan Bienestar 100 Días) son coberturas por ventana de tiempo
+    // y no tienen sesiones: acá se verían como "0 sesiones / agotado". Su avance se
+    // muestra en la pantalla del plan, no en Sesiones.
+    if (estado.tipo === 'programa') {
+      continue;
+    }
     const restantes = Math.max(estado.total - estado.usadas, 0);
     const vencido = estado.vencimiento ? new Date(estado.vencimiento).getTime() < now : false;
     const planCodigo = extString(c, EXT.planCodigo);
@@ -169,9 +198,9 @@ export interface PagoResumen {
 
 /** Medio de pago: extensión (señas/planes) o el texto de `paymentTerms` (cobros). */
 function medioPagoDeInvoice(inv: Invoice): string | undefined {
-  const ext = inv.extension?.find((e) => e.url === EXT.medioPago)?.valueCode;
-  if (ext) {
-    return ext;
+  const codigo = (ext(inv, EXT.medioPago) as { valueCode?: string } | undefined)?.valueCode;
+  if (codigo) {
+    return codigo;
   }
   const m = inv.paymentTerms?.match(/Medio de pago:\s*(.+)/i);
   return m?.[1]?.trim();
@@ -187,7 +216,7 @@ function toPago(inv: Invoice): PagoResumen {
     moneda: total?.currency ?? 'ARS',
     estado: inv.status ?? 'issued',
     medioPago: medioPagoDeInvoice(inv),
-    esSena: inv.extension?.find((e) => e.url === EXT.esSena)?.valueBoolean === true,
+    esSena: (ext(inv, EXT.esSena) as { valueBoolean?: boolean } | undefined)?.valueBoolean === true,
   };
 }
 
