@@ -64,7 +64,7 @@ export function PlanBienestarCard(props: PlanBienestarCardProps): ReactElement |
   };
 
   // Elegible clinicamente pero sin cobertura: un solo click para pedir el alta.
-  // Recepcion cobra y activa; el plan se arma solo cuando vuelve a entrar.
+  // Recepcion cobra y activa; el plan se arma cuando la paciente vuelve a entrar.
   if (!plan.carePlan && !cobertura.habilitado) {
     const pendiente = cobertura.estado === 'pendiente';
     const vencida = cobertura.estado === 'vencida';
