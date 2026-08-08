@@ -4,9 +4,8 @@ import {
   buildMenopauseCarePlanBundle,
 } from '@epa/careplan-menopausia';
 import { createReference, getReferenceString } from '@medplum/core';
-import type { Bundle, CarePlan, Goal, Patient, Task } from '@medplum/fhirtypes';
+import type { Bundle, CarePlan, Goal, Patient, Reference, Task } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
-import type { MedplumClient } from '@medplum/core';
 import { useCallback, useEffect, useState } from 'react';
 import { usePaciente } from '../PlanBienestarContext';
 
@@ -27,7 +26,7 @@ export interface PlanBienestar {
   metas: Goal[];
   /**
    * True when the CarePlan exists but some of its details (Tasks/Goals) could
-   * not be loaded — e.g. a restrictive AccessPolicy. The plan is still shown.
+   * not be loaded. The plan is still shown.
    */
   errorDetalles: boolean;
   completados: number;
@@ -56,12 +55,12 @@ function fechaDelPlan(carePlan: CarePlan): string {
 }
 
 /**
- * Finds the patient's active CarePlan of the plan on the server. With
- * duplicates (e.g. leftovers from testing), the most recent one wins, so every
- * screen agrees on which plan is "the" plan.
+ * Busca en el servidor el CarePlan activo del plan. El mas reciente primero: si
+ * quedaron planes viejos de pruebas, gana el nuevo. Lo usan tanto la carga como
+ * el alta, para que ambas coincidan en cual es "el" plan.
  */
 async function buscarPlanActivo(
-  medplum: MedplumClient,
+  medplum: ReturnType<typeof useMedplum>,
   paciente: Patient,
   url: string,
 ): Promise<CarePlan | undefined> {
@@ -70,18 +69,13 @@ async function buscarPlanActivo(
     status: 'active',
   });
   return planes
-    .filter((candidato) => esCarePlanDelPlan(candidato, url))
+    .filter((candidate) => esCarePlanDelPlan(candidate, url))
     .sort((a, b) => fechaDelPlan(b).localeCompare(fechaDelPlan(a)))[0];
 }
 
 /**
  * Loads (and lets the patient start) their CarePlan instantiated from the
  * plan's PlanDefinition, plus its Tasks ("pasos") and Goals ("metas").
- *
- * Loading is fault-tolerant: if the CarePlan exists but its details cannot be
- * read (e.g. AccessPolicy), the plan is still reported (with `errorDetalles`)
- * instead of pretending the patient never started — otherwise the UI would
- * offer "start my plan" again and create duplicates.
  */
 export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBienestar {
   const medplum = useMedplum();
@@ -104,7 +98,6 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
       setCarePlan(undefined);
       setPasos([]);
       setMetas([]);
-      setErrorDetalles(false);
       return undefined;
     }
 
@@ -117,40 +110,33 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
         setCarePlan(undefined);
         setPasos([]);
         setMetas([]);
-        setErrorDetalles(false);
         setCargando(false);
         return;
       }
 
-      // El plan existe: mostrarlo aunque después falle la carga de detalles.
+      // El plan existe: publicarlo antes de cargar detalles, para que ninguna
+      // falla posterior lo haga parecer inexistente ("todavia no empezaste").
       setCarePlan(plan);
 
-      let fallo = false;
-      const tareas = await medplum
-        .searchResources('Task', { 'based-on': getReferenceString(plan) })
-        .catch(() => {
-          fallo = true;
-          return [] as Task[];
-        });
-
-      const resultados = await Promise.allSettled(
-        (plan.goal ?? [])
-          .filter((referencia) => referencia.reference)
-          .map((referencia) => medplum.readReference(referencia as { reference: string })),
-      );
-      const objetivos: Goal[] = [];
-      for (const resultado of resultados) {
-        if (resultado.status === 'fulfilled') {
-          objetivos.push(resultado.value as Goal);
-        } else {
-          fallo = true;
-        }
-      }
+      // Tolerante a referencias rotas: un Goal/Task borrado en el servidor no
+      // puede tirar abajo la pagina entera (mostramos lo que si existe).
+      const [tareas, objetivos] = await Promise.all([
+        medplum
+          .searchResources('Task', { 'based-on': getReferenceString(plan) })
+          .catch(() => [] as Task[]),
+        Promise.all(
+          (plan.goal ?? [])
+            .filter((referencia) => referencia.reference)
+            .map((referencia) =>
+              medplum.readReference(referencia as Reference<Goal>).catch(() => undefined),
+            ),
+        ),
+      ]);
       if (cancelado) return;
 
-      setPasos(tareas as Task[]);
-      setMetas(objetivos);
-      setErrorDetalles(fallo);
+      setPasos(tareas);
+      setMetas(objetivos.filter((objetivo) => objetivo !== undefined));
+      setErrorDetalles(objetivos.some((objetivo) => objetivo === undefined));
       setCargando(false);
     })().catch(() => {
       if (!cancelado) setCargando(false);
@@ -164,10 +150,10 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
   const empezarPlan = useCallback(async (): Promise<CarePlan | undefined> => {
     if (!paciente?.id) return undefined;
 
-    // Guardia de idempotencia: si ya hay un plan activo en el servidor, usarlo.
-    // El estado local puede estar desactualizado (o su carga pudo haber
-    // fallado); sin esta guardia cada toque de "Empezar mi plan" crearía un
-    // CarePlan duplicado con todos sus Goals y Tasks.
+    // Guardia de idempotencia: si el servidor ya tiene un plan activo, usarlo.
+    // El estado local puede estar desactualizado (otra pestana, carga fallida);
+    // sin esta guardia cada toque de "Empezar mi plan" crea un CarePlan
+    // duplicado con todos sus Goals y Tasks.
     const existente = await buscarPlanActivo(medplum, paciente, url).catch(() => undefined);
     if (existente) {
       refrescar();

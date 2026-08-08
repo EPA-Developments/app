@@ -185,15 +185,6 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
         </Group>
       </Card>
 
-      {plan.errorDetalles && (
-        <Card withBorder radius="lg" p="md" bg="yellow.0">
-          <Text size="sm" c="dimmed">
-            No pudimos cargar todos los detalles de tu plan. Probá recargar la página; si sigue pasando,
-            escribinos por Mensajes y lo resolvemos.
-          </Text>
-        </Card>
-      )}
-
       {GRUPOS_DE_PASOS.map((grupo) => {
         const pasos = plan.pasos.filter((paso) => tipoDePaso(paso) === grupo.tipo);
         if (pasos.length === 0) return null;

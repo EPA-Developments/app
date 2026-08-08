@@ -27,6 +27,7 @@ export function PlanBienestarRoutes(props: PlanBienestarRoutesProps): ReactEleme
     <Routes>
       <Route index element={<PasosDelPlan patient={props.patient} basePath={props.basePath} />} />
       <Route path="metas" element={<MetasDelPlan patient={props.patient} basePath={props.basePath} />} />
+      <Route path="mis-datos" element={<CargarDatosCkm patient={props.patient} />} />
       <Route
         path="cuestionario/:taskId"
         element={<CuestionarioDelPlan patient={props.patient} basePath={props.basePath} />}
