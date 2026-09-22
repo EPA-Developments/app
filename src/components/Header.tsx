@@ -19,7 +19,7 @@ const navigation = [
   { name: 'Reservar', href: '/get-care' },
 ];
 
-export function Header(): JSX.Element {
+export function Header({ soloCerrarSesion = false }: { soloCerrarSesion?: boolean }): JSX.Element {
   const navigate = useNavigate();
   const profile = useMedplumProfile();
   const theme = useMantineTheme();
@@ -29,21 +29,29 @@ export function Header(): JSX.Element {
     <AppShell.Header className={classes.header} withBorder={false}>
       <Container size="lg" h="100%">
         <div className={classes.inner}>
-          <UnstyledButton
-            className={classes.logoButton}
-            onClick={() => navigate('/')?.catch(console.error)}
-            aria-label="Inicio"
-          >
-            <Logo width={205} />
-          </UnstyledButton>
+          {soloCerrarSesion ? (
+            <div className={classes.logoButton}>
+              <Logo width={205} />
+            </div>
+          ) : (
+            <UnstyledButton
+              className={classes.logoButton}
+              onClick={() => navigate('/')?.catch(console.error)}
+              aria-label="Inicio"
+            >
+              <Logo width={205} />
+            </UnstyledButton>
+          )}
 
-          <Group gap={2} className={classes.links}>
-            {navigation.map((link) => (
-              <Link key={link.name} to={link.href} className={classes.link}>
-                {link.name}
-              </Link>
-            ))}
-          </Group>
+          {!soloCerrarSesion && (
+            <Group gap={2} className={classes.links}>
+              {navigation.map((link) => (
+                <Link key={link.name} to={link.href} className={classes.link}>
+                  {link.name}
+                </Link>
+              ))}
+            </Group>
+          )}
 
           <Menu
             width={240}
@@ -63,18 +71,22 @@ export function Header(): JSX.Element {
               </UnstyledButton>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item
-                leftSection={<IconUserCircle size={16} color="var(--mantine-primary-color-filled)" stroke={1.5} />}
-                onClick={() => navigate('/account/profile')?.catch(console.error)}
-              >
-                Mi perfil
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<IconSettings size={16} color={theme.colors.blue[6]} stroke={1.5} />}
-                onClick={() => navigate('/account/profile')?.catch(console.error)}
-              >
-                Configuración
-              </Menu.Item>
+              {!soloCerrarSesion && (
+                <>
+                  <Menu.Item
+                    leftSection={<IconUserCircle size={16} color="var(--mantine-primary-color-filled)" stroke={1.5} />}
+                    onClick={() => navigate('/account/profile')?.catch(console.error)}
+                  >
+                    Mi perfil
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconSettings size={16} color={theme.colors.blue[6]} stroke={1.5} />}
+                    onClick={() => navigate('/account/profile')?.catch(console.error)}
+                  >
+                    Configuración
+                  </Menu.Item>
+                </>
+              )}
               <Menu.Item
                 leftSection={<IconLogout size={16} color={theme.colors.gray[6]} stroke={1.5} />}
                 onClick={() => navigate('/signout')?.catch(console.error)}

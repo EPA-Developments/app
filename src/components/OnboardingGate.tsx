@@ -9,13 +9,16 @@ import type { JSX, ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { necesitaOnboarding } from '../fhir/onboarding';
 
-export function OnboardingGate({ children }: { children: ReactNode }): JSX.Element {
+/** ¿El usuario logueado es un paciente que todavía debe completar la Bienvenida? */
+export function useOnboardingPendiente(): boolean {
   const profile = useMedplumProfile();
-  const { pathname } = useLocation();
-
   // Solo aplica a pacientes (los perfiles Practitioner de prueba no pasan por el journey).
-  const esPaciente = profile?.resourceType === 'Patient';
-  const pendiente = esPaciente && necesitaOnboarding(profile as Patient);
+  return profile?.resourceType === 'Patient' && necesitaOnboarding(profile as Patient);
+}
+
+export function OnboardingGate({ children }: { children: ReactNode }): JSX.Element {
+  const pendiente = useOnboardingPendiente();
+  const { pathname } = useLocation();
 
   if (pendiente && pathname !== '/bienvenida' && pathname !== '/signout') {
     return <Navigate replace to="/bienvenida" />;

@@ -24,6 +24,11 @@ import type {
   RiskAssessment,
   ServiceRequest,
 } from '@medplum/fhirtypes';
+import { buscarBotSOM } from './bots';
+import { buscarConsentimiento } from './consentimiento';
+
+export const MENSAJE_SIN_CONSENTIMIENTO =
+  'Antes de pedir tu Segunda Opinión necesitamos que firmes el consentimiento informado.';
 
 /** Sistemas de códigos propios de SOM (deben coincidir con el modelo FHIR en Medplum). */
 export const SOM_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem';
@@ -169,9 +174,12 @@ export async function crearSolicitudSOM(
   datos: NuevaSolicitudSOM,
   archivos: ArchivoSOM[]
 ): Promise<ResultadoSOM> {
-  // `name:exact`: la búsqueda FHIR por `name=` es POR PREFIJO ("som-solicitar" también
-  // matchea "som-solicitar-turno") y ejecutaríamos el bot equivocado.
-  const bot = await medplum.searchOne('Bot', `name:exact=${BOT_SOM_SOLICITAR}`);
+  // Sin consentimiento firmado no se envía ningún dato clínico (el bot lo re-verifica).
+  if (!(await buscarConsentimiento(medplum, patient))) {
+    return { ok: false, mensaje: MENSAJE_SIN_CONSENTIMIENTO };
+  }
+
+  const bot = await buscarBotSOM(medplum, BOT_SOM_SOLICITAR);
   if (!bot?.id) {
     return {
       ok: false,
