@@ -10,7 +10,7 @@ import { BottomNav } from './components/BottomNav';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Loading } from './components/Loading';
-import { OnboardingGate } from './components/OnboardingGate';
+import { OnboardingGate, useOnboardingPendiente } from './components/OnboardingGate';
 import { RegisterPage } from './pages/RegisterPage';
 import { SetPasswordPage } from './pages/SetPasswordPage';
 import { SignInPage } from './pages/SignInPage';
@@ -18,6 +18,7 @@ import { LandingPage } from './pages/landing';
 
 export function App(): JSX.Element | null {
   const medplum = useMedplum();
+  const onboardingPendiente = useOnboardingPendiente();
 
   if (medplum.isLoading()) {
     return null;
@@ -37,8 +38,10 @@ export function App(): JSX.Element | null {
 
   return (
     <AppShell header={{ height: 60 }}>
-      <Header />
-      <AppShell.Main pb={{ base: 80, sm: 0 }}>
+      {/* Durante la Bienvenida no hay navegación: cualquier salto haría que el gate desmonte
+          el formulario y se pierda lo cargado. Solo queda "Cerrar sesión". */}
+      <Header soloCerrarSesion={onboardingPendiente} />
+      <AppShell.Main pb={{ base: onboardingPendiente ? 0 : 80, sm: 0 }}>
         <ErrorBoundary>
           <Suspense fallback={<Loading />}>
             <OnboardingGate>
@@ -52,7 +55,7 @@ export function App(): JSX.Element | null {
         </Box>
       </AppShell.Main>
       {/* Menú inferior fijo (solo mobile). */}
-      <BottomNav />
+      {!onboardingPendiente && <BottomNav />}
     </AppShell>
   );
 }

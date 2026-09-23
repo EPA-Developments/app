@@ -9,6 +9,7 @@
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { Patient, Task } from '@medplum/fhirtypes';
+import { buscarBotSOM } from './bots';
 
 const BOT_SOLICITAR = 'som-solicitar-turno';
 
@@ -57,8 +58,7 @@ export async function crearSolicitud(
   patient: Patient,
   s: NuevaSolicitud
 ): Promise<ResultadoSolicitud> {
-  // `name:exact`: la búsqueda por `name=` es por prefijo; exigimos el bot exacto.
-  const bot = await medplum.searchOne('Bot', `name:exact=${BOT_SOLICITAR}`);
+  const bot = await buscarBotSOM(medplum, BOT_SOLICITAR);
   if (!bot?.id) {
     return {
       ok: false,

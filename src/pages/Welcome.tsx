@@ -164,7 +164,8 @@ export function Welcome(): JSX.Element {
       // Recarga completa (no SPA): el profile de MedplumClient se cachea al iniciar
       // sesión, y el Plan Bienestar evalúa la elegibilidad sobre ese profile — con
       // la recarga el sexo y la fecha recién guardados se ven de inmediato.
-      window.location.assign('/');
+      // El journey sigue en el paso 2 anunciado: firmar el consentimiento.
+      window.location.assign('/health-record/consent');
     } catch (err) {
       showErrorNotification(err);
       setSaving(false);
@@ -337,7 +338,7 @@ export function Welcome(): JSX.Element {
                   loading={saving}
                   onClick={finalizar}
                 >
-                  Guardar y empezar
+                  Guardar y seguir al consentimiento
                 </Button>
               </Group>
             </Stack>

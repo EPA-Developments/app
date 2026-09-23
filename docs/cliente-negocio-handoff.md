@@ -110,9 +110,11 @@ Cómo quedó:
 > solo-lectura) la creación del Task daría Forbidden. El bot escribe con su propia
 > identidad y Recepción verifica al confirmar.
 
-Futuro (si se quisiera **reserva inmediata** por bots): endurecer
-`bw-reservar-turno`/`bw-reservar-combo` para derivar el paciente del login (no del
-input) antes de habilitar su ejecución al paciente.
+Futuro (si se quisiera **reserva inmediata** por bots): **no** reutilizar
+`bw-reservar-turno`/`bw-reservar-combo` (son de Biowellness y SOM no interactúa con
+bots de otros proyectos — ver la regla en `medplum/bot-som-interface.md`). Crear bots
+propios `som-reservar-turno` en el proyecto SOM que deriven el paciente del login (no
+del input). El portal solo ejecuta bots `som-*` (`src/fhir/bots.ts`).
 
 ## Checklist
 - [x] Leer el modelo en `recepcionistas` (Sesiones/Pagos/Cobertura).

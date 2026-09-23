@@ -18,6 +18,14 @@ El portal (`src/fhir/som.ts`) define las constantes canónicas que **deben coinc
 | `SOM_ORIGIN_EXT` | `https://segundaopinionmedica.org/fhir/StructureDefinition/som-origin` |
 | `SOM_SECTIONS_EXT` | `https://segundaopinionmedica.org/fhir/StructureDefinition/som-sections` |
 
+> ⛔ **REGLA INNEGOCIABLE — aislamiento de proyecto.** Los bots de SOM no interactúan
+> con bots, recursos, secrets, Subscriptions ni proyectos de otros proyectos (en
+> particular Biowellness: `bw-*`, `biowellness.ar`, `bio.medplum.com.ar`). Si un flujo
+> de SOM pasa por algo de Biowellness, se sale de ahí y se crea un bot propio `som-*`
+> en el proyecto `7ce5e559-…`. El portal lo aplica en `src/fhir/bots.ts`: solo resuelve
+> y ejecuta bots `som-*` por nombre exacto, y rechaza cualquier bot cuyo
+> `meta.project` no sea el de SOM.
+
 > Importante: la `ANTHROPIC_API_KEY` y cualquier otro secreto van como **Project Secret**
 > del bot en Medplum, **nunca** en el `.env` del portal (no se debe agregar
 > `@anthropic-ai/sdk` a este repo).
@@ -41,6 +49,20 @@ compartimento (su `QuestionnaireResponse` y sus `DocumentReference`).
   origin: 'self' | 'referral';
 }
 ```
+
+### Precondición: consentimiento informado (obligatoria)
+
+Antes de crear nada, el bot **debe** verificar que el paciente firmó el consentimiento:
+un `DocumentReference` con `subject=<pacienteRef>`, `status=current` y
+`type=http://loinc.org|59284-0`. Si no existe, devolver
+`{ ok: false, mensaje: 'Antes de pedir tu Segunda Opinión necesitamos que firmes el consentimiento informado.' }`
+sin crear la `ServiceRequest` (y por lo tanto sin disparar `bot-som-report` ni enviar
+datos clínicos al LLM). El portal ya lo exige del lado cliente, pero el portal no es
+una barrera de seguridad: la verificación del bot es la que vale.
+
+Además, el bot debe validar que `pacienteRef` sea el paciente del usuario que ejecuta
+(no confiar en el input) y que las referencias de `questionnaireResponseRef` y
+`documentReferences` pertenezcan a ese mismo paciente.
 
 ### Qué debe crear
 

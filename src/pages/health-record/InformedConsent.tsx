@@ -2,18 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Alert, Box, Button, Checkbox, Divider, Group, List, Stack, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { createReference, formatDateTime, formatHumanName, getReferenceString } from '@medplum/core';
+import { createReference, formatDateTime, formatHumanName } from '@medplum/core';
 import type { DocumentReference, Patient } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
-import { IconCircleCheck, IconWriting } from '@tabler/icons-react';
+import { IconArrowRight, IconCircleCheck, IconWriting } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { useNavigate } from 'react-router';
+import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM, buscarConsentimiento } from '../../fhir/consentimiento';
 import { showErrorNotification } from '../../utils/notifications';
 import type { ConsentBlock } from './InformedConsent.data';
 import { consentFooter, consentSections, consentSubtitle, consentTitle } from './InformedConsent.data';
-
-const CONSENT_TYPE_SYSTEM = 'http://loinc.org';
-const CONSENT_TYPE_CODE = '59284-0'; // Patient Consent
 
 /** Codifica un string UTF-8 a base64 (para el adjunto del DocumentReference). */
 function toBase64Utf8(str: string): string {
@@ -108,6 +107,7 @@ function ConsentBody({ block }: { block: ConsentBlock }): JSX.Element {
 
 export function InformedConsent(): JSX.Element {
   const medplum = useMedplum();
+  const navigate = useNavigate();
   const patient = medplum.getProfile() as Patient;
   const patientName = patient.name?.[0] ? formatHumanName(patient.name[0]) : '';
   const birthDate = patient.birthDate ?? '—';
@@ -122,12 +122,8 @@ export function InformedConsent(): JSX.Element {
 
   const loadConsent = useCallback(() => {
     setLoading(true);
-    medplum
-      .searchResources(
-        'DocumentReference',
-        `subject=${getReferenceString(patient)}&type=${CONSENT_TYPE_SYSTEM}|${CONSENT_TYPE_CODE}&_sort=-date&_count=1`
-      )
-      .then((results) => setSigned(results[0] ?? null))
+    buscarConsentimiento(medplum, patient)
+      .then((doc) => setSigned(doc ?? null))
       .catch(showErrorNotification)
       .finally(() => setLoading(false));
   }, [medplum, patient]);
@@ -203,6 +199,15 @@ export function InformedConsent(): JSX.Element {
         >
           Firmaste este consentimiento el {formatDateTime(signed.date)}. Si necesitás revocarlo, escribí a
           info@segundaopinionmedica.org. Podés volver a firmarlo si se actualiza el documento.
+          <Group mt="sm">
+            <Button
+              size="xs"
+              rightSection={<IconArrowRight size={14} />}
+              onClick={() => navigate('/solicitar-som')?.catch(console.error)}
+            >
+              Pedí tu Segunda Opinión
+            </Button>
+          </Group>
         </Alert>
       )}
 
