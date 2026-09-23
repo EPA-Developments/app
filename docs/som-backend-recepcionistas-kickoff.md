@@ -154,6 +154,31 @@ Los hitos y la racha se calculan desde los recursos que el paciente ya genera
 (DocumentReference de consentimiento, Observations, QuestionnaireResponses LE8,
 ServiceRequest SOM) — el backend no tiene que escribir nada más para el MVP.
 
+## BIOMARCADORES: PERFIL LIPÍDICO FALTANTE EN EL PANEL CARDIOMETABÓLICO
+
+El panel "Cardiometabólico" del portal se arma con las `ObservationDefinition` que
+publica el servidor (panel `metabolico`); la lista del server REEMPLAZA al catálogo
+local. Hoy el server publica glucemia/insulina/HOMA/HbA1c/úrico/fructosamina pero
+**faltan los lípidos**, por eso el paciente no ve Colesterol total, HDL, LDL,
+Triglicéridos, ApoB, Lp(a) ni LDL-P.
+
+**Fix (Opción A, elegida):** cargar las 7 `ObservationDefinition` de lípidos con
+panel `metabolico`. Listas para pegar en
+[`docs/medplum/observation-definitions/cardiometabolico-lipidos.json`](./medplum/observation-definitions/cardiometabolico-lipidos.json)
+(Bundle transaction con el shape exacto que parsea `app/src/fhir/biomarkers.ts`:
+`code` LOINC, `category` `panel-biomarcador|metabolico`, `quantitativeDetails.unit`,
+`qualifiedInterval` con `tipo-rango` convencional/funcional y `gender` para HDL).
+
+Cómo aplicar (una sola vez): consola Medplum → proyecto `7ce5e559` → **Batch** →
+pegar el JSON → ejecutar. ⚠️ No tiene creates condicionales (R4 no define search
+params para ObservationDefinition): si se corre dos veces, duplica — verificar antes.
+Incorporar también estas definiciones al seed de `recepcionistas` como fuente de verdad.
+
+> ⚠️ REVISIÓN MÉDICA: el rango funcional de **Colesterol total (< 100 mg/dL)** viene
+> del catálogo institucional pero es fisiológicamente improbable (¿errata por el
+> objetivo de LDL?). Confirmar con el Dr. Barbagelata antes del seed definitivo;
+> los demás rangos son los de la tabla institucional.
+
 ## TURNOS REBRANDEADOS (el portal ya cambió; el backend debe alinear)
 
 El portal migró el flujo de "Pedir un turno" de terapias funcionales a servicios
