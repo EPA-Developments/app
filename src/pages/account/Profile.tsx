@@ -6,9 +6,9 @@
 // un gender "" hacen fallar la validación del server. Todo lo vacío se omite.
 import { Box, Button, LoadingOverlay, NativeSelect, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
-import { formatFamilyName, formatGivenName, formatHumanName, normalizeErrorString } from '@medplum/core';
+import { formatFamilyName, formatGivenName, normalizeErrorString } from '@medplum/core';
 import type { Address, HumanName, Patient, PatientContact } from '@medplum/fhirtypes';
-import { Form, ResourceAvatar, useMedplum } from '@medplum/react';
+import { Form, useMedplum } from '@medplum/react';
 import { IconCircleCheck, IconCircleOff } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useState } from 'react';
@@ -186,9 +186,8 @@ export function Profile(): JSX.Element | null {
     <Box p={{ base: 'xs', sm: 'xl' }} pos="relative">
       <LoadingOverlay visible={loading} />
       <Form onSubmit={handleProfileEdit}>
-        <Stack align="center">
-          <ResourceAvatar size={200} radius={100} value={profile} />
-          <Title order={2}>{formatHumanName(profile.name?.[0])}</Title>
+        <Stack>
+          <Title order={2}>Mis datos</Title>
           <InfoSection title="Datos personales">
             <Box p={{ base: 'md', sm: 'xl' }}>
               <Stack>

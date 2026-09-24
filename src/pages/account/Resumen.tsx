@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Resumen de "Mi cuenta": entrada a todo lo del usuario, agrupado por los tres ejes
-// (Usuario · Cliente · Paciente).
-import { Avatar, Box, Card, Group, Stack, Text, ThemeIcon, Title, UnstyledButton } from '@mantine/core';
+// (Usuario · Cliente · Paciente). Acá están el nombre y el avatar; las demás pantallas
+// de la cuenta no los repiten.
+import { Box, Card, Group, Stack, Text, ThemeIcon, Title, UnstyledButton } from '@mantine/core';
 import { formatHumanName } from '@medplum/core';
 import type { Patient, Practitioner } from '@medplum/fhirtypes';
-import { useMedplumProfile } from '@medplum/react';
+import { ResourceAvatar, useMedplumProfile } from '@medplum/react';
 import {
   IconChevronRight,
   IconClipboardHeart,
@@ -31,14 +32,12 @@ interface Opcion {
 
 interface Grupo {
   readonly eje: string;
-  readonly subtitulo: string;
   readonly opciones: Opcion[];
 }
 
 const GRUPOS: Grupo[] = [
   {
     eje: 'Usuario',
-    subtitulo: 'Mis datos',
     opciones: [
       {
         icon: IconUserCircle,
@@ -56,14 +55,12 @@ const GRUPOS: Grupo[] = [
   },
   {
     eje: 'Cliente',
-    subtitulo: 'Mi membresía',
     opciones: [
       { icon: IconWallet, titulo: 'Membresía', descripcion: 'Turnos, sesiones, cobertura y pagos.', href: '/membership' },
     ],
   },
   {
     eje: 'Paciente',
-    subtitulo: 'Mi salud',
     opciones: [
       {
         icon: IconHeartbeat,
@@ -130,14 +127,7 @@ export function Resumen(): JSX.Element {
   return (
     <Box p="xl">
       <Group mb="lg">
-        <Avatar size={64} radius="xl" color="segundaOpinion">
-          {nombre
-            .split(' ')
-            .slice(0, 2)
-            .map((p) => p[0])
-            .join('')
-            .toUpperCase()}
-        </Avatar>
+        <ResourceAvatar size={64} radius="xl" value={profile} />
         <div>
           <Title order={2}>{nombre}</Title>
           {email && <Text c="dimmed">{email}</Text>}
@@ -147,13 +137,8 @@ export function Resumen(): JSX.Element {
       <Stack gap="lg">
         {GRUPOS.map((g) => (
           <div key={g.eje}>
-            <Text size="sm" fw={700} tt="uppercase" mb={6}>
-              <Text span c="segundaOpinion" inherit>
-                {g.eje}
-              </Text>{' '}
-              <Text span c="dimmed" inherit>
-                · {g.subtitulo}
-              </Text>
+            <Text size="sm" fw={700} tt="uppercase" c="segundaOpinion" mb={6}>
+              {g.eje}
             </Text>
             <Opciones opciones={g.opciones} />
           </div>
