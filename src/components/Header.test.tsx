@@ -3,7 +3,7 @@
 import { AppShell, MantineProvider } from '@mantine/core';
 import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { Header } from './Header';
 
@@ -37,4 +37,12 @@ test('Header oculta la navegación durante la Bienvenida', () => {
   renderHeader(true);
   expect(screen.queryByText('Salud')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Inicio')).not.toBeInTheDocument();
+});
+
+test('el menú del avatar tiene un solo acceso a la cuenta', async () => {
+  renderHeader(false);
+  fireEvent.click(screen.getByRole('button', { name: /^(?!Inicio)/ }));
+  expect(await screen.findByText('Mi cuenta')).toBeInTheDocument();
+  expect(screen.queryByText('Mi perfil')).not.toBeInTheDocument();
+  expect(screen.queryByText('Configuración')).not.toBeInTheDocument();
 });

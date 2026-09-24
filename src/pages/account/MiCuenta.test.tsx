@@ -64,6 +64,10 @@ describe('Resumen', () => {
     for (const titulo of ['Mis datos', 'Mi equipo de salud', 'Membresía', 'Historia de salud', 'Mi Plan Bienestar']) {
       expect(screen.getByText(titulo)).toBeInTheDocument();
     }
+    // Los grupos muestran solo el eje: no repiten el nombre de la opción de abajo.
+    expect(screen.getByText('Usuario')).toBeInTheDocument();
+    expect(screen.getAllByText('Mis datos')).toHaveLength(1);
+    expect(screen.getAllByText('Membresía')).toHaveLength(1);
     fireEvent.click(screen.getByText('Cerrar sesión'));
     expect(await screen.findByText('saliendo')).toBeInTheDocument();
   });

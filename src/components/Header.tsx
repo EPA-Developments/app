@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { AppShell, Container, Group, Menu, UnstyledButton, useMantineTheme } from '@mantine/core';
 import { ResourceAvatar, useMedplumProfile } from '@medplum/react';
-import { IconChevronDown, IconLogout, IconSettings, IconUserCircle } from '@tabler/icons-react';
+import { IconChevronDown, IconLogout, IconUserCircle } from '@tabler/icons-react';
 import cx from 'clsx';
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -75,12 +75,6 @@ export function Header({ soloCerrarSesion = false }: { soloCerrarSesion?: boolea
                 <>
                   <Menu.Item
                     leftSection={<IconUserCircle size={16} color="var(--mantine-primary-color-filled)" stroke={1.5} />}
-                    onClick={() => navigate('/account/profile')?.catch(console.error)}
-                  >
-                    Mi perfil
-                  </Menu.Item>
-                  <Menu.Item
-                    leftSection={<IconSettings size={16} color={theme.colors.blue[6]} stroke={1.5} />}
                     onClick={() => navigate('/account/resumen')?.catch(console.error)}
                   >
                     Mi cuenta
