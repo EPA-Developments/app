@@ -21,6 +21,28 @@ Portal del paciente de **Segunda Opinión Médica** — segunda opinión cardiol
 **Stack**: React 19 + TypeScript + Vite + Mantine 8 + Medplum React SDK · FHIR R4 en
 `https://api.medplum.com.ar` (proyecto `7ce5e559`) · deploy en Vercel.
 
+## Marca blanca
+
+Todo lo que identifica a la marca en el portal (logo, pie de página, títulos de ingreso y
+registro, título de la pestaña y consentimiento informado) sale de un solo lugar:
+
+- **`src/marca.json`**: los valores por defecto del repo (hoy, Segunda Opinión Médica).
+- **Variables `MARCA_*`** en el entorno del deploy (p. ej. Vercel): pisan al JSON sin tocar
+  código. Ver la lista comentada en `.env.defaults`.
+
+| Campo | Variable | Dónde se ve |
+|---|---|---|
+| `nombre` | `MARCA_NOMBRE` | Logo (la última palabra va en peso normal), pie, ingreso/registro, título de la pestaña, consentimiento |
+| `nombreConsentimiento` | `MARCA_NOMBRE_CONSENTIMIENTO` | Aceptación y documento firmado del consentimiento (vacío = el nombre en mayúsculas) |
+| `responsable` | `MARCA_RESPONSABLE` | Pie de página y del consentimiento |
+| `dirigidoPor` | `MARCA_DIRIGIDO_POR` | Frase "…dirigido por el Dr. …" del consentimiento |
+| `direccion` | `MARCA_DIRECCION` | Pie de página y del consentimiento |
+| `email` | `MARCA_EMAIL` | Pie, revocación y derechos sobre los datos del consentimiento |
+
+El texto del consentimiento es legal: cambiar la marca cambia el prestador que figura en
+él, así que cada marca nueva necesita su revisión legal. La landing pública todavía no
+usa esta configuración.
+
 ## Referencias
 
 - `docs/medplum/` — AccessPolicy del paciente ("Paciente SOM — Portal") y contrato de
