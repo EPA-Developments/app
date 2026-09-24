@@ -34,5 +34,8 @@ export default defineConfig({
     setupFiles: ['./src/test.setup.ts'],
     globals: true,
     testTimeout: 120000,
+    // Las fechas 'AAAA-MM-DD' se prueban en la zona horaria real de los pacientes (UTC-3),
+    // donde `new Date('AAAA-MM-DD')` corre la fecha un día.
+    env: { TZ: 'America/Argentina/Buenos_Aires' },
   },
 });

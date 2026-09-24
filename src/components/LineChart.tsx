@@ -20,7 +20,11 @@ const lineChartOptions = {
 
 interface LineChartProps {
   readonly chartData: ChartData<'line', number[]>;
+  /** false: el eje Y se ajusta a los datos (p. ej. peso, donde desde 0 la curva queda plana). */
+  readonly desdeCero?: boolean;
 }
+
+const lineChartOptionsAjustado = { ...lineChartOptions, scales: { y: {} } };
 
 const AsyncLine = lazy(async () => {
   const { CategoryScale, Chart, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } =
@@ -30,11 +34,11 @@ const AsyncLine = lazy(async () => {
   return { default: Line };
 });
 
-export function LineChart({ chartData }: LineChartProps): JSX.Element {
+export function LineChart({ chartData, desdeCero = true }: LineChartProps): JSX.Element {
   return (
     <div className="my-5">
       <Suspense fallback={<div>Loading...</div>}>
-        <AsyncLine options={lineChartOptions} data={chartData} />
+        <AsyncLine options={desdeCero ? lineChartOptions : lineChartOptionsAjustado} data={chartData} />
       </Suspense>
     </div>
   );

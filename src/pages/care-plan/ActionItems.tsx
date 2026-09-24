@@ -3,7 +3,7 @@
 import { esCarePlanDelPlan } from '@epa/plan-bienestar-react';
 import { Box, Stack, Text, Title, useMantineTheme } from '@mantine/core';
 import { formatDate, getReferenceString } from '@medplum/core';
-import type { Patient } from '@medplum/fhirtypes';
+import type { CarePlan, Patient } from '@medplum/fhirtypes';
 import { StatusBadge, useMedplum } from '@medplum/react';
 import { IconCalendar } from '@tabler/icons-react';
 import type { JSX } from 'react';
@@ -11,6 +11,14 @@ import { useNavigate } from 'react-router';
 import { InfoButton } from '../../components/InfoButton';
 import { InfoSection } from '../../components/InfoSection';
 import { PlanBienestar100 } from '../../components/PlanBienestar100';
+import { RUTA_SEGUIMIENTO_GLP1, esCarePlanGlp1 } from '../../fhir/glp1';
+
+function rutaDelPlan(carePlan: CarePlan): string {
+  if (esCarePlanDelPlan(carePlan)) {
+    return '/care-plan/plan-100-dias';
+  }
+  return esCarePlanGlp1(carePlan) ? RUTA_SEGUIMIENTO_GLP1 : `./${carePlan.id}`;
+}
 
 export function ActionItems(): JSX.Element {
   const theme = useMantineTheme();
@@ -31,12 +39,9 @@ export function ActionItems(): JSX.Element {
           {carePlans.map((resource) => (
             <InfoButton
               key={resource.id}
-              // El Plan Bienestar tiene sus propias pantallas amigables; el resto va al detalle genérico.
-              onClick={() =>
-                navigate(esCarePlanDelPlan(resource) ? '/care-plan/plan-100-dias' : `./${resource.id}`)?.catch(
-                  console.error
-                )
-              }
+              // El Plan Bienestar y el seguimiento GLP-1 tienen sus propias pantallas amigables;
+              // el resto va al detalle genérico.
+              onClick={() => navigate(rutaDelPlan(resource))?.catch(console.error)}
             >
               <div>
                 <Text c={theme.primaryColor} fw={500}>

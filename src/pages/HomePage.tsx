@@ -39,6 +39,7 @@ import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { PlanBienestar100 } from '../components/PlanBienestar100';
+import { SeguimientoGlp1Card } from '../components/SeguimientoGlp1Card';
 import classes from './HomePage.module.css';
 import { EstadioCkmCard, PlanBienestarCard, RiesgoPreventCard } from '@epa/plan-bienestar-react';
 
@@ -208,6 +209,10 @@ export function HomePage(): JSX.Element {
           </Box>
         </Container>
 
+        {/* Seguimiento GLP-1 (solo si el paciente está en el programa) */}
+        <Box mb="lg">
+          <SeguimientoGlp1Card />
+        </Box>
         {/* Plan Bienestar · 100 días (solo si el paciente está inscripto) */}
         <Box mb="lg">
           <PlanBienestar100 />
@@ -282,7 +287,10 @@ export function HomePage(): JSX.Element {
 
       {/* Plan Bienestar · 100 días (solo si el paciente está inscripto) */}
       <Container pt={48}>
-        <PlanBienestar100 />
+        <SeguimientoGlp1Card />
+        <Box mt="md">
+          <PlanBienestar100 />
+        </Box>
       </Container>
       {/* Accesos rápidos */}
       <Container py={48}>

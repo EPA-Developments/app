@@ -11,6 +11,7 @@ const sideMenu = {
   title: 'Plan de Cuidado',
   menu: [
     { name: 'Pasos del plan', href: '/care-plan/action-items' },
+    { name: 'Seguimiento GLP-1', href: '/care-plan/glp1' },
     { name: 'Plan Bienestar 100 Días', href: '/care-plan/plan-100-dias' },
     { name: 'Mis datos de salud', href: '/care-plan/plan-100-dias/mis-datos' },
   ],

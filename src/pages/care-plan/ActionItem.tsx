@@ -7,6 +7,7 @@ import { ResourceTable, useMedplum } from '@medplum/react';
 import type { JSX } from 'react';
 import { Navigate, useParams } from 'react-router';
 import { InfoSection } from '../../components/InfoSection';
+import { RUTA_SEGUIMIENTO_GLP1, esCarePlanGlp1 } from '../../fhir/glp1';
 
 export function ActionItem(): JSX.Element {
   const medplum = useMedplum();
@@ -17,6 +18,10 @@ export function ActionItem(): JSX.Element {
   // amigables (pasos, metas, cuestionario) viven en /care-plan/plan-100-dias.
   if (esCarePlanDelPlan(resource)) {
     return <Navigate replace to="/care-plan/plan-100-dias" />;
+  }
+  // Tampoco el del seguimiento GLP-1: su nota es para el equipo médico.
+  if (esCarePlanGlp1(resource)) {
+    return <Navigate replace to={RUTA_SEGUIMIENTO_GLP1} />;
   }
 
   return (

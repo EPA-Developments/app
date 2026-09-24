@@ -1,13 +1,12 @@
-# ⚠️ Repositorio congelado — movido a EPA-Developments/app
+# Segunda Opinión Médica — Portal del paciente
 
-Este repositorio fue el hogar original del **portal de pacientes de Segunda Opinión
-Médica** (app.segundaopinionmedica.org). El desarrollo se **unificó** y continúa en:
+Repositorio canónico del **portal de pacientes de Segunda Opinión Médica**
+([app.segundaopinionmedica.org](https://app.segundaopinionmedica.org)), de EPA Bienestar IA.
+Acá se desarrolla todo el portal: el repo original (`drdalessandro/app`) quedó archivado y
+su historia se unificó en este (rama `unificacion/epa-canonico`).
 
-> ## 👉 [github.com/EPA-Developments/app](https://github.com/EPA-Developments/app)
-
-**No commitear acá**: cualquier cambio nuevo va al repo canónico. Este repo queda
-como archivo histórico (toda su historia fue mergeada al canónico vía la rama
-[`unificacion/epa-canonico`](../../tree/unificacion/epa-canonico)).
+El backend (bots, AccessPolicy, seeds) vive en
+[`EPA-Developments/recepcionistas`](https://github.com/EPA-Developments/recepcionistas).
 
 ## Qué es la app
 
@@ -22,7 +21,7 @@ Portal del paciente de **Segunda Opinión Médica** — segunda opinión cardiol
 **Stack**: React 19 + TypeScript + Vite + Mantine 8 + Medplum React SDK · FHIR R4 en
 `https://api.medplum.com.ar` (proyecto `7ce5e559`) · deploy en Vercel.
 
-## Referencias que siguen siendo útiles acá
+## Referencias
 
 - `docs/medplum/` — AccessPolicy del paciente ("Paciente SOM — Portal") y contrato de
   los bots SOM.
