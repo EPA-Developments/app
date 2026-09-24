@@ -14,7 +14,7 @@ import { getReferenceString } from '@medplum/core';
 import type { CarePlan, Coverage, Observation, Patient, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { measurementsMeta } from '../pages/health-record/Measurement.data';
 import { PANEL_SYSTEM } from './biomarkers';
-import { cargarMisSolicitudesSOM } from './som';
+import { cargarMisSolicitudes } from './solicitudes';
 
 /** CodeSystem canónico de planes de cuidado SOM (debe coincidir con recepcionistas). */
 export const CARE_PLAN_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem/care-plans';
@@ -128,13 +128,14 @@ export async function cargarPlanBienestar(
 ): Promise<PlanBienestar | undefined> {
   const ref = getReferenceString(patient);
 
-  const [carePlans, coverages, observations, respuestas, consentimientos, solicitudesSOM] = await Promise.all([
+  const [carePlans, coverages, observations, respuestas, consentimientos, solicitudesTurno, turnos] = await Promise.all([
     medplum.searchResources('CarePlan', `subject=${ref}&_count=20`),
     medplum.searchResources('Coverage', `beneficiary=${ref}&status=active&_count=20`),
     medplum.searchResources('Observation', `patient=${ref}&_sort=-date&_count=200`),
     medplum.searchResources('QuestionnaireResponse', `subject=${ref}&_sort=-authored&_count=100`),
     medplum.searchResources('DocumentReference', `subject=${ref}&type=${CONSENT_TYPE}&_count=1`),
-    cargarMisSolicitudesSOM(medplum, patient).catch(() => []),
+    cargarMisSolicitudes(medplum, patient).catch(() => []),
+    medplum.searchResources('Appointment', `patient=${ref}&_count=1`).catch(() => []),
   ]);
 
   const { inicio, fin } = detectarInicio(carePlans as CarePlan[], coverages as Coverage[]);
@@ -185,11 +186,12 @@ export async function cargarPlanBienestar(
       cumplido: tieneLE8,
     },
     {
-      id: 'som',
-      label: 'Pedí tu Segunda Opinión',
-      descripcion: 'Tu informe cardiológico personalizado.',
-      href: '/solicitar-som',
-      cumplido: solicitudesSOM.length > 0,
+      // Las consultas son parte del plan: un pedido de turno o un turno ya dado cuentan.
+      id: 'consulta',
+      label: 'Reservá tu consulta',
+      descripcion: 'Tu equipo revisa tus datos y ajusta tu plan.',
+      href: '/get-care',
+      cumplido: solicitudesTurno.length > 0 || turnos.length > 0,
     },
   ];
 

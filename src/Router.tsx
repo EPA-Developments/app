@@ -81,8 +81,10 @@ export function Router(): JSX.Element {
         <Route path="glp1" element={<SeguimientoGlp1 />} />
       </Route>
       <Route path="get-care" element={<GetCare />} />
-      {/* Educación CKM: guía AHA/Ndumele (estadios 0-4) → Segunda Opinión → Plan Bienestar. */}
+      {/* Educación CKM: guía AHA/Ndumele (estadios 0-4) → Plan Bienestar. */}
       <Route path="ckm" element={<CkmEducacion />} />
+      {/* Segunda Opinión: fuera de todos los menús (el portal es Plan Bienestar · 100 días).
+          Las rutas quedan para quien ya tiene una solicitud o un informe. */}
       <Route path="solicitar-som" element={<SolicitarSOM />} />
       <Route path="mi-segunda-opinion" element={<MiSegundaOpinion />} />
       <Route path="membership" element={<MembershipPage />} />

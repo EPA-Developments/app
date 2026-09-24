@@ -12,7 +12,7 @@ import { Logo } from './Logo';
 
 // Nav de desktop alineada con los 3 ejes (en mobile manda el menú inferior).
 const navigation = [
-  { name: 'Segunda Opinión', href: '/mi-segunda-opinion' },
+  { name: 'Plan Bienestar', href: '/care-plan/plan-100-dias' },
   { name: 'Salud', href: '/health-record' },
   { name: 'Membresía', href: '/membership' },
   { name: 'Mensajes', href: '/Communication' },

@@ -27,6 +27,12 @@ test('Header muestra la navegación fuera de la Bienvenida', () => {
   expect(screen.getByLabelText('Inicio')).toBeInTheDocument();
 });
 
+test('la navegación lleva al Plan Bienestar y no ofrece Segunda Opinión', () => {
+  renderHeader(false);
+  expect(screen.getByRole('link', { name: 'Plan Bienestar' })).toHaveAttribute('href', '/care-plan/plan-100-dias');
+  expect(screen.queryByRole('link', { name: /Segunda Opinión/ })).not.toBeInTheDocument();
+});
+
 test('Header oculta la navegación durante la Bienvenida', () => {
   renderHeader(true);
   expect(screen.queryByText('Salud')).not.toBeInTheDocument();

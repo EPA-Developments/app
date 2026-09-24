@@ -14,6 +14,8 @@ import { showErrorNotification } from '../../utils/notifications';
 import type { ConsentBlock } from './InformedConsent.data';
 import { consentFooter, consentSections, consentSubtitle, consentTitle } from './InformedConsent.data';
 
+const RUTA_MI_SALUD_CV = '/health-record/cuestionarios';
+
 /** Codifica un string UTF-8 a base64 (para el adjunto del DocumentReference). */
 function toBase64Utf8(str: string): string {
   const bytes = new TextEncoder().encode(str);
@@ -165,16 +167,24 @@ export function InformedConsent(): JSX.Element {
       ],
     };
 
+    // Primera firma = viene del camino de Bienvenida: sigue en Mi salud cardiovascular.
+    const primeraFirma = !loading && !signed;
     medplum
       .createResource(doc)
       .then(() => {
         notifications.show({
           color: 'green',
           title: 'Consentimiento firmado',
-          message: 'Quedó registrado de forma segura en tu historia clínica.',
+          message: primeraFirma
+            ? 'Quedó registrado en tu historia clínica. Seguimos con Mi salud cardiovascular.'
+            : 'Quedó registrado de forma segura en tu historia clínica.',
         });
         setAccepted(false);
-        loadConsent();
+        if (primeraFirma) {
+          navigate(RUTA_MI_SALUD_CV)?.catch(console.error);
+        } else {
+          loadConsent();
+        }
       })
       .catch(showErrorNotification)
       .finally(() => setSubmitting(false));
@@ -203,9 +213,9 @@ export function InformedConsent(): JSX.Element {
             <Button
               size="xs"
               rightSection={<IconArrowRight size={14} />}
-              onClick={() => navigate('/solicitar-som')?.catch(console.error)}
+              onClick={() => navigate(RUTA_MI_SALUD_CV)?.catch(console.error)}
             >
-              Pedí tu Segunda Opinión
+              Seguí con Mi salud cardiovascular
             </Button>
           </Group>
         </Alert>

@@ -9,12 +9,12 @@ import { ActionIcon, Drawer, Stack, Text, ThemeIcon, UnstyledButton } from '@man
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconCalendarPlus,
+  IconClipboardHeart,
   IconHeartbeat,
   IconHome,
   IconMessage,
   IconPlus,
   IconReportMedical,
-  IconStethoscope,
   IconUser,
   IconWallet,
 } from '@tabler/icons-react';
@@ -52,10 +52,10 @@ interface QuickAction {
 
 const quickActions: QuickAction[] = [
   {
-    icon: IconStethoscope,
-    label: 'Pedir Segunda Opinión',
-    description: 'Iniciá una segunda opinión cardiológica.',
-    href: '/solicitar-som',
+    icon: IconClipboardHeart,
+    label: 'Mi Plan Bienestar',
+    description: 'Tus pasos y metas de los 100 días.',
+    href: '/care-plan/plan-100-dias',
   },
   { icon: IconCalendarPlus, label: 'Reservar turno', description: 'Pedí tu próxima sesión o consulta.', href: '/get-care' },
   {
@@ -64,7 +64,7 @@ const quickActions: QuickAction[] = [
     description: 'Sumá un valor de laboratorio.',
     href: '/health-record/biomarkers',
   },
-  { icon: IconMessage, label: 'Enviar mensaje', description: 'Escribile al equipo de Segunda Opinión Médica.', href: '/Communication' },
+  { icon: IconMessage, label: 'Enviar mensaje', description: 'Escribile a tu equipo.', href: '/Communication' },
 ];
 
 function isActive(pathname: string, tab: Tab): boolean {
