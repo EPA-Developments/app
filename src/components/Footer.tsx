@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Anchor, Container, Divider, Stack, Text } from '@mantine/core';
 import type { JSX } from 'react';
+import { MARCA } from '../marca';
 import classes from './Footer.module.css';
 
 export function Footer(): JSX.Element {
@@ -11,22 +12,22 @@ export function Footer(): JSX.Element {
         <Container p="xl">
           <Stack gap="md">
             <div>
-              <Text fw={700}>Segunda Opinión Médica</Text>
+              <Text fw={700}>{MARCA.nombre}</Text>
               <Text c="dimmed" size="sm">
-                Dr. Alejandro Barbagelata
+                {MARCA.responsable}
               </Text>
               <Text c="dimmed" size="sm">
-                Húsares 2248 6° E · C1428 CABA (Bajo Belgrano) · Argentina
+                {MARCA.direccion}
               </Text>
               <Text c="dimmed" size="sm">
-                <Anchor href="mailto:info@segundaopinionmedica.org">info@segundaopinionmedica.org</Anchor>
+                <Anchor href={`mailto:${MARCA.email}`}>{MARCA.email}</Anchor>
               </Text>
             </div>
 
             <Divider />
 
             <Text c="dimmed" size="sm">
-              &copy; {new Date().getFullYear()} Segunda Opinión Médica. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} {MARCA.nombre}. Todos los derechos reservados.
             </Text>
             <Text c="dimmed" size="xs">
               Powered by EPA Bienestar IA · CTO: Dr. Alejandro Sergio D&apos;Alessandro

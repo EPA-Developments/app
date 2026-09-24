@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM, buscarConsentimiento } from '../../fhir/consentimiento';
+import { MARCA } from '../../marca';
 import { showErrorNotification } from '../../utils/notifications';
 import type { ConsentBlock } from './InformedConsent.data';
 import { consentFooter, consentSections, consentSubtitle, consentTitle } from './InformedConsent.data';
@@ -148,7 +149,7 @@ export function InformedConsent(): JSX.Element {
       docStatus: 'final',
       type: {
         coding: [{ system: CONSENT_TYPE_SYSTEM, code: CONSENT_TYPE_CODE, display: 'Patient Consent' }],
-        text: 'Consentimiento Informado SEGUNDA OPINIÓN MÉDICA',
+        text: `Consentimiento Informado ${MARCA.nombreConsentimiento}`,
       },
       category: [{ text: 'Consentimiento Informado' }],
       subject: createReference(patient),
@@ -159,7 +160,7 @@ export function InformedConsent(): JSX.Element {
         {
           attachment: {
             contentType: 'text/plain; charset=utf-8',
-            title: 'Consentimiento Informado SEGUNDA OPINIÓN MÉDICA.txt',
+            title: `Consentimiento Informado ${MARCA.nombreConsentimiento}.txt`,
             data: toBase64Utf8(text),
             creation: timestamp,
           },
@@ -208,7 +209,7 @@ export function InformedConsent(): JSX.Element {
           mb="lg"
         >
           Firmaste este consentimiento el {formatDateTime(signed.date)}. Si necesitás revocarlo, escribí a
-          info@segundaopinionmedica.org. Podés volver a firmarlo si se actualiza el documento.
+          {MARCA.email}. Podés volver a firmarlo si se actualiza el documento.
           <Group mt="sm">
             <Button
               size="xs"
@@ -259,7 +260,7 @@ export function InformedConsent(): JSX.Element {
         <Checkbox
           checked={accepted}
           onChange={(e) => setAccepted(e.currentTarget.checked)}
-          label="He leído y comprendido este documento, y consiento libre y voluntariamente recibir los servicios de SEGUNDA OPINIÓN MÉDICA. La información declarada sobre mi estado de salud es completa y veraz."
+          label={`He leído y comprendido este documento, y consiento libre y voluntariamente recibir los servicios de ${MARCA.nombreConsentimiento}. La información declarada sobre mi estado de salud es completa y veraz.`}
         />
         <TextInput
           label="Aclaración (nombre completo)"

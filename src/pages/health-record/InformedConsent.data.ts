@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { MARCA } from '../../marca';
+
 /**
- * Contenido del Consentimiento Informado de Segunda Opinión Médica.
+ * Contenido del Consentimiento Informado.
  *
- * Servicio de segunda opinión médica cardiovascular dirigido por el Dr. Alejandro
- * Barbagelata. La sección 1 (Datos del paciente) se completa dinámicamente con los datos
+ * Marca blanca: el nombre del prestador, el responsable, la dirección y el email salen de
+ * `src/marca.ts` (texto idéntico al original con la marca por defecto). La sección 1 (Datos del paciente) se completa dinámicamente con los datos
  * del paciente logueado y la firma; el resto del texto se reproduce para su lectura y se
  * almacena en el DocumentReference firmado.
  *
@@ -24,7 +26,7 @@ export interface ConsentSection {
 }
 
 export const consentTitle = 'Consentimiento Informado';
-export const consentSubtitle = 'Servicio de Segunda Opinión Médica cardiovascular';
+export const consentSubtitle = `Servicio de ${MARCA.nombre} cardiovascular`;
 
 export const consentSections: ConsentSection[] = [
   {
@@ -32,7 +34,7 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'Segunda Opinión Médica es un servicio de segunda opinión médica cardiovascular dirigido por el Dr. Alejandro Barbagelata. Brinda una revisión experta de tu caso a partir de la información clínica y los estudios que vos aportás. El servicio incluye:',
+        text: `${MARCA.nombre} es un servicio de segunda opinión médica cardiovascular dirigido por ${MARCA.dirigidoPor}. Brinda una revisión experta de tu caso a partir de la información clínica y los estudios que vos aportás. El servicio incluye:`,
       },
       {
         type: 'ul',
@@ -86,7 +88,7 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'Declaro que la información, los antecedentes y los estudios que aporto son completos y veraces. Entiendo que la omisión o inexactitud puede afectar la calidad de la segunda opinión, eximiendo a Segunda Opinión Médica y a sus profesionales de responsabilidad ante dichos eventos.',
+        text: `Declaro que la información, los antecedentes y los estudios que aporto son completos y veraces. Entiendo que la omisión o inexactitud puede afectar la calidad de la segunda opinión, eximiendo a ${MARCA.nombre} y a sus profesionales de responsabilidad ante dichos eventos.`,
       },
     ],
   },
@@ -95,7 +97,7 @@ export const consentSections: ConsentSection[] = [
     blocks: [
       {
         type: 'p',
-        text: 'De conformidad con la Ley N° 25.326 de Protección de Datos Personales, Segunda Opinión Médica se compromete a:',
+        text: `De conformidad con la Ley N° 25.326 de Protección de Datos Personales, ${MARCA.nombre} se compromete a:`,
       },
       {
         type: 'ul',
@@ -103,12 +105,12 @@ export const consentSections: ConsentSection[] = [
           'Tratar mis datos personales y de salud con carácter confidencial y únicamente para la prestación del servicio.',
           'No ceder, vender ni compartir mi información con terceros, salvo los proveedores tecnológicos necesarios para prestar el servicio (servicios de nube e inteligencia artificial) bajo deber de confidencialidad, o ante requerimiento judicial.',
           'Alojar la información en infraestructura de nube (AWS) con medidas de seguridad acordes.',
-          'Garantizar el acceso, la rectificación y la supresión de mis datos mediante solicitud a info@segundaopinionmedica.org.',
+          `Garantizar el acceso, la rectificación y la supresión de mis datos mediante solicitud a ${MARCA.email}.`,
         ],
       },
       {
         type: 'p',
-        text: 'Autorizo a Segunda Opinión Médica a registrar y conservar la información provista en mi historia clínica digital, con acceso restringido a los profesionales autorizados.',
+        text: `Autorizo a ${MARCA.nombre} a registrar y conservar la información provista en mi historia clínica digital, con acceso restringido a los profesionales autorizados.`,
       },
     ],
   },
@@ -121,7 +123,7 @@ export const consentSections: ConsentSection[] = [
         items: [
           'He leído y comprendido completamente el contenido de este documento.',
           'He tenido la oportunidad de realizar preguntas y todas han sido respondidas satisfactoriamente.',
-          'Consiento libre y voluntariamente recibir el servicio de Segunda Opinión Médica, incluido el procesamiento de mi información con apoyo de inteligencia artificial, habiendo sido informado/a de sus características, alcance y limitaciones.',
+          `Consiento libre y voluntariamente recibir el servicio de ${MARCA.nombre}, incluido el procesamiento de mi información con apoyo de inteligencia artificial, habiendo sido informado/a de sus características, alcance y limitaciones.`,
           'La información que aporto sobre mi estado de salud es completa y veraz.',
           'Entiendo que puedo revocar este consentimiento en cualquier momento, lo cual implicará la interrupción del servicio, sin afectar mis derechos como usuario.',
         ],
@@ -130,5 +132,4 @@ export const consentSections: ConsentSection[] = [
   },
 ];
 
-export const consentFooter =
-  'Segunda Opinión Médica · Dr. Alejandro Barbagelata  |  Húsares 2248 6° E, C1428 CABA (Bajo Belgrano), Argentina  |  info@segundaopinionmedica.org  ·  Powered by EPA Bienestar IA';
+export const consentFooter = `${MARCA.nombre} · ${MARCA.responsable}  |  ${MARCA.direccion}  |  ${MARCA.email}  ·  Powered by EPA Bienestar IA`;

@@ -4,6 +4,7 @@ import { BackgroundImage, Box, SimpleGrid } from '@mantine/core';
 import { SignInForm } from '@medplum/react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
+import { MARCA } from '../marca';
 
 const HERO_IMG =
   'https://images.unsplash.com/photo-1556761175-4b46a572b786?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1567&q=80';
@@ -22,7 +23,7 @@ export function SignInPage(): JSX.Element {
             clientId={import.meta.env.MEDPLUM_CLIENT_ID}
             onSuccess={() => navigate('/')?.catch(console.error)}
           >
-            <h2>Iniciar sesión en Segunda Opinión Médica</h2>
+            <h2>Iniciar sesión en {MARCA.nombre}</h2>
           </SignInForm>
         </Box>
         {/* Desktop: imagen al lateral (split). */}

@@ -4,6 +4,7 @@ import { BackgroundImage, Box, SimpleGrid } from '@mantine/core';
 import { RegisterForm } from '@medplum/react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
+import { MARCA } from '../marca';
 
 const HERO_IMG =
   'https://images.unsplash.com/photo-1556761175-4b46a572b786?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1567&q=80';
@@ -24,7 +25,7 @@ export function RegisterPage(): JSX.Element {
             recaptchaSiteKey={import.meta.env.RECAPTCHA_SITE_KEY}
             onSuccess={() => navigate('/')?.catch(console.error)}
           >
-            <h2>Crear cuenta en Segunda Opinión Médica</h2>
+            <h2>Crear cuenta en {MARCA.nombre}</h2>
           </RegisterForm>
         </Box>
         {/* Desktop: imagen al lateral (split). */}

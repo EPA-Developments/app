@@ -21,6 +21,7 @@ import { useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Logo } from '../components/Logo';
+import { MARCA } from '../marca';
 
 export function SetPasswordPage(): JSX.Element {
   const { id, secret } = useParams();
@@ -85,7 +86,7 @@ export function SetPasswordPage(): JSX.Element {
                     Activá tu cuenta
                   </Title>
                   <Text ta="center" c="dimmed" size="sm">
-                    Creá tu contraseña para acceder al portal de Segunda Opinión Médica.
+                    Creá tu contraseña para acceder al portal de {MARCA.nombre}.
                   </Text>
                 </Stack>
 
