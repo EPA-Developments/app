@@ -9,8 +9,11 @@ import { SideMenu } from '../../components/SideMenu';
 const sideMenu = {
   title: 'Mi cuenta',
   menu: [
-    { name: 'Perfil', href: '/account/profile' },
-    { name: 'Médico de cabecera', href: '/account/provider' },
+    { name: 'Resumen', href: '/account/resumen' },
+    { name: 'Mis datos', href: '/account/profile' },
+    { name: 'Mi equipo de salud', href: '/account/equipo' },
+    { name: 'Membresía', href: '/membership' },
+    { name: 'Consentimiento y privacidad', href: '/health-record/consent' },
   ],
 };
 
