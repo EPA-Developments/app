@@ -5,7 +5,8 @@ import type { JSX } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AccountPage } from './pages/account';
 import { Profile } from './pages/account/Profile';
-import { Provider } from './pages/account/Provider';
+import { MiEquipoDeSalud } from './pages/account/MiEquipoDeSalud';
+import { Resumen } from './pages/account/Resumen';
 import { CarePlanPage } from './pages/care-plan';
 import { ActionItem } from './pages/care-plan/ActionItem';
 import { ActionItems } from './pages/care-plan/ActionItems';
@@ -89,9 +90,12 @@ export function Router(): JSX.Element {
       <Route path="mi-segunda-opinion" element={<MiSegundaOpinion />} />
       <Route path="membership" element={<MembershipPage />} />
       <Route path="account" element={<AccountPage />}>
-        <Route index element={<Navigate replace to="/account/profile" />} />
+        <Route index element={<Navigate replace to="/account/resumen" />} />
+        <Route path="resumen" element={<Resumen />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="provider" element={<Provider />} />
+        <Route path="equipo" element={<MiEquipoDeSalud />} />
+        {/* "Médico de cabecera" pasó a "Mi equipo de salud". */}
+        <Route path="provider" element={<Navigate replace to="/account/equipo" />} />
         {/* La facturación/membresía se movió a la pestaña Membresía (eje Cliente). */}
         <Route path="membership-and-billing" element={<Navigate replace to="/membership" />} />
       </Route>

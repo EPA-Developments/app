@@ -81,9 +81,9 @@ export function Header({ soloCerrarSesion = false }: { soloCerrarSesion?: boolea
                   </Menu.Item>
                   <Menu.Item
                     leftSection={<IconSettings size={16} color={theme.colors.blue[6]} stroke={1.5} />}
-                    onClick={() => navigate('/account/profile')?.catch(console.error)}
+                    onClick={() => navigate('/account/resumen')?.catch(console.error)}
                   >
-                    Configuración
+                    Mi cuenta
                   </Menu.Item>
                 </>
               )}
