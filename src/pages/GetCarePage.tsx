@@ -110,8 +110,8 @@ export function GetCare(): JSX.Element {
         Pedir un turno
       </Title>
       <Text c="dimmed" size="sm" mb="md">
-        Elegí el servicio o estudio y tu preferencia de horario. El equipo de Segunda Opinión Médica te confirma el
-        turno (día y hora exactos) según disponibilidad.
+        Elegí el servicio o estudio y tu preferencia de horario. Tu equipo te confirma el turno (día y hora
+        exactos) según disponibilidad.
       </Text>
 
       {ok && (

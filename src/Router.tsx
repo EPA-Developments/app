@@ -9,6 +9,7 @@ import { Provider } from './pages/account/Provider';
 import { CarePlanPage } from './pages/care-plan';
 import { ActionItem } from './pages/care-plan/ActionItem';
 import { ActionItems } from './pages/care-plan/ActionItems';
+import { SeguimientoGlp1 } from './pages/care-plan/SeguimientoGlp1';
 import { GetCare } from './pages/GetCarePage';
 import { HealthRecord } from './pages/health-record';
 import { BiomarkerPanel } from './pages/health-record/BiomarkerPanel';
@@ -76,10 +77,14 @@ export function Router(): JSX.Element {
         <Route path="action-items/:itemId" element={<ActionItem />} />
         {/* Plan Bienestar · 100 días (módulo drop-in; elegibilidad auto-gestionada por PlanDefinition). */}
         <Route path="plan-100-dias/*" element={<PlanBienestarRoutes />} />
+        {/* Seguimiento de tratamiento GLP-1 (solo lectura; lo arma el backend). */}
+        <Route path="glp1" element={<SeguimientoGlp1 />} />
       </Route>
       <Route path="get-care" element={<GetCare />} />
-      {/* Educación CKM: guía AHA/Ndumele (estadios 0-4) → Segunda Opinión → Plan Bienestar. */}
+      {/* Educación CKM: guía AHA/Ndumele (estadios 0-4) → Plan Bienestar. */}
       <Route path="ckm" element={<CkmEducacion />} />
+      {/* Segunda Opinión: fuera de todos los menús (el portal es Plan Bienestar · 100 días).
+          Las rutas quedan para quien ya tiene una solicitud o un informe. */}
       <Route path="solicitar-som" element={<SolicitarSOM />} />
       <Route path="mi-segunda-opinion" element={<MiSegundaOpinion />} />
       <Route path="membership" element={<MembershipPage />} />

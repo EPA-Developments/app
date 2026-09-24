@@ -122,7 +122,7 @@ export function MembershipPage(): JSX.Element {
           ) : sesiones.length === 0 ? (
             <Group gap="xs" c="dimmed">
               <IconCalendarEvent size={18} />
-              <Text>No tenés planes con sesiones activos. Consultá con el equipo de Segunda Opinión Médica.</Text>
+              <Text>No tenés planes con sesiones activos. Consultá con tu equipo.</Text>
             </Group>
           ) : (
             <Stack gap="sm">

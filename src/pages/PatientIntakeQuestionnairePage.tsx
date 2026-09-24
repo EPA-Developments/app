@@ -66,8 +66,7 @@ export function PatientIntakeQuestionnairePage(): JSX.Element {
             ¡Gracias por completar tu cuestionario!
           </Title>
           <Text c="dimmed" ta="center" maw={460}>
-            Tu información quedó registrada en tu historia clínica. El equipo de Segunda Opinión Médica la revisará antes de tu
-            visita.
+            Tu información quedó registrada en tu historia clínica. Tu equipo la va a revisar antes de tu visita.
           </Text>
         </Stack>
       ) : (

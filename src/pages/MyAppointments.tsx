@@ -13,24 +13,11 @@ import { useMedplum } from '@medplum/react';
 import { IconCalendarEvent } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { ESTADOS_TURNO } from '../fhir/turnos';
 import { showErrorNotification } from '../utils/notifications';
 
-// status de Appointment (FHIR R4) → etiqueta en español y color para el paciente.
-const STATUS: Record<string, { label: string; color: string }> = {
-  proposed: { label: 'Propuesto', color: 'gray' },
-  pending: { label: 'Pendiente', color: 'yellow' },
-  booked: { label: 'Confirmado', color: 'segundaOpinion' },
-  arrived: { label: 'Presente', color: 'segundaOpinion' },
-  'checked-in': { label: 'Check-in', color: 'segundaOpinion' },
-  waitlist: { label: 'En espera', color: 'yellow' },
-  fulfilled: { label: 'Realizado', color: 'gray' },
-  cancelled: { label: 'Cancelado', color: 'red' },
-  noshow: { label: 'No asististe', color: 'red' },
-  'entered-in-error': { label: 'Error de carga', color: 'red' },
-};
-
 function statusBadge(status?: string): JSX.Element {
-  const s = status ? STATUS[status] : undefined;
+  const s = status ? ESTADOS_TURNO[status] : undefined;
   return (
     <Badge color={s?.color ?? 'gray'} variant="light">
       {s?.label ?? status ?? '—'}

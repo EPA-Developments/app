@@ -3,12 +3,12 @@
 //
 // Patient Journey — pantalla de primera vez, en tres pasos:
 //  1. Bienvenida según origen: auto-registrado / invitado por Recepción / derivado.
-//  2. Datos personales: sexo y fecha de nacimiento (además de identificar el
-//     informe, habilitan la elegibilidad del Plan Bienestar · 100 días, que la
-//     PlanDefinition evalúa por gender + edad).
+//  2. Datos personales: sexo y fecha de nacimiento (habilitan la elegibilidad del
+//     Plan Bienestar · 100 días, que la PlanDefinition evalúa por gender + edad).
 //  3. Contacto: celular, DNI (FHIR Argentina / RENAPER) y domicilio.
 // Todo se guarda en el Patient en una sola escritura junto con la extensión
 // onboarding-completed, y la pantalla no vuelve a aparecer (OnboardingGate).
+// El camino sigue en el consentimiento y de ahí en Mi salud cardiovascular (LE8).
 import {
   Button,
   Card,
@@ -26,7 +26,7 @@ import {
 import { formatHumanName } from '@medplum/core';
 import type { Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
-import { IconArrowRight, IconFileCheck, IconHeartbeat, IconStethoscope, IconUserCheck } from '@tabler/icons-react';
+import { IconArrowRight, IconFileCheck, IconHeartbeat, IconUserCheck } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -45,7 +45,7 @@ const PASOS_SELF: Paso[] = [
   {
     icon: IconUserCheck,
     title: 'Completá tu perfil',
-    description: 'Unas preguntas simples para que el informe salga a tu nombre.',
+    description: 'Unas preguntas simples para personalizar tu plan.',
   },
   {
     icon: IconFileCheck,
@@ -53,9 +53,9 @@ const PASOS_SELF: Paso[] = [
     description: 'Leé y firmá el consentimiento informado del servicio.',
   },
   {
-    icon: IconStethoscope,
-    title: 'Pedí tu Segunda Opinión',
-    description: 'Contanos tu caso, subí tus estudios y recibí tu informe cardiológico.',
+    icon: IconHeartbeat,
+    title: 'Completá Mi salud cardiovascular',
+    description: "Respondé los cuestionarios de Life's Essential 8: sueño, alimentación, actividad y tabaco.",
   },
 ];
 
@@ -71,9 +71,9 @@ const PASOS_INVITADO: Paso[] = [
     description: 'Leé y firmá el consentimiento informado del servicio.',
   },
   {
-    icon: IconStethoscope,
-    title: 'Completá tu solicitud',
-    description: 'Sumá el motivo de consulta y los estudios que tengas para tu Segunda Opinión.',
+    icon: IconHeartbeat,
+    title: 'Completá Mi salud cardiovascular',
+    description: "Respondé los cuestionarios de Life's Essential 8: sueño, alimentación, actividad y tabaco.",
   },
 ];
 
@@ -133,9 +133,9 @@ export function Welcome(): JSX.Element {
   const titulo = esInvitado ? `Hola ${nombre}, te estábamos esperando` : `¡Bienvenido/a ${nombre}!`;
   const intro = esInvitado
     ? origin === 'referral'
-      ? 'Tu médico te derivó a Segunda Opinión Médica para una revisión cardiológica experta. Confirmá tus datos y en unos pasos completás tu solicitud.'
-      : 'Nuestro equipo te invitó a Segunda Opinión Médica. Confirmá tus datos y en unos pasos completás tu solicitud.'
-    : 'Creaste tu cuenta en Segunda Opinión Médica: una segunda opinión cardiológica experta, basada en tus datos y en la evidencia.';
+      ? 'Tu médico te sumó al Plan Bienestar · 100 días. Confirmá tus datos y en unos pasos empezás.'
+      : 'Nuestro equipo te invitó al Plan Bienestar · 100 días. Confirmá tus datos y en unos pasos empezás.'
+    : 'Empezás tu Plan Bienestar · 100 días: tus datos, tus hábitos y tus metas para cuidar tu corazón, paso a paso.';
   const pasos = esInvitado ? PASOS_INVITADO : PASOS_SELF;
 
   const setCampo = <K extends keyof Demografia>(campo: K, valor: Demografia[K]): void => {
@@ -180,7 +180,7 @@ export function Welcome(): JSX.Element {
             <IconHeartbeat size={26} stroke={1.5} />
           </ThemeIcon>
           <Text fw={700} c="dimmed" size="sm" tt="uppercase">
-            Segunda Opinión Médica
+            Plan Bienestar · 100 días
           </Text>
         </Group>
 
@@ -231,8 +231,7 @@ export function Welcome(): JSX.Element {
             <Stack gap="md" mt="md">
               <Title order={2}>{esInvitado ? 'Confirmá tus datos personales' : 'Contanos sobre vos'}</Title>
               <Text c="gray.7">
-                Con tu sexo y tu fecha de nacimiento personalizamos el informe y, si corresponde, te ofrecemos
-                programas de prevención como el Plan Bienestar · 100 días.
+                Con tu sexo y tu fecha de nacimiento personalizamos tu Plan Bienestar · 100 días.
               </Text>
 
               <div>

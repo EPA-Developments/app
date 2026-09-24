@@ -22,28 +22,28 @@ import {
   IconCalendarEvent,
   IconChevronRight,
   IconClipboardHeart,
-  IconDeviceWatch,
   IconDropletHeart,
-  IconDna2,
   IconFileCheck,
   IconFileText,
-  IconGenderFemale,
+  IconHeartbeat,
   IconMessage,
   IconReportMedical,
-  IconStethoscope,
-  IconUserPlus,
-  IconUsers,
   IconWallet,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { PlanBienestar100 } from '../components/PlanBienestar100';
+import { SeguimientoGlp1Card } from '../components/SeguimientoGlp1Card';
+import { PLAN_BIENESTAR_CKM } from './ckm/ckm.contenido';
 import classes from './HomePage.module.css';
 import { EstadioCkmCard, PlanBienestarCard, RiesgoPreventCard } from '@epa/plan-bienestar-react';
 
-// Tablero mobile: la card CTA lleva a Pedir Segunda Opinión; las acciones rápidas y las
-// filas NO duplican esa entrada (el Consentimiento vive dentro de Salud).
+const RUTA_PLAN = '/care-plan/plan-100-dias';
+const RUTA_MI_SALUD_CV = '/health-record/cuestionarios';
+
+// Tablero mobile: la card CTA lleva al Plan Bienestar · 100 días; las acciones rápidas y
+// las filas NO duplican esa entrada (el Consentimiento vive dentro de Salud).
 const mobileTiles: { icon: Icon; title: string; href: string }[] = [
   { icon: IconReportMedical, title: 'Cargar resultado', href: '/health-record/biomarkers' },
   { icon: IconCalendarEvent, title: 'Reservar', href: '/get-care' },
@@ -52,7 +52,7 @@ const mobileTiles: { icon: Icon; title: string; href: string }[] = [
 
 const mobileRows: { icon: Icon; title: string; description: string; href: string }[] = [
   { icon: IconDropletHeart, title: 'Entendé tu salud CKM', description: 'Corazón, riñones y metabolismo, fase por fase', href: '/ckm' },
-  { icon: IconStethoscope, title: 'Mi Segunda Opinión', description: 'Estado e informe de tu consulta', href: '/mi-segunda-opinion' },
+  { icon: IconHeartbeat, title: 'Mi salud cardiovascular', description: "Tus hábitos: Life's Essential 8", href: RUTA_MI_SALUD_CV },
   { icon: IconReportMedical, title: 'Mis biomarcadores', description: 'Resultados y evolución', href: '/health-record/biomarkers' },
   { icon: IconFileText, title: 'Historia clínica', description: 'Estudios y registros', href: '/health-record' },
   { icon: IconClipboardHeart, title: 'Mi plan', description: 'Los pasos de tu seguimiento', href: '/care-plan' },
@@ -69,10 +69,16 @@ interface CardItem {
 // Accesos rápidos a las funciones reales del portal.
 const quickActions: CardItem[] = [
   {
-    icon: IconStethoscope,
-    title: 'Pedir Segunda Opinión',
-    description: 'Iniciá tu segunda opinión cardiológica: cargá tu caso y tus estudios.',
-    href: '/solicitar-som',
+    icon: IconClipboardHeart,
+    title: 'Plan Bienestar · 100 días',
+    description: 'Tus pasos, tus metas y tu progreso, semana a semana.',
+    href: RUTA_PLAN,
+  },
+  {
+    icon: IconHeartbeat,
+    title: 'Mi salud cardiovascular',
+    description: "Respondé los cuestionarios de Life's Essential 8: sueño, alimentación, actividad y tabaco.",
+    href: RUTA_MI_SALUD_CV,
   },
   {
     icon: IconDropletHeart,
@@ -95,7 +101,7 @@ const quickActions: CardItem[] = [
   {
     icon: IconMessage,
     title: 'Mensajes',
-    description: 'Comunicate con el equipo de Segunda Opinión Médica.',
+    description: 'Comunicate con tu equipo de salud.',
     href: '/Communication',
   },
   {
@@ -112,59 +118,8 @@ const quickActions: CardItem[] = [
   },
 ];
 
-// "Nuestros servicios" — la oferta cardiovascular de Segunda Opinión Médica
-// (segundaopinionmedica.org). Salud convencional cardiovascular, centrada en datos y prevención.
-const services: CardItem[] = [
-  {
-    icon: IconStethoscope,
-    title: 'Segunda Opinión Cardiológica',
-    description: 'Una revisión experta de tu caso por cardiólogos de prestigio internacional, según tu estadío CKM (guía AHA 2023).',
-  },
-  {
-    icon: IconUsers,
-    title: 'Líderes globales en salud',
-    description: 'Conectamos tu caso con especialistas y referentes globales en cardiología.',
-  },
-  {
-    icon: IconUserPlus,
-    title: 'Derivación de colegas',
-    description: 'Si sos profesional, derivá a tu paciente y recibí una copia del informe.',
-  },
-  {
-    icon: IconDeviceWatch,
-    title: 'Monitoreo remoto',
-    description: 'Seguimiento de tus datos para prevenir antes de los síntomas (Salud 3.0).',
-  },
-  {
-    icon: IconDna2,
-    title: 'Genómica',
-    description: 'Información genética aplicada a tu prevención cardiovascular.',
-  },
-  {
-    icon: IconGenderFemale,
-    title: 'Corazón y Mujer',
-    description: 'Atención cardiovascular pensada para la salud de la mujer.',
-  },
-];
-
-// "Cómo funciona" — el recorrido de una Segunda Opinión, en 3 pasos (refleja el flujo real del portal).
-const steps = [
-  {
-    n: 1,
-    title: 'Contanos tu caso',
-    description: 'Cargá el motivo de consulta, tus antecedentes y subí tus estudios.',
-  },
-  {
-    n: 2,
-    title: 'Análisis cardiológico',
-    description: 'Estimamos tu riesgo (score PREVENT) y revisamos tu información según las guías.',
-  },
-  {
-    n: 3,
-    title: 'Recibí tu informe',
-    description: 'Un informe de segunda opinión claro y accionable, con recomendaciones.',
-  },
-];
+// "Cómo funciona" — el Plan Bienestar · 100 días en 3 pasos (mismo contenido que /ckm).
+const steps = PLAN_BIENESTAR_CKM.bullets.map((description, i) => ({ n: i + 1, description }));
 
 export function HomePage(): JSX.Element {
   const navigate = useNavigate();
@@ -189,13 +144,13 @@ export function HomePage(): JSX.Element {
         {/* Tarjeta de prioridad */}
         <Card radius="lg" p="lg" mb="lg" style={{ backgroundColor: 'var(--mantine-primary-color-filled)' }}>
           <Text c="white" fw={700} fz="lg">
-            Pedí tu Segunda Opinión
+            Tu Plan Bienestar · 100 días
           </Text>
           <Text c="gray.3" fz="sm" mt={4} mb="md">
-            Cargá tu caso y tus estudios, y recibí un informe cardiológico con recomendaciones.
+            Tus datos, tus hábitos y tus metas, paso a paso, con el acompañamiento de tu equipo.
           </Text>
-          <Button variant="white" radius="xl" size="sm" onClick={() => go('/solicitar-som')}>
-            Pedir Segunda Opinión
+          <Button variant="white" radius="xl" size="sm" onClick={() => go(RUTA_PLAN)}>
+            Ver mi plan
           </Button>
         </Card>
         <Container mt="md">
@@ -208,6 +163,10 @@ export function HomePage(): JSX.Element {
           </Box>
         </Container>
 
+        {/* Seguimiento GLP-1 (solo si el paciente está en el programa) */}
+        <Box mb="lg">
+          <SeguimientoGlp1Card />
+        </Box>
         {/* Plan Bienestar · 100 días (solo si el paciente está inscripto) */}
         <Box mb="lg">
           <PlanBienestar100 />
@@ -258,15 +217,15 @@ export function HomePage(): JSX.Element {
         />
         <Container className={classes.heroContainer}>
           <Title className={classes.heroTitle}>
-            Hola <span>{profileName}</span>,<br /> tu segunda opinión cardiológica, con líderes globales en salud
+            Hola <span>{profileName}</span>,<br /> tu Plan Bienestar de 100 días para cuidar tu corazón
           </Title>
           <Text c="white" size="lg" maw={640} mt="md" style={{ position: 'relative', zIndex: 1 }}>
-            Salud 3.0: datos y prevención. Subí tu caso y tus estudios y recibí un informe de segunda opinión
-            cardiológica, basado en las guías y en tu riesgo cardiovascular.
+            Salud 3.0: datos y prevención. Tus datos, tus hábitos y tus metas, paso a paso, basados en las guías
+            y en tu riesgo cardiovascular.
           </Text>
           <Group mt="xl" style={{ position: 'relative', zIndex: 1 }}>
-            <Button size="lg" radius="xl" className={classes.heroButton} onClick={() => go('/solicitar-som')}>
-              Pedir Segunda Opinión
+            <Button size="lg" radius="xl" className={classes.heroButton} onClick={() => go(RUTA_PLAN)}>
+              Ver mi Plan Bienestar
             </Button>
             <Button
               size="lg"
@@ -282,7 +241,10 @@ export function HomePage(): JSX.Element {
 
       {/* Plan Bienestar · 100 días (solo si el paciente está inscripto) */}
       <Container pt={48}>
-        <PlanBienestar100 />
+        <SeguimientoGlp1Card />
+        <Box mt="md">
+          <PlanBienestar100 />
+        </Box>
       </Container>
       {/* Accesos rápidos */}
       <Container py={48}>
@@ -326,40 +288,13 @@ export function HomePage(): JSX.Element {
         </SimpleGrid>
       </Container>
 
-      {/* Nuestros servicios */}
-      <Box bg="white">
-        <Container py={48}>
-          <Title order={2} mb={4}>
-            Nuestros servicios
-          </Title>
-          <Text c="dimmed" mb="lg" maw={720}>
-            Atención cardiovascular centrada en datos y prevención: una segunda opinión experta para decidir mejor.
-          </Text>
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
-            {services.map((item) => (
-              <Card key={item.title} withBorder radius="md" p="lg" className={classes.card}>
-                <ThemeIcon size={44} radius="md" variant="light" color={theme.primaryColor}>
-                  <item.icon size={24} stroke={1.5} />
-                </ThemeIcon>
-                <Text fw={600} mt="md">
-                  {item.title}
-                </Text>
-                <Text size="sm" c="dimmed" mt={4}>
-                  {item.description}
-                </Text>
-              </Card>
-            ))}
-          </SimpleGrid>
-        </Container>
-      </Box>
-
       {/* Cómo funciona */}
       <Container py={48}>
         <Title order={2} mb={4}>
           Cómo funciona
         </Title>
         <Text c="dimmed" mb="lg" maw={720}>
-          El recorrido de tu Segunda Opinión Médica, en tres pasos.
+          Tu Plan Bienestar · 100 días, en tres pasos.
         </Text>
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
           {steps.map((step) => (
@@ -367,12 +302,7 @@ export function HomePage(): JSX.Element {
               <ThemeIcon size={40} radius="xl" color={theme.primaryColor}>
                 {step.n}
               </ThemeIcon>
-              <Text fw={600} mt="md">
-                {step.title}
-              </Text>
-              <Text size="sm" c="dimmed" mt={4}>
-                {step.description}
-              </Text>
+              <Text mt="md">{step.description}</Text>
             </Card>
           ))}
         </SimpleGrid>

@@ -5,26 +5,31 @@
 // Essential 8 (por slug) y, al enviarlo, crea un QuestionnaireResponse a nombre del
 // propio paciente logueado. El dashboard lo interpreta automáticamente: el portal solo
 // muestra el formulario y guarda la respuesta; no toca el Questionnaire ni el dashboard.
-import { Button, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Button, Group, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { createReference } from '@medplum/core';
 import type { Patient, Questionnaire, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { Document, QuestionnaireForm, useMedplum } from '@medplum/react';
-import { IconCircleCheck } from '@tabler/icons-react';
+import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { Loading } from '../components/Loading';
 import { showErrorNotification } from '../utils/notifications';
 import { fixQuestionnaireResponseTimes, relaxRequiredBooleans } from '../utils/questionnaire';
-import { le8QuestionnaireBySlug } from '../le8';
+import { LE8_QUESTIONNAIRES, le8QuestionnaireBySlug } from '../le8';
 import { le8QuestionnaireDef } from '../le8.questionnaires';
 
 export function LE8QuestionnairePage(): JSX.Element {
   const medplum = useMedplum();
   const patient = medplum.getProfile() as Patient;
+  const navigate = useNavigate();
   const { slug } = useParams();
   const meta = slug ? le8QuestionnaireBySlug(slug) : undefined;
+  // "Mi salud cardiovascular": los 4 cuestionarios LE8 se recorren en orden.
+  const indice = LE8_QUESTIONNAIRES.findIndex((q) => q.slug === meta?.slug);
+  const siguiente = indice >= 0 ? LE8_QUESTIONNAIRES[indice + 1] : undefined;
+  const pasoTexto = `Mi salud cardiovascular · ${indice + 1} de ${LE8_QUESTIONNAIRES.length}`;
 
   // undefined = cargando, null = no encontrado en el server.
   const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>();
@@ -68,7 +73,7 @@ export function LE8QuestionnairePage(): JSX.Element {
     return (
       <Document width={800}>
         <Text c="dimmed">
-          Todavía no está disponible el cuestionario “{meta.label}”. Pedile al equipo de Segunda Opinión Médica que lo cargue.
+          Todavía no está disponible el cuestionario “{meta.label}”. Escribile a tu equipo por Mensajes.
         </Text>
       </Document>
     );
@@ -105,18 +110,40 @@ export function LE8QuestionnairePage(): JSX.Element {
             <IconCircleCheck size={30} stroke={1.5} />
           </ThemeIcon>
           <Title order={3} ta="center">
-            ¡Gracias por completar tu cuestionario!
+            {siguiente ? '¡Gracias por completar tu cuestionario!' : '¡Completaste Mi salud cardiovascular!'}
           </Title>
           <Text c="dimmed" ta="center" maw={460}>
-            Tus respuestas quedaron registradas. El equipo de Segunda Opinión Médica las usa para tu evaluación cardiovascular
-            (Life's Essential 8).
+            Tus respuestas quedaron registradas. Tu equipo las usa para tu evaluación cardiovascular (Life's
+            Essential 8).
           </Text>
-          <Button variant="light" radius="xl" onClick={() => setIsSubmitted(false)}>
-            Responder de nuevo
-          </Button>
+          <Group justify="center">
+            {siguiente ? (
+              <Button
+                radius="xl"
+                rightSection={<IconArrowRight size={16} />}
+                onClick={() => navigate(`/health-record/cuestionarios/${siguiente.slug}`)?.catch(console.error)}
+              >
+                Siguiente: {siguiente.label}
+              </Button>
+            ) : (
+              <Button
+                radius="xl"
+                rightSection={<IconArrowRight size={16} />}
+                onClick={() => navigate('/care-plan/plan-100-dias')?.catch(console.error)}
+              >
+                Ver mi Plan Bienestar
+              </Button>
+            )}
+            <Button variant="light" radius="xl" onClick={() => setIsSubmitted(false)}>
+              Responder de nuevo
+            </Button>
+          </Group>
         </Stack>
       ) : (
         <>
+          <Text size="sm" fw={600} c="dimmed" tt="uppercase" mb={4}>
+            {pasoTexto}
+          </Text>
           <Title order={2} mb="md">
             {questionnaire.title ?? meta.label}
           </Title>

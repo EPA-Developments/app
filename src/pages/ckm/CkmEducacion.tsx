@@ -3,8 +3,8 @@
 //
 // /ckm — Flujo educativo de salud CKM (Cardio-Reno-Metabólica) para el paciente:
 // qué es, qué trae la guía AHA 2023 (Ndumele), los estadios 0-4 explicados fácil,
-// "¿en qué estadío estás?" (card real del vendor), CTA a Segunda Opinión con el
-// estadío como contexto, y cómo acompaña el Plan Bienestar · 100 días.
+// "¿en qué estadío estás?" (card real del vendor) y cómo acompaña el Plan Bienestar
+// · 100 días, que es el siguiente paso en cualquier estadío.
 import {
   Alert,
   Badge,
@@ -27,7 +27,6 @@ import {
   IconDropletHeart,
   IconHeartbeat,
   IconInfoCircle,
-  IconStethoscope,
 } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
@@ -121,16 +120,6 @@ export function CkmEducacion(): JSX.Element {
                     <Text size="sm" fw={600} mt={8} c={`${e.color}.9`}>
                       💡 {e.quePodesHacer}
                     </Text>
-                    <Button
-                      size="xs"
-                      variant="light"
-                      radius="xl"
-                      mt="sm"
-                      rightSection={<IconArrowRight size={14} />}
-                      onClick={() => go(`/solicitar-som?estadio=${e.estadio}`)}
-                    >
-                      Pedir Segunda Opinión para este estadío
-                    </Button>
                   </div>
                 </Group>
               </Card>
@@ -153,10 +142,11 @@ export function CkmEducacion(): JSX.Element {
             </Button>
             <Button
               radius="xl"
-              leftSection={<IconStethoscope size={16} />}
-              onClick={() => go('/solicitar-som')}
+              leftSection={<IconClipboardHeart size={16} />}
+              rightSection={<IconArrowRight size={16} />}
+              onClick={() => go('/care-plan/plan-100-dias')}
             >
-              Pedir mi Segunda Opinión
+              Ir a mi Plan Bienestar
             </Button>
           </Group>
         </Box>
