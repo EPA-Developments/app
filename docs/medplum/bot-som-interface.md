@@ -130,7 +130,74 @@ criteria: ServiceRequest?status=active&code=https://segundaopinionmedica.org/fhi
 
 ---
 
-## 3. Pendiente de aplicar en el server
+## 3. Bot `som-procesar-laboratorio` (interno, lo dispara una Subscription)
+
+Procesa los **PDF de laboratorio** que manda el paciente desde "Enviar estudios en PDF"
+(`src/fhir/estudios.ts`). Es el equivalente SOM de `agente-archivos` de Biowellness, que
+**no se usa** (regla de aislamiento): el bot vive en el proyecto `7ce5e559-…` con su propio
+Project Secret `ANTHROPIC_API_KEY`. El paciente no lo ejecuta (no va en la AccessPolicy).
+
+### Qué escribe el portal (y dispara al bot)
+
+| Recurso | Contenido |
+|---|---|
+| `Binary` | El PDF, con `securityContext` = `Patient/<id>`. |
+| `DocumentReference` | `status` `current` · `type` LOINC `11502-2` (Laboratory report) · `category` `https://segundaopinionmedica.org/fhir/CodeSystem/documento` \| `resultado-laboratorio` · `subject`/`author` el paciente · `content[0].attachment` = `{ contentType: 'application/pdf', url: <Binary>, title, size, creation }`. |
+| `Consent` | `status` `active` · `scope` `patient-privacy` · `category` v3-ActCode `IDSCL` · `policyRule` `https://segundaopinionmedica.org/fhir/CodeSystem/consentimiento` \| `procesamiento-datos-salud` · `provision.data[0]` = `{ meaning: 'instance', reference: DocumentReference/<id> }`. Se crea **después** del DocumentReference y puede faltar (no bloquea el envío). |
+
+> Hasta que la AccessPolicy deje crear el `Binary`, los PDF de hasta 700 KB llegan
+> **embebidos** (`attachment.data` en base64, sin `url`). El bot tiene que leer las dos
+> formas: `url` → `medplum.download(url)`; `data` → base64.
+
+### Subscription
+
+```
+criteria: DocumentReference?category=https://segundaopinionmedica.org/fhir/CodeSystem/documento|resultado-laboratorio
+channel:  rest-hook → Bot/<id de som-procesar-laboratorio>
+extension subscription-supported-interaction = create
+```
+
+Solo en **create**: el bot actualiza ese mismo DocumentReference al terminar y no tiene
+que volver a dispararse. La `category` propia evita que el consentimiento firmado (también
+un DocumentReference) dispare el bot.
+
+### Lógica
+
+1. **Precondición**: consentimiento informado firmado (`DocumentReference` `subject` =
+   el paciente, `status=current`, `type=http://loinc.org|59284-0`). Si falta, no procesar
+   ni mandar nada al LLM. El `Consent` por estudio es el registro de la casilla; como se
+   crea unos instantes después del documento, no exigirlo sin reintentar.
+2. Leer el PDF (ver arriba) y extraer con Claude: analito, valor, unidad, rango de
+   referencia del laboratorio y fecha de extracción.
+3. Crear una `Observation` por analito: `status` `final`, `category` `laboratory`
+   (`http://terminology.hl7.org/CodeSystem/observation-category`), `code` del catálogo
+   del portal (LOINC o `https://segundaopinionmedica.org/fhir/CodeSystem/biomarker`, los
+   mismos de las `ObservationDefinition`: es lo que buscan los paneles de Biomarcadores),
+   `subject`, `effectiveDateTime` = fecha de extracción, `valueQuantity` (UCUM),
+   `referenceRange` del informe, `derivedFrom` = `DocumentReference/<id>`.
+4. Crear el `DiagnosticReport`: `status` `final`, `category` `LAB`
+   (`http://terminology.hl7.org/CodeSystem/v2-0074`), `code` LOINC `11502-2`, `subject`,
+   `effectiveDateTime`, `issued`, `result` = las Observation, `presentedForm` = el
+   attachment del PDF.
+5. **Cerrar el circuito**: sumar `DiagnosticReport/<id>` a
+   `DocumentReference.context.related`. El portal muestra el estudio como "Ver resultados"
+   (y lleva a `/health-record/lab-results/<id>`); mientras no esté, "En proceso".
+6. Si el PDF no se puede leer: `Communication` al paciente (le decimos que lo contactamos
+   por Mensajes) y avisar al equipo.
+
+> ⚠️ `runAsUser` **desactivado**: el paciente tiene `DiagnosticReport` de solo lectura; el
+> bot escribe con su propia identidad.
+
+### CodeSystems propios que usa este flujo
+
+| CodeSystem | Código | Uso |
+|---|---|---|
+| `https://segundaopinionmedica.org/fhir/CodeSystem/documento` | `resultado-laboratorio` | `DocumentReference.category` del PDF de laboratorio. |
+| `https://segundaopinionmedica.org/fhir/CodeSystem/consentimiento` | `procesamiento-datos-salud` | `Consent.policyRule` (Ley 25.326). |
+
+---
+
+## 4. Pendiente de aplicar en el server
 
 - Desplegar los bots `som-solicitar` y `bot-som-report`.
 - Crear la **Subscription** del punto 2.
@@ -139,3 +206,6 @@ criteria: ServiceRequest?status=active&code=https://segundaopinionmedica.org/fhi
 - Aplicar la AccessPolicy actualizada (`access-policy-paciente-portal.json`) y
   **sincronizarla** con `recepcionistas/src/fhir/access-policies.ts`.
 - Cargar el Project Secret `ANTHROPIC_API_KEY`.
+- Desplegar `som-procesar-laboratorio` y crear su **Subscription** (punto 3).
+- AccessPolicy: `Binary` (el paciente sube su PDF) y `Consent` (autorización por estudio).
+  Ver `README.md` de esta carpeta.

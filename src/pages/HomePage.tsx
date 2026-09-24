@@ -25,6 +25,7 @@ import {
   IconDropletHeart,
   IconFileCheck,
   IconFileText,
+  IconFileUpload,
   IconHeartbeat,
   IconMessage,
   IconReportMedical,
@@ -33,6 +34,7 @@ import {
 import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
+import { RUTA_ENVIAR_ESTUDIOS } from '../components/AccionesRapidas';
 import { PlanBienestar100 } from '../components/PlanBienestar100';
 import { SeguimientoGlp1Card } from '../components/SeguimientoGlp1Card';
 import { PLAN_BIENESTAR_CKM } from './ckm/ckm.contenido';
@@ -91,6 +93,12 @@ const quickActions: CardItem[] = [
     title: 'Biomarcadores',
     description: 'Cargá tus resultados de laboratorio y seguí su evolución.',
     href: '/health-record/biomarkers',
+  },
+  {
+    icon: IconFileUpload,
+    title: 'Enviar estudios en PDF',
+    description: 'Subí el PDF de tu laboratorio; lo procesamos y se suma a tus biomarcadores.',
+    href: RUTA_ENVIAR_ESTUDIOS,
   },
   {
     icon: IconFileText,

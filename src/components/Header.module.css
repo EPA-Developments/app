@@ -71,6 +71,13 @@
   }
 }
 
+/* "+" de web: en smartphone está el botón central del menú inferior. */
+.acciones {
+  @mixin smaller-than $mantine-breakpoint-sm {
+    display: none;
+  }
+}
+
 .userActive {
   background-color: var(--mantine-color-gray-1);
 }
