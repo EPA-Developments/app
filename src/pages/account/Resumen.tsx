@@ -42,7 +42,7 @@ const GRUPOS: Grupo[] = [
       {
         icon: IconUserCircle,
         titulo: 'Mis datos',
-        descripcion: 'Datos personales, contacto, domicilio y contacto de emergencia.',
+        descripcion: 'Datos personales, contacto, domicilio, contacto de emergencia y cobertura.',
         href: '/account/profile',
       },
       {
