@@ -47,7 +47,9 @@ Cubre todo lo que el portal lee/escribe:
 - **Compartimento del paciente** — **solo lectura**: `Appointment`, `Coverage`,
   `Invoice` (pagos/señas), `DiagnosticReport`, `ServiceRequest` (sus solicitudes de
   Segunda Opinión), `RiskAssessment` (score PREVENT), `MedicationRequest`,
-  `Immunization`. La agenda y los planes/pagos
+  `Immunization`. **Excepción `Coverage`**: el paciente escribe **solo** su obra social
+  o prepaga (`type=v3-ActCode|HIP`, desde "Mis datos"); las membresías y paquetes siguen
+  de solo lectura. La agenda y los planes/pagos
   los gestiona Recepción; reservar es por *modelo de solicitud*, así que el paciente
   no escribe `Appointment`. La **Segunda Opinión** también es por *modelo de solicitud*:
   el paciente escribe su `QuestionnaireResponse` + `DocumentReference` y ejecuta el bot

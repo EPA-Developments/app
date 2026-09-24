@@ -13,6 +13,7 @@ import { IconCircleCheck, IconCircleOff } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useState } from 'react';
 import { InfoSection } from '../../components/InfoSection';
+import { CoberturaSection } from './CoberturaSection';
 
 /** Domicilio argentino, apilado (usable en smartphone) y en español. */
 function DomicilioInput({ value, onChange }: { value: Address; onChange: (a: Address) => void }): JSX.Element {
@@ -281,6 +282,9 @@ export function Profile(): JSX.Element | null {
           </InfoSection>
         </Stack>
       </Form>
+      <Box mt="md">
+        <CoberturaSection patient={profile} />
+      </Box>
     </Box>
   );
 }

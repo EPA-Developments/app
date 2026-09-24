@@ -17,6 +17,7 @@
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { Appointment, Coverage, Invoice, Patient } from '@medplum/fhirtypes';
+import { esCoberturaDeSalud } from './cobertura';
 
 const BASE = 'https://segundaopinionmedica.org/fhir';
 
@@ -124,7 +125,8 @@ export async function cargarSesiones(medplum: MedplumClient, patient: Patient): 
 
   const filas: SaldoSesiones[] = [];
   for (const c of coverages as Coverage[]) {
-    if (!c.id) {
+    // La obra social / prepaga que carga el paciente no es un plan con sesiones.
+    if (!c.id || esCoberturaDeSalud(c)) {
       continue;
     }
     const estado = estadoDeCoverage(c);
