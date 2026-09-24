@@ -12,8 +12,9 @@ import { measurementsMeta } from './Measurement.data';
 
 // Nota: las rutas y componentes de Resultados de Laboratorio, Medicación y Vacunas
 // se mantienen (no se borran); solo se ocultan del menú.
-//  - Resultados de Laboratorio: oculto por ahora; los estudios se van a cargar desde
-//    otro proyecto (agente-archivo). Volver a sumar acá cuando esté listo.
+//  - Resultados de Laboratorio: oculto por ahora; los informes los crea el bot
+//    `som-procesar-laboratorio` a partir de los PDF que manda el paciente ("Enviar
+//    estudios en PDF"). Volver a sumar acá cuando el bot esté en producción.
 //  - Medicación / Vacunas: ocultos del menú por pedido.
 const sideMenu = {
   title: 'Historia Clínica',

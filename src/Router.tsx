@@ -11,6 +11,7 @@ import { CarePlanPage } from './pages/care-plan';
 import { ActionItem } from './pages/care-plan/ActionItem';
 import { ActionItems } from './pages/care-plan/ActionItems';
 import { SeguimientoGlp1 } from './pages/care-plan/SeguimientoGlp1';
+import { EnviarEstudiosPage } from './pages/EnviarEstudiosPage';
 import { GetCare } from './pages/GetCarePage';
 import { HealthRecord } from './pages/health-record';
 import { BiomarkerPanel } from './pages/health-record/BiomarkerPanel';
@@ -82,6 +83,8 @@ export function Router(): JSX.Element {
         <Route path="glp1" element={<SeguimientoGlp1 />} />
       </Route>
       <Route path="get-care" element={<GetCare />} />
+      {/* Enviar estudios en PDF (laboratorio): opción del "+" en smartphone y en web. */}
+      <Route path="enviar-estudios" element={<EnviarEstudiosPage />} />
       {/* Educación CKM: guía AHA/Ndumele (estadios 0-4) → Plan Bienestar. */}
       <Route path="ckm" element={<CkmEducacion />} />
       {/* Segunda Opinión: fuera de todos los menús (el portal es Plan Bienestar · 100 días).

@@ -24,7 +24,15 @@ Cubre todo lo que el portal lee/escribe:
   extensión `onboarding-completed` del Patient Journey; el origen `patient-origin` lo
   setea el backend al invitar),
   `Observation` (biomarcadores y signos vitales), `QuestionnaireResponse`,
-  `DocumentReference` (consentimiento), `Communication` (mensajes).
+  `DocumentReference` (consentimiento y estudios en PDF), `Communication` (mensajes),
+  `Consent` (la autorización para procesar cada estudio que manda) y `Binary` (el PDF que
+  sube desde "Enviar estudios en PDF").
+  > `Binary`: el portal lo crea con `securityContext` = el paciente, y la escritura queda
+  > acotada con `Binary?_compartment=%patient`. **Verificar en el server** que Medplum
+  > ponga al `Binary` en el compartimento del paciente por su `securityContext`; si el
+  > server rechaza la creación, el portal manda los PDF de hasta 700 KB embebidos en el
+  > `DocumentReference` y pide los más grandes por Mensajes (ver
+  > `../acciones-rapidas.md`). La lectura general de `Binary` sigue como estaba.
 - **Plan Bienestar (drop-in)** — el paciente INICIA su propio plan (`empezarPlan` crea
   CarePlan+Goal+Task+CareTeam+Condition por transacción) y tilda pasos (`completarPaso`
   actualiza Task). La escritura está acotada con criterios finos para no abrir el resto:

@@ -2,25 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Menú inferior fijo para smartphone (estilo billetera): 4 ejes + botón "+" central.
-// Inicio · Salud · [ + ] · Membresía · Cuenta. El "+" abre una hoja con las acciones
-// principales (Reservar / Cargar resultado / Mensaje). Solo se muestra en mobile
+// Inicio · Salud · [ + ] · Membresía · Cuenta. El "+" abre la hoja "¿Qué querés hacer?"
+// (`AccionesRapidas`, la misma que el "+" del Header en web). Solo se muestra en mobile
 // (oculto en >= sm; en desktop manda el Header superior).
-import { ActionIcon, Drawer, Stack, Text, ThemeIcon, UnstyledButton } from '@mantine/core';
+import { ActionIcon, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  IconCalendarPlus,
-  IconClipboardHeart,
-  IconHeartbeat,
-  IconHome,
-  IconMessage,
-  IconPlus,
-  IconReportMedical,
-  IconUser,
-  IconWallet,
-} from '@tabler/icons-react';
+import { IconHeartbeat, IconHome, IconPlus, IconUser, IconWallet } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { AccionesRapidas, RUTA_ENVIAR_ESTUDIOS } from './AccionesRapidas';
 import classes from './BottomNav.module.css';
 
 interface Tab {
@@ -37,34 +28,10 @@ const tabs: Tab[] = [
     icon: IconHeartbeat,
     label: 'Salud',
     href: '/health-record',
-    match: ['/health-record', '/care-plan', '/Observation'],
+    match: ['/health-record', '/care-plan', '/Observation', RUTA_ENVIAR_ESTUDIOS],
   },
   { icon: IconWallet, label: 'Membresía', href: '/membership', match: ['/membership'] },
   { icon: IconUser, label: 'Cuenta', href: '/account', match: ['/account'] },
-];
-
-interface QuickAction {
-  readonly icon: Icon;
-  readonly label: string;
-  readonly description: string;
-  readonly href: string;
-}
-
-const quickActions: QuickAction[] = [
-  {
-    icon: IconClipboardHeart,
-    label: 'Mi Plan Bienestar',
-    description: 'Tus pasos y metas de los 100 días.',
-    href: '/care-plan/plan-100-dias',
-  },
-  { icon: IconCalendarPlus, label: 'Reservar turno', description: 'Pedí tu próxima sesión o consulta.', href: '/get-care' },
-  {
-    icon: IconReportMedical,
-    label: 'Cargar resultado',
-    description: 'Sumá un valor de laboratorio.',
-    href: '/health-record/biomarkers',
-  },
-  { icon: IconMessage, label: 'Enviar mensaje', description: 'Escribile a tu equipo.', href: '/Communication' },
 ];
 
 function isActive(pathname: string, tab: Tab): boolean {
@@ -122,35 +89,7 @@ export function BottomNav(): JSX.Element {
         ))}
       </nav>
 
-      <Drawer
-        opened={opened}
-        onClose={close}
-        position="bottom"
-        size="auto"
-        radius="lg"
-        withCloseButton={false}
-        padding="lg"
-        zIndex={2000}
-      >
-        <Stack gap="xs">
-          <Text fw={700} fz="lg" mb={4}>
-            ¿Qué querés hacer?
-          </Text>
-          {quickActions.map((a) => (
-            <UnstyledButton key={a.href} className={classes.action} onClick={() => go(a.href)}>
-              <ThemeIcon size={44} radius="md" variant="light">
-                <a.icon size={24} stroke={1.5} />
-              </ThemeIcon>
-              <div>
-                <Text fw={600}>{a.label}</Text>
-                <Text size="sm" c="dimmed">
-                  {a.description}
-                </Text>
-              </div>
-            </UnstyledButton>
-          ))}
-        </Stack>
-      </Drawer>
+      <AccionesRapidas opened={opened} onClose={close} />
     </>
   );
 }

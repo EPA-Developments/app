@@ -1,0 +1,13 @@
+/* Acciones del "+" (hoja inferior, igual en smartphone y en web). */
+.action {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-md);
+  width: 100%;
+  padding: 10px 8px;
+  border-radius: var(--mantine-radius-md);
+
+  &:hover {
+    background-color: var(--mantine-color-gray-1);
+  }
+}
