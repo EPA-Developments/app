@@ -129,7 +129,8 @@ test('si el archivo no es un PDF, avisa y no crea el documento', async () => {
   const { medplum, patient } = await paciente();
   await renderEn(medplum, '/enviar-estudios');
   await act(async () => elegirArchivo(new File(['hola'], 'foto.pdf', { type: 'application/pdf' })));
-  await act(async () => fireEvent.click(await screen.findByRole('checkbox')));
+  const autorizo = await screen.findByRole('checkbox');
+  await act(async () => fireEvent.click(autorizo));
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Enviar PDF' })));
   expect(await screen.findByText(/no es un PDF/)).toBeInTheDocument();
   expect(await cargarEstudiosEnviados(medplum, patient)).toHaveLength(0);

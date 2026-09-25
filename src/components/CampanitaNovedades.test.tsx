@@ -106,8 +106,11 @@ test('marcar todas como leídas apaga el badge', async () => {
   await medplum.createResource(novedad(patient, 'general', 'Novedades del centro.'));
   await renderCampanita(medplum);
 
-  await act(async () => fireEvent.click(await screen.findByRole('button', { name: 'Novedades: 2 sin leer' })));
-  await act(async () => fireEvent.click(await screen.findByRole('button', { name: 'Marcar todas como leídas' })));
+  // Buscar fuera de act(): findBy* espera con waitFor, que no se puede anidar en act().
+  const campanita = await screen.findByRole('button', { name: 'Novedades: 2 sin leer' });
+  await act(async () => fireEvent.click(campanita));
+  const marcarTodas = await screen.findByRole('button', { name: 'Marcar todas como leídas' });
+  await act(async () => fireEvent.click(marcarTodas));
   expect(await screen.findByRole('button', { name: 'Novedades' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Marcar todas como leídas' })).not.toBeInTheDocument();
 });
