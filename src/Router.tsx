@@ -42,6 +42,7 @@ import { MiSegundaOpinion } from './pages/MiSegundaOpinion';
 import { CkmEducacion } from './pages/ckm/CkmEducacion';
 import { SignOutPage } from './pages/SignOutPage';
 import { SolicitarSOM } from './pages/SolicitarSOM';
+import { TeleconsultaPage } from './pages/TeleconsultaPage';
 import { Welcome } from './pages/Welcome';
 
 export function Router(): JSX.Element {
@@ -93,6 +94,8 @@ export function Router(): JSX.Element {
         <Route path="glp1" element={<SeguimientoGlp1 />} />
       </Route>
       <Route path="get-care" element={<GetCare />} />
+      {/* Videollamada de un turno virtual: pagar, entrar a la sala (Jitsi) y ver el informe. */}
+      <Route path="teleconsulta/:appointmentId" element={<TeleconsultaPage />} />
       {/* Enviar estudios en PDF (laboratorio): opción del "+" en smartphone y en web. */}
       <Route path="enviar-estudios" element={<EnviarEstudiosPage />} />
       {/* Educación CKM: guía AHA/Ndumele (estadios 0-4) → Plan Bienestar. */}
