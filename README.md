@@ -40,7 +40,11 @@ registro, título de la pestaña y consentimiento informado) sale de un solo lug
 | `email` | `MARCA_EMAIL` | Pie, revocación y derechos sobre los datos del consentimiento |
 
 El texto del consentimiento es legal: cambiar la marca cambia el prestador que figura en
-él, así que cada marca nueva necesita su revisión legal. La landing pública todavía no
+él, así que cada marca nueva necesita su revisión legal.
+
+**Regla: sin la marca anterior.** Ningún archivo del portal nombra ni apunta a la marca de
+la que se partió (ni prefijos de sus bots, ni su dominio, ni su servidor). Lo verifica
+`src/sin-marca-anterior.test.ts` en `npm test`, con el mismo patrón que `recepcionistas`. La landing pública todavía no
 usa esta configuración.
 
 ## Referencias
