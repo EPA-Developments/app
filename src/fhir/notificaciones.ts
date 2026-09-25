@@ -26,6 +26,8 @@ export const TIPOS_NOTIFICACION = {
   'pago-recibido': 'Pago recibido',
   'resultados-listos': 'Resultados listos',
   'documento-nuevo': 'Documento nuevo',
+  /** Recepción respondió en Mensajes (`about` = la conversación). */
+  'mensaje-nuevo': 'Mensaje nuevo',
   general: 'Aviso',
 } as const;
 

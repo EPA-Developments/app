@@ -51,7 +51,7 @@ el contador filtra por nuestra `category`, así que los mensajes del chat (tambi
 
 | Campo | Regla |
 |---|---|
-| `category` | system `…/CodeSystem/notificacion`. Códigos: `reserva-confirmada` · `recordatorio` · `pago-recibido` · `resultados-listos` · `documento-nuevo` · `general`. Un código nuevo se muestra igual, como aviso, con su `display` de título. |
+| `category` | system `…/CodeSystem/notificacion`. Códigos: `reserva-confirmada` · `recordatorio` · `pago-recibido` · `resultados-listos` · `documento-nuevo` · `mensaje-nuevo` · `general`. Un código nuevo se muestra igual, como aviso, con su `display` de título. |
 | `subject` | **Siempre** el Patient: es lo que usa la AccessPolicy para acotar. |
 | `recipient` | El Patient (el portal busca por `recipient`). |
 | `sent` | **Obligatorio**: el panel ordena por `-sent` y muestra "hace 5 minutos". |
@@ -82,7 +82,9 @@ A dónde lleva el toque (`destinoNotificacion`):
    `resultados-listos` + `about: DiagnosticReport` (ver `bot-som-interface.md` §3).
 5. **Documento nuevo**: el profesional dejó un informe, una orden o una receta →
    `documento-nuevo` + `about` = `DocumentReference` / `ServiceRequest` / `MedicationRequest`.
-6. **Avisos generales**: `general` (cambios de horario, novedades).
+6. **Mensaje nuevo**: Recepción respondió en Mensajes → `mensaje-nuevo` + `about: Communication/<conversación>`
+   (lo crea la bandeja de Recepción, `recepcionistas/src/lib/mensajes.ts`: uno por tanda de respuestas).
+7. **Avisos generales**: `general` (cambios de horario, novedades).
 
 ### Probar hoy sin bots
 
@@ -122,8 +124,10 @@ bandeja del equipo muestra las conversaciones sin cambios:
 - **Leído**: al abrir la conversación el portal pasa los mensajes del equipo a `completed` +
   `received`. Si el equipo **finaliza** la conversación (`status` `completed` en el topic), el
   paciente ya no escribe ahí: el portal le ofrece un mensaje nuevo con el mismo motivo.
-- Para la bandeja: listar sin filtrar por `recipient` (una conversación sin médico de
-  cabecera solo tiene al paciente como destinatario) y usar el motivo para repartirla.
+- **Bandeja de Recepción**: pestaña "Mensajes" de la app de Recepción
+  (`recepcionistas/app/src/pages/Mensajes.tsx`). Lista sin filtrar por `recipient` (una
+  conversación sin médico de cabecera solo tiene al paciente como destinatario), muestra el
+  motivo, cierra/reabre y, al responder, le deja al paciente la Novedad `mensaje-nuevo`.
 - Una novedad puede apuntar a una conversación (`about: Communication/<id>`): el toque la abre.
 
 ## Refresco y tiempo real

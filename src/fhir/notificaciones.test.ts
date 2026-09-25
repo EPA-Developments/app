@@ -130,6 +130,12 @@ test.each([
   expect(destinoNotificacion(novedad('general', extra))).toBe(destino);
 });
 
+test('Mensaje nuevo (Recepción respondió) abre la conversación', () => {
+  const c = novedad('mensaje-nuevo', { about: [{ reference: 'Communication/conv1' }] });
+  expect(tipoNotificacion(c)).toEqual({ tipo: 'mensaje-nuevo', titulo: 'Mensaje nuevo' });
+  expect(destinoNotificacion(c)).toBe('/Communication/conv1');
+});
+
 test('sin `about`, el destino sale del tipo; un aviso general no navega', () => {
   expect(destinoNotificacion(novedad('recordatorio'))).toBe('/membership');
   expect(destinoNotificacion(novedad('resultados-listos'))).toBe('/health-record/biomarkers');
