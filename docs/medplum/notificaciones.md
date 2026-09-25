@@ -7,8 +7,7 @@ turno confirmado, pago recibido, recordatorios, resultados listos… Todo es FHI
 - Portal: `src/fhir/notificaciones.ts` (taxonomía, cargar, contar, marcar leída, destino
   del toque) y `src/components/CampanitaNovedades.tsx` (badge + panel "Novedades").
 - Quién las crea: los **bots** de Recepción / clínicos (`recepcionistas`), siempre bots
-  `som-*` del proyecto `7ce5e559-…` (regla de aislamiento: nada de `bw-*` ni de
-  `biowellness.ar`).
+  `som-*` del proyecto `7ce5e559-…` (regla de aislamiento, ver `bot-som-interface.md`).
 
 ## Un recurso, dos superficies
 

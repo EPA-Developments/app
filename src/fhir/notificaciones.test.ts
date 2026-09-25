@@ -61,7 +61,7 @@ async function servidor(): Promise<MockClient> {
   return medplum;
 }
 
-test('el system es de SOM, no de Biowellness', () => {
+test('el system es de SOM', () => {
   expect(NOTIFICACION_SYSTEM).toBe('https://segundaopinionmedica.org/fhir/CodeSystem/notificacion');
   expect(criteriaNotificaciones(P1)).toBe(
     'Communication?recipient=Patient/p1&category=https://segundaopinionmedica.org/fhir/CodeSystem/notificacion|'

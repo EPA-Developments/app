@@ -26,8 +26,8 @@ acá.
 
 ## ⚠️ Systems FHIR canónicos renombrados (el seed DEBE coincidir)
 
-El portal (`app`) ya migró todos los `system`/`url` canónicos de `biowellness.ar` /
-`bio.medplum.com.ar` a **`segundaopinionmedica.org`**. El seed de `recepcionistas` y los
+El portal (`app`) ya migró todos los `system`/`url` canónicos de la marca anterior a
+**`segundaopinionmedica.org`**. El seed de `recepcionistas` y los
 recursos FHIR del server (proyecto `7ce5e559-…` "Segunda Opinión Médica") **deben re-seedearse con estos mismos
 valores**, o el portal deja de matchear los datos:
 
@@ -184,11 +184,10 @@ Incorporar también estas definiciones al seed de `recepcionistas` como fuente d
 El portal migró el flujo de "Pedir un turno" de terapias funcionales a servicios
 cardiovasculares (`app/src/fhir/solicitudes.ts`). El backend debe alinear:
 
-1. **Renombrar el bot** `bw-solicitar-turno` → **`som-solicitar-turno`** (deploy +
-   AccessPolicy). El portal ya ejecuta `som-solicitar-turno` y la AccessPolicy espejo ya
-   lo whitelistea. (También conviene de-brandear los bots de reserva
-   `bw-reservar-turno`/`bw-reservar-combo` → `som-*`; el portal no los ejecuta, pero el
-   prefijo `bw` = marca anterior.)
+1. **Renombrar el bot de solicitud de turno** con prefijo de la marca anterior →
+   **`som-solicitar-turno`** (deploy + AccessPolicy). El portal ya ejecuta
+   `som-solicitar-turno` y la AccessPolicy espejo ya lo whitelistea. (También conviene
+   pasar a `som-*` los bots de reserva con el prefijo anterior; el portal no los ejecuta.)
 2. **Input del bot** (lo que envía el portal): `{ pacienteRef, servicio, servicioCodigo,
    preferenciaInicio?, preferenciaTexto?, nota }`. Antes eran `terapia`/`terapiaCodigo`;
    ahora son **`servicio`/`servicioCodigo`**.
@@ -203,8 +202,8 @@ cardiovasculares (`app/src/fhir/solicitudes.ts`). El backend debe alinear:
 ## ORDEN DE TRABAJO (recon primero, NO refactor)
 1. `ls -la && cat package.json` y leer el README.
 2. Mapear lo existente que se REUSA/MODIFICA:
-   - Bots: `bw-solicitar-turno` (→ renombrar a `som-solicitar-turno`), `bw-reservar-turno`,
-     `bw-reservar-combo` (ver cómo se definen/despliegan: `npm run deploy:bots`).
+   - Bots de solicitud y de reserva con el prefijo de la marca anterior (→ renombrar a
+     `som-solicitar-turno` / `som-*`; ver cómo se definen/despliegan: `npm run deploy:bots`).
    - Seed/FHIR: `src/fhir/access-policies.ts`, `src/fhir/coverage.ts`, `src/lib/planes.ts`,
      catálogo de terapias → reemplazar por el de servicios cardiovasculares, `npm run seed`.
    - App de recepción (vistas, p.ej. "Solicitudes").
