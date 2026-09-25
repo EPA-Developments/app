@@ -11,6 +11,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
 import { esCentro, miembrosDelPlan } from '../../fhir/equipo';
 import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM } from '../../fhir/som';
+import { AccountPage } from './index';
 import { MiEquipoDeSalud } from './MiEquipoDeSalud';
 import { Resumen } from './Resumen';
 
@@ -70,6 +71,47 @@ describe('Resumen', () => {
     expect(screen.getAllByText('Membresía')).toHaveLength(1);
     fireEvent.click(screen.getByText('Cerrar sesión'));
     expect(await screen.findByText('saliendo')).toBeInTheDocument();
+  });
+});
+
+describe('Layout de Mi cuenta', () => {
+  async function renderLayout(medplum: MockClient, ruta: string): Promise<void> {
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={[ruta]}>
+          <MedplumProvider medplum={medplum}>
+            <MantineProvider>
+              <Routes>
+                <Route path="/account" element={<AccountPage />}>
+                  <Route path="resumen" element={<Marca texto="contenido del resumen" />} />
+                  <Route path="profile" element={<Marca texto="contenido de mis datos" />} />
+                </Route>
+              </Routes>
+            </MantineProvider>
+          </MedplumProvider>
+        </MemoryRouter>
+      );
+    });
+  }
+
+  test('el menú lateral es solo de web: en smartphone el Resumen ya lleva a cada opción', async () => {
+    const { medplum } = await paciente();
+    await renderLayout(medplum, '/account/resumen');
+    expect(screen.getByText('contenido del resumen')).toBeInTheDocument();
+    const menu = screen.getByRole('heading', { name: 'Mi cuenta' });
+    expect(menu.closest('.mantine-visible-from-sm')).not.toBeNull();
+    // En el Resumen no hace falta volver.
+    expect(screen.queryByRole('link', { name: 'Mi cuenta' })).not.toBeInTheDocument();
+  });
+
+  test('en una subpágina, smartphone tiene "‹ Mi cuenta" para volver al Resumen', async () => {
+    const { medplum } = await paciente();
+    await renderLayout(medplum, '/account/profile');
+    const volver = screen.getByRole('link', { name: 'Mi cuenta' });
+    expect(volver).toHaveAttribute('href', '/account/resumen');
+    expect(volver.closest('.mantine-hidden-from-sm')).not.toBeNull();
+    await act(async () => fireEvent.click(volver));
+    expect(await screen.findByText('contenido del resumen')).toBeInTheDocument();
   });
 });
 
