@@ -1,0 +1,33 @@
+/* Tarjetas del panel "Novedades". */
+.item {
+  border-radius: var(--mantine-radius-md);
+
+  &[data-unread] {
+    background-color: var(--mantine-primary-color-light);
+  }
+}
+
+.main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-sm);
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--mantine-radius-md);
+
+  &:hover {
+    background-color: var(--mantine-color-gray-1);
+  }
+}
+
+/* Alineado con el texto (38px de ícono + gap). */
+.adjunto {
+  margin: -4px 0 10px calc(38px + var(--mantine-spacing-sm) + 10px);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--mantine-color-red-6);
+}

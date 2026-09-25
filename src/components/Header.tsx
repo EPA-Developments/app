@@ -9,6 +9,7 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { AccionesRapidas } from './AccionesRapidas';
+import { CampanitaNovedades } from './CampanitaNovedades';
 import classes from './Header.module.css';
 import { Logo } from './Logo';
 
@@ -58,6 +59,8 @@ export function Header({ soloCerrarSesion = false }: { soloCerrarSesion?: boolea
           )}
 
           <Group gap="xs" wrap="nowrap">
+            {/* Campanita de Novedades: en smartphone y en web. */}
+            {!soloCerrarSesion && <CampanitaNovedades />}
             {!soloCerrarSesion && (
               <ActionIcon
                 className={classes.acciones}
