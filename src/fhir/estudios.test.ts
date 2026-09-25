@@ -20,6 +20,17 @@ import {
   validarPdf,
 } from './estudios';
 
+/** Systems que no son de SOM ni de una terminología estándar (LOINC, HL7). */
+function systemsAjenos(recurso: unknown): string[] {
+  const systems = [...JSON.stringify(recurso).matchAll(/"system":"([^"]+)"/g)].map((m) => m[1]);
+  return systems.filter(
+    (s) =>
+      !s.startsWith('https://segundaopinionmedica.org/') &&
+      s !== 'http://loinc.org' &&
+      !s.startsWith('http://terminology.hl7.org/')
+  );
+}
+
 /** Un PDF mínimo (lo que importa es la firma `%PDF-`). */
 function pdf(nombre = 'laboratorio.pdf', bytes = 64, type = 'application/pdf'): File {
   const contenido = new Uint8Array(bytes);
@@ -69,8 +80,8 @@ test('el DocumentReference es un informe de laboratorio (LOINC 11502-2) con la c
     date: '2026-09-24T12:00:00.000Z',
     content: [{ attachment: { url: 'Binary/b1', title: 'lab.pdf' } }],
   });
-  // Aislamiento de proyecto: nada de Biowellness.
-  expect(JSON.stringify(doc)).not.toMatch(/biowellness/i);
+  // Aislamiento de proyecto: solo systems de SOM o terminologías estándar.
+  expect(systemsAjenos(doc)).toEqual([]);
 });
 
 test('el Consent cumple ppc-1 (policyRule) y autoriza ese documento puntual', () => {
@@ -87,7 +98,7 @@ test('el Consent cumple ppc-1 (policyRule) y autoriza ese documento puntual', ()
     provision: { type: 'permit', data: [{ meaning: 'instance', reference: { reference: 'DocumentReference/d1' } }] },
   });
   expect(c.category?.length).toBeGreaterThan(0);
-  expect(JSON.stringify(c)).not.toMatch(/biowellness/i);
+  expect(systemsAjenos(c)).toEqual([]);
 });
 
 describe('validarPdf', () => {

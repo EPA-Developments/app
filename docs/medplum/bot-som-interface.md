@@ -19,9 +19,9 @@ El portal (`src/fhir/som.ts`) define las constantes canónicas que **deben coinc
 | `SOM_SECTIONS_EXT` | `https://segundaopinionmedica.org/fhir/StructureDefinition/som-sections` |
 
 > ⛔ **REGLA INNEGOCIABLE — aislamiento de proyecto.** Los bots de SOM no interactúan
-> con bots, recursos, secrets, Subscriptions ni proyectos de otros proyectos (en
-> particular Biowellness: `bw-*`, `biowellness.ar`, `bio.medplum.com.ar`). Si un flujo
-> de SOM pasa por algo de Biowellness, se sale de ahí y se crea un bot propio `som-*`
+> con bots, recursos, secrets, Subscriptions ni proyectos de otros proyectos: solo bots
+> `som-*`, systems bajo `segundaopinionmedica.org` y el proyecto `7ce5e559-…`. Si un flujo
+> de SOM pasa por algo de otro proyecto, se sale de ahí y se crea un bot propio `som-*`
 > en el proyecto `7ce5e559-…`. El portal lo aplica en `src/fhir/bots.ts`: solo resuelve
 > y ejecuta bots `som-*` por nombre exacto, y rechaza cualquier bot cuyo
 > `meta.project` no sea el de SOM.
@@ -133,9 +133,8 @@ criteria: ServiceRequest?status=active&code=https://segundaopinionmedica.org/fhi
 ## 3. Bot `som-procesar-laboratorio` (interno, lo dispara una Subscription)
 
 Procesa los **PDF de laboratorio** que manda el paciente desde "Enviar estudios en PDF"
-(`src/fhir/estudios.ts`). Es el equivalente SOM de `agente-archivos` de Biowellness, que
-**no se usa** (regla de aislamiento): el bot vive en el proyecto `7ce5e559-…` con su propio
-Project Secret `ANTHROPIC_API_KEY`. El paciente no lo ejecuta (no va en la AccessPolicy).
+(`src/fhir/estudios.ts`). Es un bot propio de SOM (regla de aislamiento): vive en el
+proyecto `7ce5e559-…` con su propio Project Secret `ANTHROPIC_API_KEY`. El paciente no lo ejecuta (no va en la AccessPolicy).
 
 ### Qué escribe el portal (y dispara al bot)
 

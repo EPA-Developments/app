@@ -10,7 +10,7 @@ test('esBotSOM acepta solo bots som-* con el nombre exacto', () => {
   const bot: Bot = { resourceType: 'Bot', name: 'som-solicitar' };
   expect(esBotSOM(bot, 'som-solicitar', SOM)).toBe(true);
   expect(esBotSOM({ ...bot, name: 'som-solicitar-turno' }, 'som-solicitar', SOM)).toBe(false);
-  expect(esBotSOM({ ...bot, name: 'bw-solicitar-turno' }, 'bw-solicitar-turno', SOM)).toBe(false);
+  expect(esBotSOM({ ...bot, name: 'otro-solicitar-turno' }, 'otro-solicitar-turno', SOM)).toBe(false);
 });
 
 test('esBotSOM rechaza bots de otro proyecto', () => {
@@ -20,5 +20,5 @@ test('esBotSOM rechaza bots de otro proyecto', () => {
 });
 
 test('buscarBotSOM se niega a resolver bots que no son de SOM', async () => {
-  await expect(buscarBotSOM(new MockClient(), 'bw-reservar-turno')).rejects.toThrow('solo ejecuta bots de SOM');
+  await expect(buscarBotSOM(new MockClient(), 'otro-reservar-turno')).rejects.toThrow('solo ejecuta bots de SOM');
 });

@@ -33,6 +33,7 @@ import {
   IconCalendarCheck,
   IconFileText,
   IconInfoCircle,
+  IconMessage,
   IconPaperclip,
   IconReceipt,
   IconReportMedical,
@@ -68,6 +69,7 @@ const ICONOS: Record<TipoNotificacion, { icon: Icon; color: string }> = {
   'pago-recibido': { icon: IconReceipt, color: 'teal' },
   'resultados-listos': { icon: IconReportMedical, color: 'grape' },
   'documento-nuevo': { icon: IconFileText, color: 'indigo' },
+  'mensaje-nuevo': { icon: IconMessage, color: 'blue' },
   general: { icon: IconInfoCircle, color: 'gray' },
 };
 

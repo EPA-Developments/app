@@ -3,8 +3,8 @@
 //
 // Único punto por el que el portal resuelve un Bot antes de ejecutarlo.
 // REGLA: el portal de SOM solo ejecuta bots propios de SOM (prefijo `som-`) del
-// proyecto SOM. Nunca bots de otros proyectos (p. ej. Biowellness, `bw-*`), aunque
-// estuvieran visibles por un proyecto vinculado.
+// proyecto SOM. Nunca bots de otros proyectos, aunque estuvieran visibles por un
+// proyecto vinculado.
 import type { MedplumClient } from '@medplum/core';
 import type { Bot } from '@medplum/fhirtypes';
 

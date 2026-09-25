@@ -61,7 +61,7 @@ async function servidor(): Promise<MockClient> {
   return medplum;
 }
 
-test('el system es de SOM, no de Biowellness', () => {
+test('el system es de SOM', () => {
   expect(NOTIFICACION_SYSTEM).toBe('https://segundaopinionmedica.org/fhir/CodeSystem/notificacion');
   expect(criteriaNotificaciones(P1)).toBe(
     'Communication?recipient=Patient/p1&category=https://segundaopinionmedica.org/fhir/CodeSystem/notificacion|'
@@ -128,6 +128,12 @@ test.each([
   [{ about: [{ reference: 'Task/t1' }] }, '/get-care'],
 ])('destino según el recurso real (%o)', (extra, destino) => {
   expect(destinoNotificacion(novedad('general', extra))).toBe(destino);
+});
+
+test('Mensaje nuevo (Recepción respondió) abre la conversación', () => {
+  const c = novedad('mensaje-nuevo', { about: [{ reference: 'Communication/conv1' }] });
+  expect(tipoNotificacion(c)).toEqual({ tipo: 'mensaje-nuevo', titulo: 'Mensaje nuevo' });
+  expect(destinoNotificacion(c)).toBe('/Communication/conv1');
 });
 
 test('sin `about`, el destino sale del tipo; un aviso general no navega', () => {

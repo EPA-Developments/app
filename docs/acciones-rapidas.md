@@ -10,9 +10,9 @@ Agregar una opción = sumar una entrada a `ACCIONES_RAPIDAS`; aparece en los dos
 
 ## El camino: las opciones de referencia
 
-Referencia de producto: el "+" del portal de Biowellness (8 opciones). SOM sigue ese
-camino **con sus propios recursos y bots** (regla de aislamiento de proyecto, ver
-`medplum/bot-som-interface.md`): se toma la experiencia, no los bots ni los CodeSystems.
+Referencia de producto: un menú "+" de 8 opciones. SOM sigue ese camino **con sus
+propios recursos y bots** (regla de aislamiento de proyecto, ver
+`medplum/bot-som-interface.md`): se toma la idea de la experiencia, nada más.
 
 | # | Opción | Texto de referencia | Estado en SOM | Ruta | Modelo FHIR (SOM) |
 |---|---|---|---|---|---|
