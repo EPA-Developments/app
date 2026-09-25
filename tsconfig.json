@@ -16,7 +16,9 @@
     "jsx": "react-jsx",
     "paths": {
       "@epa/careplan-menopausia": ["./src/vendor/plan-bienestar/careplan-menopausia/index.ts"],
-      "@epa/plan-bienestar-react": ["./src/vendor/plan-bienestar/plan-bienestar-react/index.ts"]
+      "@epa/plan-bienestar-react": ["./src/vendor/plan-bienestar/plan-bienestar-react/index.ts"],
+      "@epa/teleconsulta-core": ["./src/vendor/teleconsulta/teleconsulta-core/index.ts"],
+      "@epa/teleconsulta-react": ["./src/vendor/teleconsulta/teleconsulta-react/index.ts"]
     }
   },
   "exclude": ["dist"]

@@ -28,10 +28,13 @@ export default defineConfig(({ mode }) => ({
   envPrefix: ['MEDPLUM_', 'GOOGLE_', 'RECAPTCHA_', 'MARCA_'],
   plugins: [react(), tituloDeMarca(mode)],
   resolve: {
-    // Módulo Plan Bienestar vendorizado (ver src/vendor/plan-bienestar/README.md).
+    // Módulos vendorizados (ver src/vendor/*/README.md).
     alias: {
       '@epa/careplan-menopausia': path.resolve(__dirname, 'src/vendor/plan-bienestar/careplan-menopausia/index.ts'),
       '@epa/plan-bienestar-react': path.resolve(__dirname, 'src/vendor/plan-bienestar/plan-bienestar-react/index.ts'),
+      // Teleconsulta vendorizada (ver src/vendor/teleconsulta/README.md).
+      '@epa/teleconsulta-core': path.resolve(__dirname, 'src/vendor/teleconsulta/teleconsulta-core/index.ts'),
+      '@epa/teleconsulta-react': path.resolve(__dirname, 'src/vendor/teleconsulta/teleconsulta-react/index.ts'),
     },
   },
   preview: {
