@@ -10,6 +10,7 @@ import { Resumen } from './pages/account/Resumen';
 import { CarePlanPage } from './pages/care-plan';
 import { ActionItem } from './pages/care-plan/ActionItem';
 import { ActionItems } from './pages/care-plan/ActionItems';
+import { CuidadoInicio } from './pages/care-plan/CuidadoInicio';
 import { SeguimientoGlp1 } from './pages/care-plan/SeguimientoGlp1';
 import { EnviarEstudiosPage } from './pages/EnviarEstudiosPage';
 import { GetCare } from './pages/GetCarePage';
@@ -79,7 +80,8 @@ export function Router(): JSX.Element {
       </Route>
       <Route path="Observation/:observationId" element={<ObservationPage />} />
       <Route path="care-plan" element={<CarePlanPage />}>
-        <Route index element={<Navigate replace to="/care-plan/action-items" />} />
+        {/* Inicio: en smartphone, las opciones en tarjetas; en web va a Pasos del plan. */}
+        <Route index element={<CuidadoInicio />} />
         <Route path="action-items" element={<ActionItems />} />
         <Route path="action-items/:itemId" element={<ActionItem />} />
         {/* Plan Bienestar · 100 días (módulo drop-in; elegibilidad auto-gestionada por PlanDefinition). */}

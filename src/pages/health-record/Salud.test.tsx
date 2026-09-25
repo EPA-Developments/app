@@ -8,6 +8,7 @@ import type { JSX } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { vi } from 'vitest';
 import { LE8_QUESTIONNAIRES } from '../../le8';
+import { simularPantalla } from '../../testing/pantalla';
 import { biomarkerPanels } from './Biomarkers.data';
 import { HealthRecord } from './index';
 import { measurementsMeta } from './Measurement.data';
@@ -16,22 +17,6 @@ import { SaludInicio } from './SaludInicio';
 
 function Marca({ texto }: { texto: string }): JSX.Element {
   return <div>{texto}</div>;
-}
-
-function simularPantalla(web: boolean): void {
-  vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query: string) =>
-      ({
-        matches: web && query.includes('min-width'),
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      }) as MediaQueryList
-  );
 }
 
 async function renderSalud(ruta: string): Promise<void> {
