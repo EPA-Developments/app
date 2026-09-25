@@ -4,12 +4,11 @@
 // Resumen de "Mi cuenta": entrada a todo lo del usuario, agrupado por los tres ejes
 // (Usuario · Cliente · Paciente). Acá están el nombre y el avatar; las demás pantallas
 // de la cuenta no los repiten.
-import { Box, Card, Group, Stack, Text, ThemeIcon, Title, UnstyledButton } from '@mantine/core';
+import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import { formatHumanName } from '@medplum/core';
 import type { Patient, Practitioner } from '@medplum/fhirtypes';
 import { ResourceAvatar, useMedplumProfile } from '@medplum/react';
 import {
-  IconChevronRight,
   IconClipboardHeart,
   IconFileCheck,
   IconHeartbeat,
@@ -18,21 +17,13 @@ import {
   IconUsers,
   IconWallet,
 } from '@tabler/icons-react';
-import type { Icon } from '@tabler/icons-react';
-import { Fragment } from 'react';
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router';
-
-interface Opcion {
-  readonly icon: Icon;
-  readonly titulo: string;
-  readonly descripcion: string;
-  readonly href: string;
-}
+import { TarjetaDeOpciones } from '../../components/TarjetaDeOpciones';
+import type { OpcionDeMenu } from '../../components/TarjetaDeOpciones';
 
 interface Grupo {
   readonly eje: string;
-  readonly opciones: Opcion[];
+  readonly opciones: OpcionDeMenu[];
 }
 
 const GRUPOS: Grupo[] = [
@@ -56,7 +47,12 @@ const GRUPOS: Grupo[] = [
   {
     eje: 'Cliente',
     opciones: [
-      { icon: IconWallet, titulo: 'Membresía', descripcion: 'Turnos, sesiones, cobertura y pagos.', href: '/membership' },
+      {
+        icon: IconWallet,
+        titulo: 'Membresía',
+        descripcion: 'Turnos, sesiones, cobertura y pagos.',
+        href: '/membership',
+      },
     ],
   },
   {
@@ -84,41 +80,6 @@ const GRUPOS: Grupo[] = [
   },
 ];
 
-function Fila({ opcion, color, onClick }: { opcion: Opcion; color?: string; onClick: () => void }): JSX.Element {
-  return (
-    <UnstyledButton onClick={onClick} p="md" w="100%">
-      <Group wrap="nowrap">
-        <ThemeIcon size={40} radius="md" variant="light" color={color}>
-          <opcion.icon size={20} stroke={1.5} />
-        </ThemeIcon>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Text fw={600} c={color}>
-            {opcion.titulo}
-          </Text>
-          <Text size="sm" c="dimmed">
-            {opcion.descripcion}
-          </Text>
-        </div>
-        <IconChevronRight size={18} color="var(--mantine-color-gray-5)" />
-      </Group>
-    </UnstyledButton>
-  );
-}
-
-function Opciones({ opciones, color }: { opciones: Opcion[]; color?: string }): JSX.Element {
-  const navigate = useNavigate();
-  return (
-    <Card withBorder radius="md" p={0}>
-      {opciones.map((o, i) => (
-        <Fragment key={o.href}>
-          {i > 0 && <Box style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }} />}
-          <Fila opcion={o} color={color} onClick={() => navigate(o.href)?.catch(console.error)} />
-        </Fragment>
-      ))}
-    </Card>
-  );
-}
-
 export function Resumen(): JSX.Element {
   const profile = useMedplumProfile() as Patient | Practitioner | undefined;
   const nombre = profile?.name?.[0] ? formatHumanName(profile.name[0]) : '';
@@ -140,10 +101,10 @@ export function Resumen(): JSX.Element {
             <Text size="sm" fw={700} tt="uppercase" c="segundaOpinion" mb={6}>
               {g.eje}
             </Text>
-            <Opciones opciones={g.opciones} />
+            <TarjetaDeOpciones opciones={g.opciones} />
           </div>
         ))}
-        <Opciones
+        <TarjetaDeOpciones
           color="red"
           opciones={[
             {

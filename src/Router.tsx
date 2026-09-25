@@ -10,6 +10,7 @@ import { Resumen } from './pages/account/Resumen';
 import { CarePlanPage } from './pages/care-plan';
 import { ActionItem } from './pages/care-plan/ActionItem';
 import { ActionItems } from './pages/care-plan/ActionItems';
+import { CuidadoInicio } from './pages/care-plan/CuidadoInicio';
 import { SeguimientoGlp1 } from './pages/care-plan/SeguimientoGlp1';
 import { EnviarEstudiosPage } from './pages/EnviarEstudiosPage';
 import { GetCare } from './pages/GetCarePage';
@@ -23,6 +24,7 @@ import { Medication } from './pages/health-record/Medication';
 import { Medications } from './pages/health-record/Medications';
 import { Response } from './pages/health-record/Response';
 import { Responses } from './pages/health-record/Responses';
+import { SaludInicio } from './pages/health-record/SaludInicio';
 import { Vaccine } from './pages/health-record/Vaccine';
 import { Vaccines } from './pages/health-record/Vaccines';
 import { Vitals } from './pages/health-record/Vitals';
@@ -53,8 +55,9 @@ export function Router(): JSX.Element {
       <Route path="screening-questionnaire" element={<ScreeningQuestionnairePage />} />
       <Route path="patient-intake-questionnaire" element={<PatientIntakeQuestionnairePage />} />
       <Route path="health-record" element={<HealthRecord />}>
-        {/* Lab-results sigue existiendo pero está oculto del menú; el landing va a Biomarcadores. */}
-        <Route index element={<Navigate replace to="/health-record/biomarkers" />} />
+        {/* Inicio: en smartphone, las secciones de Salud en tarjetas; en web va a Biomarcadores.
+            Lab-results sigue existiendo pero está oculto del menú. */}
+        <Route index element={<SaludInicio />} />
         <Route path="lab-results" element={<LabResults />} />
         <Route path="lab-results/:resultId" element={<LabResult />} />
         <Route path="biomarkers" element={<Navigate replace to="/health-record/biomarkers/metabolico" />} />
@@ -69,12 +72,16 @@ export function Router(): JSX.Element {
         <Route path="vitals" element={<Vitals />} />
         <Route path="vitals/:measurementId" element={<Measurement />} />
         {/* Life's Essential 8: cuestionarios conductuales que responde el paciente. */}
-        <Route path="cuestionarios" element={<Navigate replace to="/health-record/cuestionarios/le8-sleep-psqi-v1" />} />
+        <Route
+          path="cuestionarios"
+          element={<Navigate replace to="/health-record/cuestionarios/le8-sleep-psqi-v1" />}
+        />
         <Route path="cuestionarios/:slug" element={<LE8QuestionnairePage />} />
       </Route>
       <Route path="Observation/:observationId" element={<ObservationPage />} />
       <Route path="care-plan" element={<CarePlanPage />}>
-        <Route index element={<Navigate replace to="/care-plan/action-items" />} />
+        {/* Inicio: en smartphone, las opciones en tarjetas; en web va a Pasos del plan. */}
+        <Route index element={<CuidadoInicio />} />
         <Route path="action-items" element={<ActionItems />} />
         <Route path="action-items/:itemId" element={<ActionItem />} />
         {/* Plan Bienestar · 100 días (módulo drop-in; elegibilidad auto-gestionada por PlanDefinition). */}

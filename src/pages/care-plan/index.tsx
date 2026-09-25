@@ -1,33 +1,11 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { Container, Group } from '@mantine/core';
-import { Suspense } from 'react';
 import type { JSX } from 'react';
-import { Outlet } from 'react-router';
-import { Loading } from '../../components/Loading';
-import { SideMenu } from '../../components/SideMenu';
+import { LayoutConMenuLateral } from '../../components/LayoutConMenuLateral';
+import { MENU_LATERAL_CUIDADO, RUTA_CUIDADO } from './Cuidado.data';
 
-const sideMenu = {
-  title: 'Plan de Cuidado',
-  menu: [
-    { name: 'Pasos del plan', href: '/care-plan/action-items' },
-    { name: 'Seguimiento GLP-1', href: '/care-plan/glp1' },
-    { name: 'Plan Bienestar 100 Días', href: '/care-plan/plan-100-dias' },
-    { name: 'Mis datos de salud', href: '/care-plan/plan-100-dias/mis-datos' },
-  ],
-};
-
+// Opciones: Cuidado.data.ts. En smartphone el menú lateral no se muestra: el inicio del
+// Plan de cuidado (CuidadoInicio) lleva a cada opción y las demás pantallas tienen "‹ Plan de cuidado".
 export function CarePlanPage(): JSX.Element {
-  return (
-    <Container size="lg">
-      <Group align="flex-start" gap="xl" wrap="wrap">
-        <SideMenu {...sideMenu} />
-        <div style={{ flex: 1, minWidth: 0, maxWidth: 820 }}>
-          <Suspense fallback={<Loading />}>
-            <Outlet />
-          </Suspense>
-        </div>
-      </Group>
-    </Container>
-  );
+  return <LayoutConMenuLateral menu={MENU_LATERAL_CUIDADO} inicio={RUTA_CUIDADO} volver="Plan de cuidado" />;
 }
