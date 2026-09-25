@@ -14,8 +14,8 @@ turno confirmado, pago recibido, recordatorios, resultados listos… Todo es FHI
 
 | | Chat (Mensajes) | Novedades (campanita) |
 |---|---|---|
-| Qué es | Conversación con hilos (`ThreadInbox`) | Aviso del sistema |
-| Forma | Communication "topic" + hijas con `partOf` | Communication **sin** `partOf` y **sin** hijas |
+| Qué es | Conversación con el equipo (`src/fhir/mensajes.ts`; Recepción la ve en su `ThreadInbox`) | Aviso del sistema |
+| Forma | Communication "topic" con `topic` (el motivo) + hijas con `partOf` | Communication **sin** `partOf`, **sin** `topic` y **sin** hijas |
 | `category` | — | `https://segundaopinionmedica.org/fhir/CodeSystem/notificacion` |
 
 `ThreadInbox` solo lista topics con hijas, así que una novedad nunca aparece en el chat; y
@@ -104,9 +104,32 @@ prueba:
 → El badge rojo aparece al volver a la app (o a los 2 minutos; al instante con tiempo real).
 Tocar la tarjeta la marca como leída y lleva a Membresía.
 
+## Mensajes (chat): contrato con la bandeja de Recepción
+
+El portal escribe con el mismo modelo que el `ThreadInbox` / `ThreadChat` de Medplum, así la
+bandeja del equipo muestra las conversaciones sin cambios:
+
+- **Conversación** (topic): `status` `in-progress`, `subject` y `sender` = el Patient,
+  `recipient` = el Patient + su médico de cabecera (`Patient.generalPractitioner`, si eligió
+  uno), sin `partOf`, y `topic` con el **motivo**:
+  `{ coding: [{ system: "https://segundaopinionmedica.org/fhir/CodeSystem/motivo-mensaje", code, display }], text }`.
+  Códigos: `turnos` · `estudios` · `consulta-salud` · `plan-bienestar` · `pagos` · `otro`.
+  El `text` es el que el ThreadInbox muestra como título.
+- **Mensaje**: `partOf` → la conversación, `sender`, `recipient` (los de la conversación
+  menos quien escribe), `subject`, `sent`, `payload[].contentString`.
+- La conversación y su primer mensaje se crean en **una transacción**: nunca queda una
+  conversación vacía (el ThreadInbox solo lista las que tienen mensajes).
+- **Leído**: al abrir la conversación el portal pasa los mensajes del equipo a `completed` +
+  `received`. Si el equipo **finaliza** la conversación (`status` `completed` en el topic), el
+  paciente ya no escribe ahí: el portal le ofrece un mensaje nuevo con el mismo motivo.
+- Para la bandeja: listar sin filtrar por `recipient` (una conversación sin médico de
+  cabecera solo tiene al paciente como destinatario) y usar el motivo para repartirla.
+- Una novedad puede apuntar a una conversación (`about: Communication/<id>`): el toque la abre.
+
 ## Refresco y tiempo real
 
-- **Siempre**: al abrir la app, al volver a ella (foco / pestaña visible) y cada 2 minutos.
+- **Siempre**: la campanita, al abrir la app, al volver a ella (foco / pestaña visible) y
+  cada 2 minutos; una conversación abierta, cada 15 segundos y al volver a la app.
 - **Tiempo real (opcional)**: con `MEDPLUM_TIEMPO_REAL=true` en el entorno del deploy, la
   campanita además se suscribe por WebSocket
   (`Communication?recipient=Patient/<id>&category=<system>|`): una novedad nueva, o una
