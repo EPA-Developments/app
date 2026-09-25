@@ -31,7 +31,9 @@ import { Vitals } from './pages/health-record/Vitals';
 import { HomePage } from './pages/HomePage';
 import { LE8QuestionnairePage } from './pages/LE8QuestionnairePage';
 import { MembershipPage } from './pages/membership';
-import { MessagesPage } from './pages/MessagesPage';
+import { Conversacion } from './pages/mensajes/Conversacion';
+import { Conversaciones } from './pages/mensajes/Conversaciones';
+import { NuevoMensaje } from './pages/mensajes/NuevoMensaje';
 import { ObservationPage } from './pages/ObservationPage';
 import { PatientIntakeQuestionnairePage } from './pages/PatientIntakeQuestionnairePage';
 import { QuestionnairePage } from './pages/QuestionnairePage';
@@ -48,9 +50,10 @@ export function Router(): JSX.Element {
       <Route path="/" element={<HomePage />} />
       {/* Patient Journey: Bienvenida (auto-registrado) / Onboarding (invitado por Recepción o derivado). */}
       <Route path="bienvenida" element={<Welcome />} />
-      <Route path="Communication" element={<MessagesPage />}>
-        <Route path=":messageId" element={<MessagesPage />} />
-      </Route>
+      {/* Mensajes con el equipo: conversaciones, nuevo mensaje (con motivo) y conversación. */}
+      <Route path="Communication" element={<Conversaciones />} />
+      <Route path="Communication/nuevo" element={<NuevoMensaje />} />
+      <Route path="Communication/:messageId" element={<Conversacion />} />
       <Route path="Questionnaire/:questionnaireId" element={<QuestionnairePage />} />
       <Route path="screening-questionnaire" element={<ScreeningQuestionnairePage />} />
       <Route path="patient-intake-questionnaire" element={<PatientIntakeQuestionnairePage />} />

@@ -23,7 +23,7 @@ camino **con sus propios recursos y bots** (regla de aislamiento de proyecto, ve
 | 5 | Solicitar estudios | Pedí un control de laboratorio; tu médico lo revisa. | Pendiente | — | `ServiceRequest` propuesta, creada por un bot `som-*` (el paciente tiene `ServiceRequest` de solo lectura). |
 | 6 | **Enviar estudios en PDF** | Laboratorio o eco doppler; lo procesamos automáticamente. | ✅ **Laboratorio** (eco doppler: pendiente) | `/enviar-estudios` | `Binary` + `DocumentReference` (LOINC 11502-2) + `Consent` → bot `som-procesar-laboratorio`. |
 | 7 | Cargar resultado | Sumá un valor de laboratorio a mano. | ✅ Hecho | `/health-record/biomarkers` | `Observation` del paciente. |
-| 8 | Enviar mensaje | Escribile al equipo. | ✅ Hecho | `/Communication` | `Communication`. |
+| 8 | Enviar mensaje | Escribile al equipo. | ✅ Hecho | `/Communication` (nuevo: `/Communication/nuevo?motivo=<código>`) | Conversación `Communication` con motivo obligatorio (`…/CodeSystem/motivo-mensaje`) + mensajes hijos; ver `medplum/notificaciones.md`. |
 
 Propia de SOM (no está en la referencia): **Mi Plan Bienestar** (`/care-plan/plan-100-dias`).
 

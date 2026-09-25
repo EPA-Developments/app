@@ -55,7 +55,9 @@ import {
   tipoNotificacion,
 } from '../fhir/notificaciones';
 import type { TipoNotificacion } from '../fhir/notificaciones';
+import { descargarAdjunto } from '../utils/adjuntos';
 import { showErrorNotification } from '../utils/notifications';
+import { tiempoRealHabilitado } from '../utils/tiempoReal';
 import classes from './CampanitaNovedades.module.css';
 
 export const REFRESCO_MS = 2 * 60 * 1000;
@@ -68,10 +70,6 @@ const ICONOS: Record<TipoNotificacion, { icon: Icon; color: string }> = {
   'documento-nuevo': { icon: IconFileText, color: 'indigo' },
   general: { icon: IconInfoCircle, color: 'gray' },
 };
-
-function tiempoRealHabilitado(): boolean {
-  return import.meta.env.MEDPLUM_TIEMPO_REAL === 'true';
-}
 
 function Novedad({
   c,
@@ -224,20 +222,7 @@ export function CampanitaNovedades(): JSX.Element | null {
 
   const abrirAdjunto = (c: WithId<Communication>, a: Attachment): void => {
     leer(c);
-    // `medplum.download` resuelve la autenticación del Binary.
-    const archivo = a.url
-      ? medplum.download(a.url)
-      : fetch(`data:${a.contentType ?? 'application/octet-stream'};base64,${a.data}`).then((r) => r.blob());
-    archivo
-      .then((blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = a.title ?? 'adjunto';
-        link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      })
-      .catch(showErrorNotification);
+    descargarAdjunto(medplum, a).catch(showErrorNotification);
   };
 
   if (!recipient) {
