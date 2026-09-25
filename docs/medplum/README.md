@@ -33,6 +33,10 @@ Cubre todo lo que el portal lee/escribe:
   > server rechaza la creación, el portal manda los PDF de hasta 700 KB embebidos en el
   > `DocumentReference` y pide los más grandes por Mensajes (ver
   > `../acciones-rapidas.md`). La lectura general de `Binary` sigue como estaba.
+- **Novedades (campanita)** — la escritura de `Communication` ya cubre leer y marcar
+  leídas las notificaciones. Para el tiempo real (`MEDPLUM_TIEMPO_REAL=true`) el paciente
+  necesita crear su Subscription WebSocket: `Subscription?type=websocket` (no puede tocar
+  las Subscriptions rest-hook de los bots). Ver `notificaciones.md`.
 - **Plan Bienestar (drop-in)** — el paciente INICIA su propio plan (`empezarPlan` crea
   CarePlan+Goal+Task+CareTeam+Condition por transacción) y tilda pasos (`completarPaso`
   actualiza Task). La escritura está acotada con criterios finos para no abrir el resto:

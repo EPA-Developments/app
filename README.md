@@ -50,6 +50,8 @@ usa esta configuración.
 - `docs/som-backend-recepcionistas-kickoff.md` — handoff del backend (`recepcionistas`).
 - `docs/acciones-rapidas.md` — el botón "+" (smartphone y web): opciones hechas y el camino
   de las que faltan.
+- `docs/medplum/notificaciones.md` — la campanita de Novedades: contrato de las
+  notificaciones que crean los bots y checklist del tiempo real.
 
 *Base original: [Foo Medical](https://github.com/medplum/foomedical) (Medplum, Apache-2.0).*
 

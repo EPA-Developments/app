@@ -182,6 +182,8 @@ un DocumentReference) dispare el bot.
 5. **Cerrar el circuito**: sumar `DiagnosticReport/<id>` a
    `DocumentReference.context.related`. El portal muestra el estudio como "Ver resultados"
    (y lleva a `/health-record/lab-results/<id>`); mientras no esté, "En proceso".
+   Y avisar al paciente con una novedad `resultados-listos` + `about: DiagnosticReport/<id>`
+   (campanita; contrato en `notificaciones.md`).
 6. Si el PDF no se puede leer: `Communication` al paciente (le decimos que lo contactamos
    por Mensajes) y avisar al equipo.
 

@@ -38,11 +38,12 @@ test('Header oculta la navegación durante la Bienvenida', () => {
   expect(screen.queryByText('Salud')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Inicio')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Acciones rápidas')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Novedades/ })).not.toBeInTheDocument();
 });
 
 test('el menú del avatar tiene un solo acceso a la cuenta', async () => {
   renderHeader(false);
-  fireEvent.click(screen.getByRole('button', { name: /^(?!Inicio|Acciones rápidas)/ }));
+  fireEvent.click(screen.getByRole('button', { name: /^(?!Inicio|Acciones rápidas|Novedades)/ }));
   expect(await screen.findByText('Mi cuenta')).toBeInTheDocument();
   expect(screen.queryByText('Mi perfil')).not.toBeInTheDocument();
   expect(screen.queryByText('Configuración')).not.toBeInTheDocument();

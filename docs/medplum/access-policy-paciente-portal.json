@@ -15,6 +15,7 @@
     { "resourceType": "Communication", "criteria": "Communication?subject=%patient" },
     { "resourceType": "Consent", "criteria": "Consent?patient=%patient" },
     { "resourceType": "Binary", "criteria": "Binary?_compartment=%patient" },
+    { "resourceType": "Subscription", "criteria": "Subscription?type=websocket" },
 
     { "resourceType": "CarePlan", "readonly": true, "criteria": "CarePlan?subject=%patient" },
     { "resourceType": "CarePlan", "criteria": "CarePlan?subject=%patient&instantiates-canonical=https://epa-bienestar.ar/fhir/PlanDefinition/menopausia-cardiovascular" },
