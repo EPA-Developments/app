@@ -61,20 +61,26 @@ Cubre todo lo que el portal lee/escribe:
   Segunda Opinión), `RiskAssessment` (score PREVENT), `MedicationRequest`,
   `Immunization`. **Excepción `Coverage`**: el paciente escribe **solo** su obra social
   o prepaga (`type=v3-ActCode|HIP`, desde "Mis datos"); las membresías y paquetes siguen
-  de solo lectura. La agenda y los planes/pagos
-  los gestiona Recepción; reservar es por *modelo de solicitud*, así que el paciente
-  no escribe `Appointment`. La **Segunda Opinión** también es por *modelo de solicitud*:
+  de solo lectura. La agenda y los planes/pagos los gestiona Recepción: la paciente no
+  escribe `Appointment`. **Reservar un turno** es ejecutar el bot `som-reservar-portal`
+  (elige una franja libre; el bot aplica las reglas y deja el turno confirmado si está
+  incluido en su plan, o tentativo con el link de la seña; ver `src/fhir/agenda.ts`), o
+  pedir que Recepción coordine (`som-solicitar-turno`). La **Segunda Opinión** también es por *modelo de solicitud*:
   el paciente escribe su `QuestionnaireResponse` + `DocumentReference` y ejecuta el bot
   `som-solicitar`, que crea la `ServiceRequest`; el informe (`DiagnosticReport`),
   el score (`RiskAssessment`) y el PDF los genera el bot `bot-som-report` (ver
   `bot-som-interface.md`) y el paciente solo los lee.
-- **Definicional / compartido** (`readonly`): `ObservationDefinition` (rangos),
-  `Questionnaire`, `Schedule`, `Slot`, `HealthcareService`, `Practitioner`,
-  `Organization`, `Binary`.
-- **Bot** (`readonly`, acotado): `som-solicitar-turno` (crea su `Task` de solicitud de
-  turno de una consulta/estudio cardiovascular) y `som-solicitar` (crea su
-  `ServiceRequest` de Segunda Opinión). Son los únicos bots que el paciente puede
-  ejecutar; no puede ejecutar ningún otro.
+- **Definicional / compartido** (`readonly`): `ActivityDefinition` (el catálogo de
+  consultas, con precio y modalidades), `ObservationDefinition` (rangos),
+  `Questionnaire`, `Schedule` y `Slot` (la agenda por profesional: horarios libres de
+  30 min con la modalidad en que se reservan), `HealthcareService`, `Practitioner`,
+  `PractitionerRole` (especialidad, consultas que atiende, modalidades) y `Location`
+  (consultorios), `Organization`, `Binary`.
+- **Bot** (`readonly`, acotado): `som-reservar-portal` (reserva el horario elegido:
+  confirmado si es una consulta del plan, tentativo con link de la seña si tiene cargo),
+  `som-solicitar-turno` (pide que Recepción coordine un turno; crea su `Task`) y
+  `som-solicitar` (crea su `ServiceRequest` de Segunda Opinión). Son los únicos bots que
+  la paciente puede ejecutar; no puede ejecutar ningún otro.
 
 `%patient` lo resuelve Medplum al `Patient` del login. Si en tu server no
 resuelve, usar `%profile` (para un login de paciente es el mismo `Patient`).

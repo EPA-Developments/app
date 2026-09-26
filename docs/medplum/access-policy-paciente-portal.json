@@ -37,15 +37,19 @@
     { "resourceType": "MedicationRequest", "readonly": true, "criteria": "MedicationRequest?patient=%patient" },
     { "resourceType": "Immunization", "readonly": true, "criteria": "Immunization?patient=%patient" },
 
+    { "resourceType": "ActivityDefinition", "readonly": true },
     { "resourceType": "ObservationDefinition", "readonly": true },
     { "resourceType": "Questionnaire", "readonly": true },
     { "resourceType": "Schedule", "readonly": true },
     { "resourceType": "Slot", "readonly": true },
     { "resourceType": "HealthcareService", "readonly": true },
     { "resourceType": "Practitioner", "readonly": true },
+    { "resourceType": "PractitionerRole", "readonly": true },
+    { "resourceType": "Location", "readonly": true },
     { "resourceType": "Organization", "readonly": true },
     { "resourceType": "Binary", "readonly": true },
 
+    { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-reservar-portal" },
     { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-solicitar-turno" },
     { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-solicitar" }
   ]
