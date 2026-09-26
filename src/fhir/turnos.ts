@@ -6,7 +6,7 @@
 
 export const ESTADOS_TURNO: Record<string, { label: string; color: string }> = {
   proposed: { label: 'Propuesto', color: 'gray' },
-  // Reservado por Recepción; falta la seña para confirmarlo.
+  // Reservado (por Recepción o desde el portal); falta la seña para confirmarlo.
   pending: { label: 'Reservado', color: 'yellow' },
   booked: { label: 'Confirmado', color: 'segundaOpinion' },
   arrived: { label: 'Presente', color: 'segundaOpinion' },

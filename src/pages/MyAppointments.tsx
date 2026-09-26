@@ -10,18 +10,27 @@
 //   reintegro); el portal nunca escribe el turno directo.
 import { esTurnoVirtual } from '@epa/teleconsulta-core';
 import { TarjetaTurno, useTurnosPaciente } from '@epa/teleconsulta-react';
-import { Alert, Badge, Card, Group, Stack, Text } from '@mantine/core';
+import { Alert, Badge, Button, Card, Group, Stack, Text } from '@mantine/core';
 import { formatDateTime, getReferenceString } from '@medplum/core';
 import type { Appointment, Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
-import { IconCalendarEvent, IconCircleCheck } from '@tabler/icons-react';
+import { IconCalendarEvent, IconCircleCheck, IconCreditCard } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { estadoReservaPortal, fmtHoraArg, modalidadesDe, type EstadoReservaPortal } from '../fhir/agenda';
 import { ESTADOS_TURNO } from '../fhir/turnos';
 import { showErrorNotification } from '../utils/notifications';
 
-function statusBadge(status?: string): JSX.Element {
-  const s = status ? ESTADOS_TURNO[status] : undefined;
+function statusBadge(status?: string, reserva?: EstadoReservaPortal): JSX.Element {
+  // Reserva del portal (R-23): el estado que entiende la paciente.
+  const s =
+    reserva?.estado === 'tentativo'
+      ? { label: 'Falta la seña', color: 'yellow' }
+      : reserva?.estado === 'vencido' || reserva?.estado === 'cancelado-por-vencimiento'
+        ? { label: 'Venció la reserva', color: 'red' }
+        : status
+          ? ESTADOS_TURNO[status]
+          : undefined;
   return (
     <Badge color={s?.color ?? 'gray'} variant="light">
       {s?.label ?? status ?? '—'}
@@ -42,17 +51,48 @@ function serviceLabel(appt: Appointment): string {
 }
 
 function AppointmentCard({ appt }: { appt: Appointment }): JSX.Element {
+  const modalidad = modalidadesDe(appt)[0];
+  const reserva = estadoReservaPortal(appt);
   return (
-    <Card withBorder radius="md" p="md">
+    <Card withBorder radius="md" p="md" data-testid={`turno-${appt.id}`}>
       <Group justify="space-between" wrap="nowrap" align="flex-start">
         <div>
           <Text fw={600}>{serviceLabel(appt)}</Text>
           <Text size="sm" c="dimmed">
             {appt.start ? formatDateTime(appt.start) : 'Fecha a confirmar'}
           </Text>
+          {modalidad && (
+            <Badge variant="outline" color="gray" size="sm" mt={4}>
+              {modalidad === 'teleconsulta' ? 'Videollamada' : 'En el centro'}
+            </Badge>
+          )}
         </div>
-        {statusBadge(appt.status)}
+        {statusBadge(appt.status, reserva)}
       </Group>
+      {reserva?.estado === 'tentativo' && (
+        <Group mt="sm" justify="space-between" wrap="wrap">
+          <Text size="sm">
+            {reserva.expira ? `Te guardamos el horario hasta las ${fmtHoraArg.format(reserva.expira)} h.` : 'Falta pagar la seña.'}
+          </Text>
+          {reserva.linkPago && (
+            <Button
+              component="a"
+              href={reserva.linkPago}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="xs"
+              leftSection={<IconCreditCard size={14} />}
+            >
+              Pagar la seña
+            </Button>
+          )}
+        </Group>
+      )}
+      {reserva?.estado === 'vencido' && (
+        <Text size="sm" c="dimmed" mt="sm">
+          Se pasó la hora sin la seña: el horario se libera. Podés elegir otro.
+        </Text>
+      )}
     </Card>
   );
 }
@@ -65,7 +105,8 @@ interface Item {
 
 const porInicio = (a: Item, b: Item): number => ((a.start ?? '') < (b.start ?? '') ? -1 : 1);
 
-export function MyAppointments({ patient }: { patient: Patient }): JSX.Element {
+/** `version`: subirla recarga los turnos (p. ej. después de reservar uno). */
+export function MyAppointments({ patient, version = 0 }: { patient: Patient; version?: number }): JSX.Element {
   const medplum = useMedplum();
   const [appointments, setAppointments] = useState<Appointment[]>();
   const virtuales = useTurnosPaciente(patient.id);
@@ -73,10 +114,10 @@ export function MyAppointments({ patient }: { patient: Patient }): JSX.Element {
 
   useEffect(() => {
     medplum
-      .searchResources('Appointment', `patient=${getReferenceString(patient)}&_sort=-date&_count=100`)
+      .searchResources('Appointment', `patient=${getReferenceString(patient)}&_sort=-date&_count=100`, { cache: 'no-cache' })
       .then(setAppointments)
       .catch(showErrorNotification);
-  }, [medplum, patient]);
+  }, [medplum, patient, version]);
 
   if (
     appointments === undefined ||

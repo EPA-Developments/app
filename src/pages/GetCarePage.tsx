@@ -1,33 +1,21 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Reservar un turno — modelo de "solicitud". El paciente pide (servicio + preferencia)
-// y Recepción confirma con los bots de reserva (que aplican las reglas: capacidad,
-// ventana, seña). El portal NO escribe la agenda: solo ejecuta el bot
-// `som-solicitar-turno` y muestra el estado de sus solicitudes.
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  Divider,
-  Group,
-  Loader,
-  Select,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-  Title,
-} from '@mantine/core';
+// Reservar un turno. La paciente elige modalidad, consulta, profesional y horario, y el bot
+// `som-reservar-portal` de Recepción reserva aplicando las reglas (R-23): la consulta del
+// Plan Bienestar queda confirmada; las demás, tentativas hasta la seña del 50 % por
+// Mercado Pago (horario retenido 30 minutos). El portal NO escribe la agenda. Queda, como
+// alternativa, pedir que Recepción coordine (bot `som-solicitar-turno`).
+import { Alert, Badge, Button, Card, Collapse, Divider, Group, Loader, Stack, Text, Textarea, Title } from '@mantine/core';
 import { formatDateTime } from '@medplum/core';
 import type { Patient, Task } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
-import { IconCalendarPlus, IconCircleCheck, IconInfoCircle } from '@tabler/icons-react';
+import { IconCircleCheck, IconInfoCircle, IconMessage2 } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { ReservaTurno } from '../components/reserva/ReservaTurno';
+import { cargarMisSolicitudes, crearSolicitud, ESTADO_SOLICITUD } from '../fhir/solicitudes';
 import { showErrorNotification } from '../utils/notifications';
-import { cargarMisSolicitudes, crearSolicitud, ESTADO_SOLICITUD, SERVICIOS } from '../fhir/solicitudes';
 import { MyAppointments } from './MyAppointments';
 
 function SolicitudCard({ t }: { t: Task }): JSX.Element {
@@ -49,44 +37,26 @@ function SolicitudCard({ t }: { t: Task }): JSX.Element {
   );
 }
 
-export function GetCare(): JSX.Element {
+/** Alternativa: pedir que Recepción coordine el turno (cuando no hay horario que sirva). */
+function PedirCoordinacion({ patient, onEnviada }: { patient: Patient; onEnviada: () => void }): JSX.Element {
   const medplum = useMedplum();
-  const patient = medplum.getProfile() as Patient;
-
-  const [servicio, setServicio] = useState<string | null>(null);
-  const [preferencia, setPreferencia] = useState('');
-  const [nota, setNota] = useState('');
+  const [abierto, setAbierto] = useState(false);
+  const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [ok, setOk] = useState(false);
 
-  const [solicitudes, setSolicitudes] = useState<Task[]>();
-
-  const recargar = useCallback(() => {
-    cargarMisSolicitudes(medplum, patient).then(setSolicitudes).catch(showErrorNotification);
-  }, [medplum, patient]);
-
-  useEffect(recargar, [recargar]);
-
   const enviar = async (): Promise<void> => {
-    const elegida = SERVICIOS.find((x) => x.codigo === servicio);
-    if (!elegida) {
-      return;
-    }
     setEnviando(true);
     setOk(false);
     try {
       const r = await crearSolicitud(medplum, patient, {
-        servicio: elegida.label,
-        servicioCodigo: elegida.codigo,
-        preferenciaTexto: preferencia.trim() || undefined,
-        nota: nota.trim() || undefined,
+        servicio: 'Consulta a coordinar con Recepción',
+        preferenciaTexto: texto.trim() || undefined,
       });
       if (r.ok) {
         setOk(true);
-        setServicio(null);
-        setPreferencia('');
-        setNota('');
-        recargar();
+        setTexto('');
+        onEnviada();
       } else {
         showErrorNotification(new Error(r.mensaje ?? 'No se pudo enviar la solicitud.'));
       }
@@ -98,77 +68,84 @@ export function GetCare(): JSX.Element {
   };
 
   return (
+    <Stack gap="sm">
+      <Button variant="subtle" size="sm" leftSection={<IconMessage2 size={16} />} onClick={() => setAbierto((a) => !a)} w="fit-content">
+        ¿No encontrás horario? Pedí que te contactemos
+      </Button>
+      <Collapse in={abierto}>
+        <Stack gap="sm" maw={460}>
+          {ok && (
+            <Alert color="segundaOpinion" variant="light" icon={<IconCircleCheck />} title="¡Solicitud enviada!">
+              La recibimos. Recepción te contacta para coordinar el turno.
+            </Alert>
+          )}
+          <Textarea
+            label="Contanos qué necesitás y cuándo podés"
+            placeholder="Ej.: una consulta de Nutrición, los jueves a la tarde"
+            autosize
+            minRows={2}
+            value={texto}
+            onChange={(e) => setTexto(e.currentTarget.value)}
+          />
+          <Group>
+            <Button variant="light" loading={enviando} disabled={!texto.trim()} onClick={enviar}>
+              Enviar solicitud
+            </Button>
+          </Group>
+        </Stack>
+      </Collapse>
+    </Stack>
+  );
+}
+
+export function GetCare(): JSX.Element {
+  const medplum = useMedplum();
+  const patient = medplum.getProfile() as Patient;
+  const [version, setVersion] = useState(0);
+  const [solicitudes, setSolicitudes] = useState<Task[]>();
+
+  const recargar = useCallback(() => {
+    cargarMisSolicitudes(medplum, patient).then(setSolicitudes).catch(showErrorNotification);
+  }, [medplum, patient]);
+
+  useEffect(recargar, [recargar]);
+
+  return (
     <Document width={800}>
       <Title order={2} mb="md">
         Mis turnos
       </Title>
-      <MyAppointments patient={patient} />
+      <MyAppointments patient={patient} version={version} />
 
       <Divider my="xl" />
 
       <Title order={2} mb="xs">
-        Pedir un turno
+        Reservar un turno
       </Title>
       <Text c="dimmed" size="sm" mb="md">
-        Elegí el servicio o estudio y tu preferencia de horario. Tu equipo te confirma el turno (día y hora
-        exactos) según disponibilidad.
+        Elegí cómo querés atenderte, la consulta, el profesional y el horario. Las consultas del Plan Bienestar 100
+        Días® están incluidas; las demás se confirman con la seña del 50 %.
       </Text>
-
-      {ok && (
-        <Alert color="segundaOpinion" variant="light" icon={<IconCircleCheck />} mb="md" title="¡Solicitud enviada!">
-          La recibimos. Te confirmamos el turno a la brevedad; vas a verlo en "Mis turnos".
-        </Alert>
-      )}
-
-      <Stack gap="sm" maw={460}>
-        <Select
-          label="Servicio o estudio"
-          placeholder="Elegí un servicio"
-          required
-          searchable
-          data={SERVICIOS.map((s) => ({ value: s.codigo, label: s.label }))}
-          value={servicio}
-          onChange={setServicio}
-        />
-        <TextInput
-          label="Preferencia de horario"
-          placeholder="Ej.: jueves a la tarde, o mañanas temprano"
-          value={preferencia}
-          onChange={(e) => setPreferencia(e.currentTarget.value)}
-        />
-        <Textarea
-          label="Nota (opcional)"
-          placeholder="Algo que quieras contarnos para coordinar mejor"
-          autosize
-          minRows={2}
-          value={nota}
-          onChange={(e) => setNota(e.currentTarget.value)}
-        />
-        <Group>
-          <Button leftSection={<IconCalendarPlus size={16} />} loading={enviando} disabled={!servicio} onClick={enviar}>
-            Enviar solicitud
-          </Button>
-        </Group>
-      </Stack>
+      <ReservaTurno patient={patient} onReservado={() => setVersion((v) => v + 1)} />
 
       <Divider my="xl" />
 
-      <Title order={3} mb="md">
-        Mis solicitudes
-      </Title>
+      <PedirCoordinacion patient={patient} onEnviada={recargar} />
+
       {solicitudes === undefined ? (
-        <Loader />
-      ) : solicitudes.length === 0 ? (
-        <Group gap="xs" c="dimmed">
-          <IconInfoCircle size={18} />
-          <Text>Todavía no enviaste ninguna solicitud.</Text>
-        </Group>
-      ) : (
-        <Stack gap="sm">
+        <Loader size="sm" mt="md" />
+      ) : solicitudes.length > 0 ? (
+        <Stack gap="sm" mt="md">
+          <Title order={3}>Mis solicitudes</Title>
           {solicitudes.map((t) => (
             <SolicitudCard key={t.id} t={t} />
           ))}
         </Stack>
+      ) : (
+        <Group gap="xs" c="dimmed" mt="md">
+          <IconInfoCircle size={18} />
+          <Text size="sm">Sin solicitudes pendientes con Recepción.</Text>
+        </Group>
       )}
     </Document>
   );
