@@ -52,6 +52,9 @@
 
     { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-reservar-portal" },
     { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-solicitar-turno" },
-    { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-solicitar" }
+    { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-solicitar" },
+    { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-teleconsulta-entrar" },
+    { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-teleconsulta-cancelar" },
+    { "resourceType": "Bot", "readonly": true, "criteria": "Bot?name=som-teleconsulta-pago" }
   ]
 }

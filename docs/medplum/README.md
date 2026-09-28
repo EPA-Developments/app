@@ -81,9 +81,12 @@ Cubre todo lo que el portal lee/escribe:
   (consultorios), `Organization`, `Binary`.
 - **Bot** (`readonly`, acotado): `som-reservar-portal` (reserva el horario elegido:
   confirmado si es una consulta del plan, tentativo con link de la seña si tiene cargo),
-  `som-solicitar-turno` (pide que Recepción coordine un turno; crea su `Task`) y
-  `som-solicitar` (crea su `ServiceRequest` de Segunda Opinión). Son los únicos bots que
-  la paciente puede ejecutar; no puede ejecutar ningún otro.
+  `som-solicitar-turno` (pide que Recepción coordine un turno; crea su `Task`),
+  `som-solicitar` (crea su `ServiceRequest` de Segunda Opinión) y los de su teleconsulta:
+  `som-teleconsulta-entrar` (link de la videollamada y presencia), `som-teleconsulta-cancelar`
+  (R-14: primero informa qué pasa con la seña) y `som-teleconsulta-pago` (link de la seña de
+  una reserva tentativa); cada uno verifica que el turno sea de quien lo ejecuta. Son los
+  únicos bots que la paciente puede ejecutar; no puede ejecutar ningún otro.
 
 `%patient` lo resuelve Medplum al `Patient` del login. Si en tu server no
 resuelve, usar `%profile` (para un login de paciente es el mismo `Patient`).
