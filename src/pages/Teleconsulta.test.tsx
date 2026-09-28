@@ -223,8 +223,10 @@ describe('/teleconsulta/:appointmentId', () => {
   });
 });
 
-test('fuera de src/vendor, el portal no usa el módulo de teleconsulta de otro proyecto', () => {
-  const fuentes = import.meta.glob<string>(['../**/*.{ts,tsx}', '!../vendor/**', '!../**/*.test.{ts,tsx}'], {
+// El módulo de teleconsulta de otro proyecto (src/vendor/teleconsulta) se retiró: que no vuelva,
+// tampoco dentro de otra copia vendorizada.
+test('el portal no usa el módulo ni los bots de teleconsulta de otro proyecto', () => {
+  const fuentes = import.meta.glob<string>(['../**/*.{ts,tsx}', '!../**/*.test.{ts,tsx}'], {
     query: '?raw',
     import: 'default',
     eager: true,
