@@ -18,6 +18,7 @@ import {
   IconClockHour4,
   IconCreditCard,
   IconInfoCircle,
+  IconMessage2,
   IconVideo,
 } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -47,6 +48,7 @@ import {
   type Profesional,
   type ResultadoReserva,
 } from '../../fhir/agenda';
+import { crearSolicitud, pedidoDesdeReserva } from '../../fhir/solicitudes';
 import { showErrorNotification } from '../../utils/notifications';
 
 type Paso = 'modalidad' | 'consulta' | 'profesional' | 'horario' | 'confirmar' | 'resultado';
@@ -102,7 +104,19 @@ function Opcion({ onClick, children, ariaLabel }: { onClick: () => void; childre
   );
 }
 
-export function ReservaTurno({ patient, onReservado }: { patient: Patient; onReservado?: () => void }): JSX.Element {
+/** Pedido a Recepción cuando la reserva online no se pudo hacer. */
+type PedidoCoordinacion = { estado: 'enviando' } | { estado: 'ok' } | { estado: 'error'; mensaje?: string };
+
+export function ReservaTurno({
+  patient,
+  onReservado,
+  onSolicitado,
+}: {
+  patient: Patient;
+  onReservado?: () => void;
+  /** Se pidió a Recepción que coordine el turno (para recargar "Mis solicitudes"). */
+  onSolicitado?: () => void;
+}): JSX.Element {
   const medplum = useMedplum();
   const [paso, setPaso] = useState<Paso>('modalidad');
   const [sel, setSel] = useState<Seleccion>({});
@@ -114,6 +128,7 @@ export function ReservaTurno({ patient, onReservado }: { patient: Patient; onRes
   const [horarios, setHorarios] = useState<Horario[]>();
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoReserva>();
+  const [pedido, setPedido] = useState<PedidoCoordinacion>();
 
   // Catálogo, consultas del plan y consentimiento: una vez.
   useEffect(() => {
@@ -172,6 +187,7 @@ export function ReservaTurno({ patient, onReservado }: { patient: Patient; onRes
   const reiniciar = (): void => {
     setSel({});
     setResultado(undefined);
+    setPedido(undefined);
     setAceptaConsent(false);
     setPaso('modalidad');
   };
@@ -206,6 +222,35 @@ export function ReservaTurno({ patient, onReservado }: { patient: Patient; onRes
       showErrorNotification(err);
     } finally {
       setEnviando(false);
+    }
+  };
+
+  // Si la reserva online no salió, Recepción coordina lo que ya eligió: consulta, modalidad,
+  // profesional y horario (bot `som-solicitar-turno`; la teleconsulta ya tiene el consentimiento).
+  const pedirCoordinacion = async (): Promise<void> => {
+    if (!sel.modalidad || !sel.consulta) {
+      return;
+    }
+    setPedido({ estado: 'enviando' });
+    try {
+      const r = await crearSolicitud(
+        medplum,
+        patient,
+        pedidoDesdeReserva({
+          consulta: sel.consultaPlan?.titulo ?? nombreSegunModalidad(sel.consulta.nombre, sel.modalidad),
+          servicioCodigo: sel.consulta.codigo,
+          modalidad: sel.modalidad,
+          horarioInicio: sel.horario?.inicio,
+          profesional: sel.profesional?.nombre,
+        })
+      );
+      setPedido(r.ok ? { estado: 'ok' } : { estado: 'error', mensaje: r.mensaje });
+      if (r.ok) {
+        onSolicitado?.();
+      }
+    } catch (err) {
+      showErrorNotification(err);
+      setPedido(undefined);
     }
   };
 
@@ -401,7 +446,19 @@ export function ReservaTurno({ patient, onReservado }: { patient: Patient; onRes
         </>
       )}
 
-      {paso === 'resultado' && resultado && <Resultado r={resultado} onOtro={reiniciar} onOtroHorario={() => setPaso('horario')} />}
+      {paso === 'resultado' && resultado && (
+        <Resultado
+          r={resultado}
+          modalidad={sel.modalidad}
+          pedido={pedido}
+          onPedirCoordinacion={pedirCoordinacion}
+          onOtro={reiniciar}
+          onOtroHorario={() => {
+            setPedido(undefined);
+            setPaso('horario');
+          }}
+        />
+      )}
     </Stack>
   );
 }
@@ -492,14 +549,55 @@ function PasoConsulta({
   );
 }
 
-function Resultado({ r, onOtro, onOtroHorario }: { r: ResultadoReserva; onOtro: () => void; onOtroHorario: () => void }): JSX.Element {
+function Resultado({
+  r,
+  modalidad,
+  pedido,
+  onPedirCoordinacion,
+  onOtro,
+  onOtroHorario,
+}: {
+  r: ResultadoReserva;
+  modalidad?: Modalidad;
+  pedido?: PedidoCoordinacion;
+  onPedirCoordinacion: () => void;
+  onOtro: () => void;
+  onOtroHorario: () => void;
+}): JSX.Element {
   if (!r.ok) {
+    if (pedido?.estado === 'ok') {
+      return (
+        <Stack gap="sm">
+          <Alert color="segundaOpinion" variant="light" title="¡Pedido enviado!" icon={<IconCircleCheck />}>
+            Recepción te contacta para confirmar tu {modalidad === 'teleconsulta' ? 'teleconsulta' : 'turno'} con el
+            horario que elegiste o el más cercano. Lo vas a ver en "Mis solicitudes".
+          </Alert>
+          <Group>
+            <Button variant="subtle" onClick={onOtro}>
+              Reservar otro turno
+            </Button>
+          </Group>
+        </Stack>
+      );
+    }
     return (
       <Stack gap="sm">
         <Alert color="red" variant="light" title="No pudimos reservar ese horario" icon={<IconInfoCircle />}>
           {r.mensaje ?? 'Probá con otro horario.'}
         </Alert>
+        {pedido?.estado === 'error' && (
+          <Alert color="red" variant="light" icon={<IconInfoCircle />}>
+            {pedido.mensaje ?? 'Tampoco pudimos enviar el pedido. Escribinos por Mensajes.'}
+          </Alert>
+        )}
         <Group>
+          <Button
+            leftSection={<IconMessage2 size={16} />}
+            loading={pedido?.estado === 'enviando'}
+            onClick={onPedirCoordinacion}
+          >
+            Pedile a Recepción que te lo coordine
+          </Button>
           <Button variant="light" onClick={onOtroHorario}>
             Elegir otro horario
           </Button>
