@@ -81,6 +81,14 @@ describe('RegistroForm', () => {
     expect(onSignIn).toHaveBeenCalled();
   });
 
+  test('los términos y la privacidad son los de la marca, no los de Medplum', async () => {
+    await renderizar(new MockClient({ profile: null }), <RegistroForm projectId="p1" onSuccess={vi.fn()} />);
+    expect(screen.getByRole('link', { name: /Términos\sdel\sservicio/ })).toHaveAttribute('href', '/legal#terminos');
+    expect(screen.getByRole('link', { name: /Política\sde\sprivacidad/ })).toHaveAttribute('href', '/legal#privacidad');
+    expect(screen.getByText(/de Segunda Opinión Médica\./)).toBeInTheDocument();
+    expect(document.body.innerHTML).not.toMatch(/medplum\.com|de Medplum/);
+  });
+
   test('si el servidor rechaza el alta, muestra el error', async () => {
     await renderizar(new MockClient({ profile: null }), <RegistroForm projectId="p1" onSuccess={vi.fn()} />);
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Ana' } });

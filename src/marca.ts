@@ -8,7 +8,10 @@
 //  1. Editar `src/marca.json` (valores por defecto del repo).
 //  2. Definir variables MARCA_* en el entorno del deploy (p. ej. Vercel), que pisan al
 //     JSON: MARCA_NOMBRE, MARCA_NOMBRE_CONSENTIMIENTO, MARCA_RESPONSABLE,
-//     MARCA_DIRIGIDO_POR, MARCA_DIRECCION, MARCA_EMAIL. Una variable vacía se ignora.
+//     MARCA_DIRIGIDO_POR, MARCA_DIRECCION, MARCA_EMAIL, MARCA_TERMINOS_URL,
+//     MARCA_PRIVACIDAD_URL. Una variable vacía se ignora.
+// `terminosUrl` / `privacidadUrl` vacíos = la página pública /legal del portal (armada con
+// el texto del consentimiento de la marca).
 // `nombreConsentimiento` vacío = el nombre en mayúsculas (como figura en el consentimiento).
 import base from './marca.json';
 
@@ -28,6 +31,18 @@ export interface Marca {
   readonly direccion: string;
   /** Email de contacto y para ejercer los derechos sobre los datos. */
   readonly email: string;
+  /** Términos del servicio (https o ruta del portal); por defecto, /legal#terminos. */
+  readonly terminosUrl: string;
+  /** Política de privacidad (https o ruta del portal); por defecto, /legal#privacidad. */
+  readonly privacidadUrl: string;
+}
+
+export const TERMINOS_URL_PORTAL = '/legal#terminos';
+export const PRIVACIDAD_URL_PORTAL = '/legal#privacidad';
+
+/** Solo links https o rutas del propio portal (nunca `javascript:` ni http). */
+function urlLegal(v: string, porDefecto: string): string {
+  return /^https:\/\/\S+$/.test(v) || /^\/(?!\/)\S*$/.test(v) ? v : porDefecto;
 }
 
 type MarcaBase = typeof base;
@@ -61,6 +76,8 @@ export function armarMarca(env: EnvMarca, porDefecto: MarcaBase = base): Marca {
     ),
     direccion: valor(env, 'MARCA_DIRECCION', porDefecto.direccion),
     email: valor(env, 'MARCA_EMAIL', porDefecto.email),
+    terminosUrl: urlLegal(valor(env, 'MARCA_TERMINOS_URL', porDefecto.terminosUrl ?? ''), TERMINOS_URL_PORTAL),
+    privacidadUrl: urlLegal(valor(env, 'MARCA_PRIVACIDAD_URL', porDefecto.privacidadUrl ?? ''), PRIVACIDAD_URL_PORTAL),
   };
 }
 

@@ -41,6 +41,7 @@ import { ScreeningQuestionnairePage } from './pages/ScreeningQuestionnairePage';
 import { MiSegundaOpinion } from './pages/MiSegundaOpinion';
 import { CkmEducacion } from './pages/ckm/CkmEducacion';
 import { SignOutPage } from './pages/SignOutPage';
+import { LegalPage } from './pages/LegalPage';
 import { SolicitarSOM } from './pages/SolicitarSOM';
 import { TeleconsultaPage } from './pages/TeleconsultaPage';
 import { Welcome } from './pages/Welcome';
@@ -115,6 +116,7 @@ export function Router(): JSX.Element {
         {/* La facturación/membresía se movió a la pestaña Membresía (eje Cliente). */}
         <Route path="membership-and-billing" element={<Navigate replace to="/membership" />} />
       </Route>
+      <Route path="legal" element={<LegalPage />} />
       <Route path="signout" element={<SignOutPage />} />
       {/* Ya autenticado: cualquier ruta pública (signin/register/...) redirige a Inicio. */}
       <Route path="*" element={<Navigate replace to="/" />} />

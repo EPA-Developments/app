@@ -21,6 +21,7 @@ import {
 } from '@medplum/react';
 import type { JSX, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import { MARCA } from '../../marca';
 import { BotonGoogle, googleClientIdDe } from './BotonGoogle';
 import { errorEnCastellano } from './errores';
 
@@ -175,9 +176,15 @@ export function RegistroForm(props: RegistroFormProps): JSX.Element {
               </Text>
             )}
             <Text c="dimmed" size="xs" pt="lg" ta="center">
-              Al hacer clic en «Crear cuenta» aceptás la{' '}
-              <Anchor href="https://www.medplum.com/privacy">Política&nbsp;de&nbsp;privacidad</Anchor> y los{' '}
-              <Anchor href="https://www.medplum.com/terms">Términos&nbsp;del&nbsp;servicio</Anchor> de Medplum.
+              Al hacer clic en «Crear cuenta» aceptás los{' '}
+              <Anchor href={MARCA.terminosUrl} target="_blank" rel="noopener noreferrer">
+                Términos&nbsp;del&nbsp;servicio
+              </Anchor>{' '}
+              y la{' '}
+              <Anchor href={MARCA.privacidadUrl} target="_blank" rel="noopener noreferrer">
+                Política&nbsp;de&nbsp;privacidad
+              </Anchor>{' '}
+              de {MARCA.nombre}.
             </Text>
             {recaptchaSiteKey && (
               <Text c="dimmed" size="xs" ta="center">
