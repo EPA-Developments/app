@@ -47,6 +47,7 @@ test('el menú lateral de web no cambia', () => {
       { name: 'Pasos del plan', href: '/care-plan/action-items' },
       { name: 'Seguimiento GLP-1', href: '/care-plan/glp1' },
       { name: 'Plan Bienestar 100 Días', href: '/care-plan/plan-100-dias' },
+      { name: 'Mi tablero de 8 hábitos', href: '/care-plan/plan-100-dias/tablero' },
       { name: 'Mis datos de salud', href: '/care-plan/plan-100-dias/mis-datos' },
     ],
   });

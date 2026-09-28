@@ -1,4 +1,4 @@
-import { MENOPAUSE_PLAN_DEFINITION_URL, evaluateEligibility } from '@epa/careplan-menopausia';
+import { PLAN_DEFINITION_URL, evaluateEligibility } from '@epa/careplan-menopausia';
 import type { Patient, PlanDefinition } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { useCallback, useEffect, useState } from 'react';
@@ -7,7 +7,7 @@ import { usePaciente } from '../PlanBienestarContext';
 export interface UseElegibilidadOptions {
   /** Patient override; defaults to provider config or the logged-in profile. */
   patient?: Patient;
-  /** Canonical URL of the PlanDefinition to check. Defaults to the menopause plan. */
+  /** Canonical URL of the PlanDefinition to check. Defaults to the CKM-stage plan (`pb100d-ckm`). */
   planDefinitionUrl?: string;
 }
 
@@ -37,7 +37,7 @@ export interface Elegibilidad {
 export function useElegibilidad(options: UseElegibilidadOptions = {}): Elegibilidad {
   const medplum = useMedplum();
   const paciente = usePaciente(options.patient);
-  const url = options.planDefinitionUrl ?? MENOPAUSE_PLAN_DEFINITION_URL;
+  const url = options.planDefinitionUrl ?? PLAN_DEFINITION_URL;
   const [version, setVersion] = useState(0);
   const [state, setState] = useState<Omit<Elegibilidad, 'refrescar' | 'paciente'>>({
     cargando: true,

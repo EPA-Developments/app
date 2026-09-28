@@ -40,6 +40,12 @@ export const LOINC = {
   // Kidney (CKM syndrome component) -------------------------------------
   urineAlbuminCreatinineRatio: loinc('9318-7', 'Albumin/Creatinine [Mass Ratio] in Urine'),
   egfr: loinc('33914-3', 'Glomerular filtration rate/1.73 sq M.predicted'),
+  creatinine: loinc('2160-0', 'Creatinine [Mass/volume] in Serum or Plasma'),
+  potassium: loinc('2823-3', 'Potassium [Moles/volume] in Serum or Plasma'),
+
+  // Cardiac and endocrine markers used by the CKM catalog (stages 2 to 4) ---
+  ntProBnp: loinc('33762-6', 'Natriuretic peptide.B prohormone N-Terminal [Mass/volume] in Serum or Plasma'),
+  tsh: loinc('3016-3', 'Thyrotropin [Units/volume] in Serum or Plasma'),
 
   // Behaviours / lifestyle ----------------------------------------------
   smokingStatus: loinc('72166-2', 'Tobacco smoking status'),

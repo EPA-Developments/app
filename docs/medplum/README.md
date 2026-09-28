@@ -40,9 +40,12 @@ Cubre todo lo que el portal lee/escribe:
 - **Plan Bienestar (drop-in)** — el paciente INICIA su propio plan (`empezarPlan` crea
   CarePlan+Goal+Task+CareTeam+Condition por transacción) y tilda pasos (`completarPaso`
   actualiza Task). La escritura está acotada con criterios finos para no abrir el resto:
-  - `CarePlan`: lectura general + **escritura SOLO** de planes que instancien la
-    `PlanDefinition` del plan (`instantiates-canonical=…/menopausia-cardiovascular`).
-    Al sumar nuevos planes (p.ej. 100 días genérico), agregar su canonical acá.
+  - `CarePlan`: lectura general + **escritura SOLO** de planes que instancien una
+    `PlanDefinition` del programa: la única por estadío CKM 0–4 del catálogo firmado
+    (`instantiates-canonical=…/PlanDefinition/pb100d-ckm`, la que el portal instancia
+    desde el módulo 0.7.0) y la anterior de menopausia (`…/menopausia-cardiovascular`,
+    planes ya escritos). Al sumar nuevos planes, agregar su canonical acá y en el seed de
+    recepción (`recepcionistas/src/fhir/access-policies.ts`).
   - `Goal`: lectura/escritura de sus propias metas (`Goal?patient=%patient`). Sin esta
     entrada el portal recibe **404** al leer las metas (Medplum oculta lo no permitido).
   - `Task`: lectura general + **escritura SOLO** de tareas `intent=plan` (los pasos del

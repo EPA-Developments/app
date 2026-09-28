@@ -1,3 +1,4 @@
+import { EXT_SUFIJO, MOMENTO_LABEL, coincide, type Momento } from '@epa/careplan-menopausia';
 import type { Goal, Quantity, Task } from '@medplum/fhirtypes';
 
 function cantidad(quantity: Quantity | undefined): string | undefined {
@@ -20,44 +21,66 @@ export function textoMeta(meta: Goal): string | undefined {
   return cantidad(target.detailQuantity);
 }
 
-/** The activity kind label the core stamps on Task.businessStatus. */
+/** Lower-case, accent-free key of a label (`Educación` and `Educacion` are the same step kind). */
+export function claveDeTipo(texto: string | undefined): string {
+  return (texto ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * The activity kind the core stamps on Task.businessStatus (menopause plan:
+ * `Educacion`/`Conducta`/...; PB100D catalog: `Educación`/`Evaluación`/...),
+ * normalised so both spell the same group.
+ */
 export function tipoDePaso(paso: Task): string | undefined {
-  return paso.businessStatus?.text;
+  const texto = paso.businessStatus?.text;
+  return texto ? claveDeTipo(texto) : undefined;
 }
 
 /** Patient-friendly grouping of plan steps, in presentation order. */
 export interface GrupoDePasos {
-  /** Matches Task.businessStatus.text stamped by the core. */
+  /** Normalised kind (`claveDeTipo`) of Task.businessStatus.text. */
   tipo: string;
   emoji: string;
   titulo: string;
   descripcion: string;
+  /** The team measures these; the person reads them, does not tick them. */
+  soloLectura?: boolean;
 }
 
 export const GRUPOS_DE_PASOS: GrupoDePasos[] = [
   {
-    tipo: 'Monitoreo',
+    tipo: 'monitoreo',
     emoji: '📋',
     titulo: 'Conocé tus números',
     descripcion: 'Datos simples que cuentan cómo está tu corazón hoy.',
   },
   {
-    tipo: 'Conducta',
+    tipo: 'conducta',
     emoji: '🌱',
     titulo: 'Construí tus hábitos',
     descripcion: 'Pequeños cambios sostenidos: ahí está la magia de los 100 días.',
   },
   {
-    tipo: 'Educacion',
+    tipo: 'educacion',
     emoji: '💡',
     titulo: 'Aprendé y disfrutá',
     descripcion: 'Talleres y contenidos pensados para esta etapa de tu vida.',
   },
   {
-    tipo: 'Derivacion',
+    tipo: 'derivacion',
     emoji: '🤝',
     titulo: 'Con tu equipo de salud',
     descripcion: 'No estás sola: tu equipo te acompaña en el camino.',
+  },
+  {
+    tipo: 'evaluacion',
+    emoji: '🩺',
+    titulo: 'Tus controles',
+    descripcion: 'Lo que tu equipo mide en el camino y cuándo.',
+    soloLectura: true,
   },
 ];
 
@@ -81,4 +104,20 @@ export const EMOJI_POR_CATEGORIA: Record<string, string> = {
 /** True when the step asks the patient to fill the plan questionnaire. */
 export function pasoConCuestionario(paso: Task): boolean {
   return paso.focus?.reference?.startsWith('Questionnaire/') ?? false;
+}
+
+const MOMENTOS = new Set<string>(Object.keys(MOMENTO_LABEL));
+
+/** Plan moments of a PB100D step (`catalogo-momento` extension, any namespace), in catalog order. */
+export function momentosDePaso(paso: Task): Momento[] {
+  const momentos = (paso.extension ?? [])
+    .filter((e) => coincide(e.url, EXT_SUFIJO.catalogoMomento))
+    .map((e) => e.valueCode)
+    .filter((code): code is Momento => code !== undefined && MOMENTOS.has(code));
+  return [...new Set(momentos)];
+}
+
+/** Short labels of a step's moments ("Día 0", "Día 30", "Evento"). */
+export function etiquetasDeMomentos(paso: Task): string[] {
+  return momentosDePaso(paso).map((momento) => MOMENTO_LABEL[momento]);
 }
