@@ -21,6 +21,19 @@ Portal del paciente de **Segunda Opinión Médica** — segunda opinión cardiol
 **Stack**: React 19 + TypeScript + Vite + Mantine 8 + Medplum React SDK · FHIR R4 en
 `https://api.medplum.com.ar` (proyecto `7ce5e559`) · deploy en Vercel.
 
+## Instalación
+
+```bash
+corepack enable   # usa el npm de `packageManager` (11.x); o bien: npm i -g npm@11
+npm ci            # instala exactamente lo que dice package-lock.json
+npm test && npm run build
+```
+
+Hace falta **npm 11 o superior**: npm 10.9.x se cae al resolver los peers de este árbol
+(`Cannot read properties of null (reading 'edgesOut')`) y su `npm ci` rechaza los binarios
+opcionales por plataforma que npm 11 anota en el lock. El `package-lock.json` se versiona:
+al cambiar `package.json`, regenerarlo con npm 11 (`npm install`) y commitearlo junto.
+
 ## Marca blanca
 
 Todo lo que identifica a la marca en el portal (logo, pie de página, títulos de ingreso y

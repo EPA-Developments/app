@@ -50,8 +50,9 @@
     "vite": "8.3.0",
     "vitest": "4.1.11"
   },
-  "packageManager": "npm@10.9.9",
+  "packageManager": "npm@11.20.0",
   "engines": {
-    "node": "^22.18.0 || >=24.2.0"
+    "node": "^22.18.0 || >=24.2.0",
+    "npm": ">=11"
   }
 }
