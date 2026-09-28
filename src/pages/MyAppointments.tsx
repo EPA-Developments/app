@@ -5,19 +5,19 @@
 // Appointment?patient=<ref>. Se separan próximos y anteriores.
 // - Presenciales: SOLO LECTURA. Los crea y gestiona Recepción (app aparte) vía los bots
 //   de reserva.
-// - Videollamadas: tarjeta del módulo de teleconsulta con Entrar, Pagar, Mover y Cancelar.
-//   Esas acciones también pasan por bots del servidor (política de movimientos y
-//   reintegro); el portal nunca escribe el turno directo.
-import { esTurnoVirtual } from '@epa/teleconsulta-core';
-import { TarjetaTurno, useTurnosPaciente } from '@epa/teleconsulta-react';
+// - Teleconsultas (v3-ActCode `VR`): Entrar a la videollamada, Pagar la seña y Cancelar
+//   (R-14). Esas acciones pasan por los bots de SOM `som-teleconsulta-*`; el portal nunca
+//   escribe el turno directo.
 import { Alert, Badge, Button, Card, Group, Stack, Text } from '@mantine/core';
 import { formatDateTime, getReferenceString } from '@medplum/core';
 import type { Appointment, Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { IconCalendarEvent, IconCircleCheck, IconCreditCard } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { AccionesTeleconsulta } from '../components/teleconsulta/AccionesTeleconsulta';
 import { estadoReservaPortal, fmtHoraArg, modalidadesDe, type EstadoReservaPortal } from '../fhir/agenda';
+import { esTeleconsulta } from '../fhir/teleconsulta';
 import { ESTADOS_TURNO } from '../fhir/turnos';
 import { showErrorNotification } from '../utils/notifications';
 
@@ -50,7 +50,7 @@ function serviceLabel(appt: Appointment): string {
   );
 }
 
-function AppointmentCard({ appt }: { appt: Appointment }): JSX.Element {
+function AppointmentCard({ appt, onCambio }: { appt: Appointment; onCambio?: (mensaje: string) => void }): JSX.Element {
   const modalidad = modalidadesDe(appt)[0];
   const reserva = estadoReservaPortal(appt);
   return (
@@ -93,42 +93,33 @@ function AppointmentCard({ appt }: { appt: Appointment }): JSX.Element {
           Se pasó la hora sin la seña: el horario se libera. Podés elegir otro.
         </Text>
       )}
+      {onCambio && appt.id && esTeleconsulta(appt) && <AccionesTeleconsulta appt={{ ...appt, id: appt.id }} onCambio={onCambio} />}
     </Card>
   );
 }
-
-interface Item {
-  clave: string;
-  start?: string;
-  tarjeta: JSX.Element;
-}
-
-const porInicio = (a: Item, b: Item): number => ((a.start ?? '') < (b.start ?? '') ? -1 : 1);
 
 /** `version`: subirla recarga los turnos (p. ej. después de reservar uno). */
 export function MyAppointments({ patient, version = 0 }: { patient: Patient; version?: number }): JSX.Element {
   const medplum = useMedplum();
   const [appointments, setAppointments] = useState<Appointment[]>();
-  const virtuales = useTurnosPaciente(patient.id);
   const [aviso, setAviso] = useState<string>();
 
-  useEffect(() => {
+  const cargar = useCallback(() => {
     medplum
       .searchResources('Appointment', `patient=${getReferenceString(patient)}&_sort=-date&_count=100`, { cache: 'no-cache' })
       .then(setAppointments)
       .catch(showErrorNotification);
-  }, [medplum, patient, version]);
+  }, [medplum, patient]);
 
-  if (
-    appointments === undefined ||
-    (virtuales.cargando && virtuales.proximos.length + virtuales.anteriores.length === 0)
-  ) {
+  useEffect(() => {
+    cargar();
+  }, [cargar, version]);
+
+  if (appointments === undefined) {
     return <Text c="dimmed">Cargando tus turnos…</Text>;
   }
 
-  const presenciales = appointments.filter((a) => !esTurnoVirtual(a));
-
-  if (presenciales.length === 0 && virtuales.proximos.length === 0 && virtuales.anteriores.length === 0) {
+  if (appointments.length === 0) {
     return (
       <Group gap="xs" c="dimmed">
         <IconCalendarEvent size={18} />
@@ -139,33 +130,28 @@ export function MyAppointments({ patient, version = 0 }: { patient: Patient; ver
 
   const alCambiar = (mensaje: string): void => {
     setAviso(mensaje);
-    virtuales.recargar().catch(showErrorNotification);
+    cargar();
   };
 
   const now = Date.now();
+  // Próximo hasta que termina: una teleconsulta en curso sigue mostrando "Entrar".
   const isUpcoming = (a: Appointment): boolean =>
-    !!a.start && new Date(a.start).getTime() >= now && a.status !== 'cancelled' && a.status !== 'noshow';
-  const presencial = (a: Appointment): Item => ({
-    clave: a.id ?? '',
-    start: a.start,
-    tarjeta: <AppointmentCard key={a.id} appt={a} />,
-  });
-  const virtual = (t: (typeof virtuales.proximos)[number], onCambio?: (m: string) => void): Item => ({
-    clave: t.turno.id,
-    start: t.turno.start,
-    tarjeta: <TarjetaTurno key={t.turno.id} {...t} onCambio={onCambio} />,
-  });
+    !!a.start &&
+    new Date(a.end ?? a.start).getTime() >= now &&
+    a.status !== 'cancelled' &&
+    a.status !== 'noshow' &&
+    a.status !== 'fulfilled';
+  const porInicio = (a: Appointment, b: Appointment): number => ((a.start ?? '') < (b.start ?? '') ? -1 : 1);
 
-  const upcoming = [
-    ...presenciales.filter(isUpcoming).map(presencial),
-    ...virtuales.proximos.map((t) => virtual(t, alCambiar)),
-  ].sort(porInicio);
-  const past = [
-    ...presenciales.filter((a) => !isUpcoming(a)).map(presencial),
-    ...virtuales.anteriores.map((t) => virtual(t)),
-  ]
+  const upcoming = appointments
+    .filter(isUpcoming)
     .sort(porInicio)
-    .reverse();
+    .map((a) => <AppointmentCard key={a.id} appt={a} onCambio={alCambiar} />);
+  const past = appointments
+    .filter((a) => !isUpcoming(a))
+    .sort(porInicio)
+    .reverse()
+    .map((a) => <AppointmentCard key={a.id} appt={a} />);
 
   return (
     <Stack gap="lg">
@@ -185,7 +171,7 @@ export function MyAppointments({ patient, version = 0 }: { patient: Patient; ver
           <Text fw={600} size="sm" c="dimmed" tt="uppercase">
             Próximos
           </Text>
-          {upcoming.map((i) => i.tarjeta)}
+          {upcoming}
         </Stack>
       )}
       {past.length > 0 && (
@@ -193,7 +179,7 @@ export function MyAppointments({ patient, version = 0 }: { patient: Patient; ver
           <Text fw={600} size="sm" c="dimmed" tt="uppercase">
             Anteriores
           </Text>
-          {past.map((i) => i.tarjeta)}
+          {past}
         </Stack>
       )}
     </Stack>
