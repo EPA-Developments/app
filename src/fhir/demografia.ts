@@ -37,6 +37,28 @@ export interface Demografia {
   provincia?: string;
 }
 
+/** Celular (WhatsApp) del paciente: Patient.telecom phone/mobile, o el primer teléfono. */
+export function leerCelular(patient: Patient): string | undefined {
+  return (
+    patient.telecom?.find((t) => t.system === 'phone' && t.use === 'mobile')?.value ??
+    patient.telecom?.find((t) => t.system === 'phone')?.value
+  );
+}
+
+/** ¿Tiene forma de celular? Entre 10 y 15 dígitos (con o sin +54 9), admite espacios y guiones. */
+export function celularValido(celular: string | undefined): boolean {
+  const limpio = celular?.trim() ?? '';
+  return /^\+?[\d\s().-]+$/.test(limpio) && /^\d{10,15}$/.test(limpio.replace(/\D/g, ''));
+}
+
+/** Reemplaza el celular (phone/mobile) y conserva el resto de los telecom (email, etc.). */
+export function conCelular(telecom: Patient['telecom'], celular: string | undefined): Patient['telecom'] {
+  const resto = (telecom ?? []).filter((t) => !(t.system === 'phone' && t.use === 'mobile'));
+  const valor = celular?.trim();
+  const todos = valor ? [...resto, { system: 'phone' as const, use: 'mobile' as const, value: valor }] : resto;
+  return todos.length > 0 ? todos : undefined;
+}
+
 /** Lee los datos ya cargados en el Patient (prefill para pacientes invitados). */
 export function leerDemografia(patient: Patient): Demografia {
   const gender = patient.gender;
@@ -44,9 +66,7 @@ export function leerDemografia(patient: Patient): Demografia {
   return {
     sexo: gender === 'female' || gender === 'male' || gender === 'other' ? gender : undefined,
     fechaNacimiento: patient.birthDate,
-    celular:
-      patient.telecom?.find((t) => t.system === 'phone' && t.use === 'mobile')?.value ??
-      patient.telecom?.find((t) => t.system === 'phone')?.value,
+    celular: leerCelular(patient),
     dni: patient.identifier?.find((i) => i.system === DNI_SYSTEM)?.value,
     calle: domicilio?.line?.[0],
     localidad: domicilio?.city,
@@ -60,10 +80,7 @@ export function leerDemografia(patient: Patient): Demografia {
  * identifiers que no administra este formulario (email, obra social, etc.).
  */
 export function aplicarDemografia(patient: Patient, datos: Demografia): Patient {
-  const telecom = (patient.telecom ?? []).filter((t) => !(t.system === 'phone' && t.use === 'mobile'));
-  if (datos.celular) {
-    telecom.push({ system: 'phone', use: 'mobile', value: datos.celular });
-  }
+  const telecom = conCelular(patient.telecom, datos.celular);
 
   const identifier = (patient.identifier ?? []).filter((i) => i.system !== DNI_SYSTEM);
   if (datos.dni) {
@@ -87,7 +104,7 @@ export function aplicarDemografia(patient: Patient, datos: Demografia): Patient 
     ...patient,
     gender: datos.sexo ?? patient.gender,
     birthDate: datos.fechaNacimiento || patient.birthDate,
-    telecom: telecom.length > 0 ? telecom : undefined,
+    telecom,
     identifier: identifier.length > 0 ? identifier : undefined,
     address,
   };
