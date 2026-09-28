@@ -32,9 +32,6 @@ export default defineConfig(({ mode }) => ({
     alias: {
       '@epa/careplan-menopausia': path.resolve(import.meta.dirname, 'src/vendor/plan-bienestar/careplan-menopausia/index.ts'),
       '@epa/plan-bienestar-react': path.resolve(import.meta.dirname, 'src/vendor/plan-bienestar/plan-bienestar-react/index.ts'),
-      // Teleconsulta vendorizada (ver src/vendor/teleconsulta/README.md).
-      '@epa/teleconsulta-core': path.resolve(import.meta.dirname, 'src/vendor/teleconsulta/teleconsulta-core/index.ts'),
-      '@epa/teleconsulta-react': path.resolve(import.meta.dirname, 'src/vendor/teleconsulta/teleconsulta-react/index.ts'),
     },
   },
   preview: {
