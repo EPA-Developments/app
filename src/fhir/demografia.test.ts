@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 import type { Patient } from '@medplum/fhirtypes';
-import { DNI_SYSTEM, aplicarDemografia, leerDemografia } from './demografia';
+import { DNI_SYSTEM, aplicarDemografia, celularValido, conCelular, leerCelular, leerDemografia } from './demografia';
 
 const base: Patient = {
   resourceType: 'Patient',
@@ -75,4 +75,28 @@ test('leerDemografia hace round-trip con aplicarDemografia (prefill de invitados
     localidad: 'Córdoba',
     provincia: 'Córdoba',
   });
+});
+
+test('celularValido acepta formatos argentinos comunes y rechaza texto o números cortos', () => {
+  for (const ok of ['+54 9 11 5555-1234', '+5491169315830', '11 5555-1234', '(011) 5555-1234']) {
+    expect(celularValido(ok)).toBe(true);
+  }
+  for (const mal of ['', '1234', 'no tengo', '+54 9 11 5555-1234 int 2']) {
+    expect(celularValido(mal)).toBe(false);
+  }
+});
+
+test('conCelular reemplaza solo el celular y conserva el email', () => {
+  const telecom = conCelular(
+    [
+      { system: 'email', value: 'ana@example.com' },
+      { system: 'phone', use: 'mobile', value: '1111111111' },
+    ],
+    ' +5491169315830 '
+  );
+  expect(telecom).toEqual([
+    { system: 'email', value: 'ana@example.com' },
+    { system: 'phone', use: 'mobile', value: '+5491169315830' },
+  ]);
+  expect(leerCelular({ resourceType: 'Patient', telecom })).toBe('+5491169315830');
 });

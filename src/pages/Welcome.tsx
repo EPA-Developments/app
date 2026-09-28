@@ -31,7 +31,7 @@ import type { Icon } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { JSX } from 'react';
 import type { Demografia, Sexo } from '../fhir/demografia';
-import { SEXO_OPCIONES, aplicarDemografia, leerDemografia } from '../fhir/demografia';
+import { SEXO_OPCIONES, aplicarDemografia, celularValido, leerDemografia } from '../fhir/demografia';
 import { getPatientOrigin, marcarOnboardingCompleto } from '../fhir/onboarding';
 import { showErrorNotification } from '../utils/notifications';
 
@@ -97,7 +97,9 @@ function validarDatosPersonales(datos: Demografia): Errores {
 function validarContacto(datos: Demografia): Errores {
   const errores: Errores = {};
   if (!datos.celular?.trim()) {
-    errores.celular = 'Ingresá tu número de celular.';
+    errores.celular = 'Ingresá tu celular (WhatsApp).';
+  } else if (!celularValido(datos.celular)) {
+    errores.celular = 'Revisá el número: con código de área, p. ej. +54 9 11 5555-1234.';
   }
   const dni = datos.dni?.trim() ?? '';
   if (!dni) {
@@ -282,7 +284,8 @@ export function Welcome(): JSX.Element {
 
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                 <TextInput
-                  label="Teléfono celular"
+                  label="Celular (WhatsApp)"
+                  description="Lo usamos para coordinar turnos y avisos."
                   placeholder="+54 9 11 5555-1234"
                   inputMode="tel"
                   value={datos.celular ?? ''}

@@ -13,6 +13,7 @@ import { IconCircleCheck, IconCircleOff } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useState } from 'react';
 import { InfoSection } from '../../components/InfoSection';
+import { celularValido, conCelular, leerCelular } from '../../fhir/demografia';
 import { CoberturaSection } from './CoberturaSection';
 
 /** Domicilio argentino, apilado (usable en smartphone) y en español. */
@@ -131,6 +132,15 @@ export function Profile(): JSX.Element | null {
   const emergenciaActual = profile.contact?.find(esContactoEmergencia);
 
   async function handleProfileEdit(formData: Record<string, string>): Promise<void> {
+    if (!celularValido(formData.whatsapp)) {
+      showNotification({
+        color: 'red',
+        icon: <IconCircleOff />,
+        title: 'Revisá tu celular (WhatsApp)',
+        message: 'Con código de área, p. ej. +54 9 11 5555-1234.',
+      });
+      return;
+    }
     setLoading(true);
     const given = formData.givenName?.trim();
     const family = formData.familyName?.trim();
@@ -156,6 +166,8 @@ export function Profile(): JSX.Element | null {
       gender: (formData.gender || undefined) as Patient['gender'],
       address: domicilio ? [domicilio] : undefined,
       contact: contactos.length > 0 ? contactos : undefined,
+      // Mismo dato que pide la Bienvenida: Patient.telecom phone/mobile.
+      telecom: conCelular(profile.telecom, formData.whatsapp),
     };
     const updatedProfile = await medplum
       .updateResource(newProfile)
@@ -229,6 +241,17 @@ export function Profile(): JSX.Element | null {
                   name="email"
                   defaultValue={profile.telecom?.find((t) => t.system === 'email')?.value}
                   disabled
+                />
+                <TextInput
+                  label="Celular (WhatsApp)"
+                  description="Lo usamos para coordinar turnos y avisos."
+                  name="whatsapp"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="+54 9 11 5555-1234"
+                  defaultValue={leerCelular(profile) ?? ''}
+                  autoComplete="tel"
+                  required
                 />
                 <DomicilioInput value={address} onChange={setAddress} />
                 <Button type="submit" mr="auto">
