@@ -129,9 +129,9 @@ export function LE8QuestionnairePage(): JSX.Element {
               <Button
                 radius="xl"
                 rightSection={<IconArrowRight size={16} />}
-                onClick={() => navigate('/care-plan/plan-100-dias')?.catch(console.error)}
+                onClick={() => navigate('/care-plan/plan-100-dias/tablero')?.catch(console.error)}
               >
-                Ver mi Plan Bienestar
+                Ver mi tablero de 8 hábitos
               </Button>
             )}
             <Button variant="light" radius="xl" onClick={() => setIsSubmitted(false)}>

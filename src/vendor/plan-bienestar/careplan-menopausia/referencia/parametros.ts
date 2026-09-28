@@ -206,9 +206,9 @@ export const PARAMETROS_CKM: ParametroCkm[] = [
     unidad: 'mg/dL',
     ucum: 'mg/dL',
     direccion: 'menor-mejor',
+    // Guía CKM 2026 (Tabla 4): hipertrigliceridemia desde 150 mg/dL en ayunas.
     rangos: [
       { etiqueta: 'Normal', max: 150, nivel: OK },
-      { etiqueta: 'Limite', min: 135, max: 150, nivel: LIMITE },
       { etiqueta: 'Alto', min: 150, nivel: ALTO },
     ],
   },

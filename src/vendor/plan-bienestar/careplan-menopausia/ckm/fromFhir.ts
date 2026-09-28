@@ -2,12 +2,15 @@ import type { Coding, Condition, Observation, Patient } from '@medplum/fhirtypes
 import { LOINC } from '../terminology/loinc.js';
 import { SNOMED } from '../terminology/snomed.js';
 import { SYSTEM } from '../terminology/systems.js';
+import { calculateAge } from '../eligibility.js';
 import type { CkmConditions, CkmInput } from './types.js';
 
 export interface CkmFhirContext {
   patient?: Patient;
   observations?: Observation[];
   conditions?: Condition[];
+  /** ISO date (`YYYY-MM-DD`) at which to compute the age. Defaults to today. */
+  on?: string;
 }
 
 function fecha(observation: Observation): string {
@@ -56,34 +59,43 @@ function tieneCondicion(conditions: Condition[], codes: string[]): boolean {
 }
 
 const CODIGOS_DIABETES = [SNOMED.diabetesMellitus.code!, SNOMED.type2Diabetes.code!];
-const CODIGOS_CVD_CLINICA = [
-  SNOMED.coronaryArteriosclerosis.code!,
-  SNOMED.myocardialInfarction.code!,
-  SNOMED.stroke.code!,
-  SNOMED.heartFailure.code!,
-  SNOMED.peripheralVascularDisease.code!,
-  SNOMED.atrialFibrillation.code!,
-];
+const CODIGOS_CORONARIA = [SNOMED.coronaryArteriosclerosis.code!, SNOMED.myocardialInfarction.code!];
 
 /**
  * Extracts the CKM staging inputs from FHIR resources: latest Observation per
- * LOINC code (supports BP as components of the blood-pressure panel) and
- * active SNOMED-coded Conditions.
+ * LOINC code (supports BP as components of the blood-pressure panel), active
+ * SNOMED-coded Conditions (with the specific clinical-CVD flags the stage 4
+ * catalog needs) and the age from the Patient's birth date.
  */
 export function extractCkmInput(ctx: CkmFhirContext): CkmInput {
   const observations = ctx.observations ?? [];
   const conditions = ctx.conditions ?? [];
+
+  const coronaryDisease = tieneCondicion(conditions, CODIGOS_CORONARIA) || undefined;
+  const stroke = tieneCondicion(conditions, [SNOMED.stroke.code!]) || undefined;
+  const heartFailure = tieneCondicion(conditions, [SNOMED.heartFailure.code!]) || undefined;
+  const peripheralArteryDisease = tieneCondicion(conditions, [SNOMED.peripheralVascularDisease.code!]) || undefined;
+  const atrialFibrillation = tieneCondicion(conditions, [SNOMED.atrialFibrillation.code!]) || undefined;
+  const clinicalCvd = coronaryDisease || stroke || heartFailure || peripheralArteryDisease || atrialFibrillation || undefined;
 
   const condiciones: CkmConditions = {
     diabetes: tieneCondicion(conditions, CODIGOS_DIABETES) || undefined,
     hypertension: tieneCondicion(conditions, [SNOMED.hypertension.code!]) || undefined,
     metabolicSyndrome: tieneCondicion(conditions, [SNOMED.metabolicSyndrome.code!]) || undefined,
     chronicKidneyDisease: tieneCondicion(conditions, [SNOMED.chronicKidneyDisease.code!]) || undefined,
-    clinicalCvd: tieneCondicion(conditions, CODIGOS_CVD_CLINICA) || undefined,
+    clinicalCvd,
+    coronaryDisease,
+    stroke,
+    heartFailure,
+    peripheralArteryDisease,
+    atrialFibrillation,
     kidneyFailure: tieneCondicion(conditions, [SNOMED.endStageRenalDisease.code!]) || undefined,
   };
 
-  return {
+  const on = ctx.on ?? new Date().toISOString().slice(0, 10);
+  const edad = ctx.patient?.birthDate ? calculateAge(ctx.patient.birthDate, on) : undefined;
+
+  const input: CkmInput = {
     sexo: ctx.patient?.gender,
     bmi: valor(observations, LOINC.bmi.code!),
     waistCm: valor(observations, LOINC.waistCircumference.code!),
@@ -97,4 +109,6 @@ export function extractCkmInput(ctx: CkmFhirContext): CkmInput {
     egfr: valor(observations, LOINC.egfr.code!),
     conditions: condiciones,
   };
+  if (edad !== undefined) input.edad = edad;
+  return input;
 }

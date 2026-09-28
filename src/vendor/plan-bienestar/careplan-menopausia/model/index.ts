@@ -17,3 +17,23 @@ export {
   type EligibilitySpec,
   type PlanTemplate,
 } from './planTemplate.js';
+export {
+  CONDICIONES,
+  ESTADIOS_CKM,
+  ETIQUETA_ESTADIO,
+  MOMENTO_LABEL,
+  RESPONSABLE_LABEL,
+  TIPO_ITEM_LABEL,
+  type Aplicabilidad,
+  type Audiencia,
+  type CatalogoEstadio,
+  type Condicion,
+  type DominioCatalogo,
+  type EstadioCkm,
+  type EvaluacionCatalogo,
+  type ItemCatalogo,
+  type MetaCatalogo,
+  type Momento,
+  type Responsable,
+  type TipoItem,
+} from './catalogo.js';

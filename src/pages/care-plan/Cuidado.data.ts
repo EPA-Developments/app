@@ -3,7 +3,7 @@
 //
 // Opciones de "Plan de cuidado". Un solo catálogo para las dos navegaciones: el menú
 // lateral de web y la pantalla de inicio de smartphone (CuidadoInicio).
-import { IconClipboardHeart, IconHeartRateMonitor, IconListCheck, IconVaccine } from '@tabler/icons-react';
+import { IconClipboardHeart, IconHeartbeat, IconHeartRateMonitor, IconListCheck, IconVaccine } from '@tabler/icons-react';
 import type { SideMenuProps } from '../../components/SideMenu';
 import type { OpcionDeMenu } from '../../components/TarjetaDeOpciones';
 
@@ -28,6 +28,12 @@ export const OPCIONES_CUIDADO: readonly OpcionDeMenu[] = [
     titulo: 'Plan Bienestar 100 Días',
     descripcion: 'Tus pasos, tus metas y tu progreso, semana a semana.',
     href: '/care-plan/plan-100-dias',
+  },
+  {
+    icon: IconHeartbeat,
+    titulo: 'Mi tablero de 8 hábitos',
+    descripcion: "Tu puntaje Life's Essential 8 y tu respuesta a 100 días.",
+    href: '/care-plan/plan-100-dias/tablero',
   },
   {
     icon: IconHeartRateMonitor,

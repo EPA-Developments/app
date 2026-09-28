@@ -39,7 +39,7 @@ import { PlanBienestar100 } from '../components/PlanBienestar100';
 import { SeguimientoGlp1Card } from '../components/SeguimientoGlp1Card';
 import { PLAN_BIENESTAR_CKM } from './ckm/ckm.contenido';
 import classes from './HomePage.module.css';
-import { EstadioCkmCard, PlanBienestarCard, RiesgoPreventCard } from '@epa/plan-bienestar-react';
+import { EstadioCkmCard, PlanBienestarCard, RiesgoPreventCard, TableroLe8 } from '@epa/plan-bienestar-react';
 
 const RUTA_PLAN = '/care-plan/plan-100-dias';
 const RUTA_MI_SALUD_CV = '/health-record/cuestionarios';
@@ -55,6 +55,7 @@ const mobileTiles: { icon: Icon; title: string; href: string }[] = [
 const mobileRows: { icon: Icon; title: string; description: string; href: string }[] = [
   { icon: IconDropletHeart, title: 'Entendé tu salud CKM', description: 'Corazón, riñones y metabolismo, fase por fase', href: '/ckm' },
   { icon: IconHeartbeat, title: 'Mi salud cardiovascular', description: "Tus hábitos: Life's Essential 8", href: RUTA_MI_SALUD_CV },
+  { icon: IconHeartbeat, title: 'Mi tablero de 8 hábitos', description: 'Tu puntaje LE8 y tu respuesta a 100 días', href: `${RUTA_PLAN}/tablero` },
   { icon: IconReportMedical, title: 'Mis biomarcadores', description: 'Resultados y evolución', href: '/health-record/biomarkers' },
   { icon: IconFileText, title: 'Historia clínica', description: 'Estudios y registros', href: '/health-record' },
   { icon: IconClipboardHeart, title: 'Mi plan', description: 'Los pasos de tu seguimiento', href: '/care-plan' },
@@ -163,6 +164,10 @@ export function HomePage(): JSX.Element {
         </Card>
         <Container mt="md">
           <PlanBienestarCard />
+          {/* Tablero de 8 hábitos (LE8): lo que la paciente ve moverse en los 100 días. */}
+          <Box mt="md">
+            <TableroLe8 basePath={RUTA_PLAN} rutaCuestionarios={RUTA_MI_SALUD_CV} />
+          </Box>
           <Box mt="md">
             <EstadioCkmCard />
           </Box>
@@ -259,6 +264,9 @@ export function HomePage(): JSX.Element {
         {/* Plan Bienestar · 100 días: la card se auto-gestiona (null si el paciente no es elegible). */}
         <Box mb="xl">
           <PlanBienestarCard />
+          <Box mt="md">
+            <TableroLe8 basePath={RUTA_PLAN} rutaCuestionarios={RUTA_MI_SALUD_CV} />
+          </Box>
           <Box mt="md">
             <EstadioCkmCard />
           </Box>

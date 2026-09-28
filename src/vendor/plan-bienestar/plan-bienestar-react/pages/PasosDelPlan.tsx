@@ -17,8 +17,10 @@ import {
 } from '@mantine/core';
 import { useNavigate } from 'react-router';
 import { useBasePath } from '../PlanBienestarContext';
+import { useBaseline } from '../hooks/useBaseline';
+import { useCobertura } from '../hooks/useCobertura';
 import { usePlanBienestar } from '../hooks/usePlanBienestar';
-import { fraseDeAliento, GRUPOS_DE_PASOS, pasoConCuestionario, tipoDePaso } from '../fhirTexto';
+import { etiquetasDeMomentos, fraseDeAliento, GRUPOS_DE_PASOS, pasoConCuestionario, tipoDePaso } from '../fhirTexto';
 
 export interface PasosDelPlanProps {
   patient?: Patient;
@@ -39,26 +41,35 @@ function diaDelPlan(inicio: string | undefined, hoy: Date = new Date()): number 
 
 function PasoCard({
   paso,
+  soloLectura,
+  sinCasilla,
   onCompletar,
   onCuestionario,
 }: {
   paso: Task;
+  soloLectura?: boolean;
+  /** The team owns this step (an evaluation): show it, do not offer to tick it. */
+  sinCasilla?: boolean;
   onCompletar: (completado: boolean) => void;
   onCuestionario: () => void;
 }): ReactElement {
   const completado = paso.status === 'completed';
+  const momentos = etiquetasDeMomentos(paso);
   return (
     <Card withBorder radius="lg" p="md" bg={completado ? 'teal.0' : undefined}>
       <Group align="flex-start" wrap="nowrap">
-        <Checkbox
-          mt={4}
-          size="md"
-          radius="xl"
-          color="teal"
-          checked={completado}
-          onChange={(event) => onCompletar(event.currentTarget.checked)}
-          aria-label={paso.code?.text ?? 'Paso del plan'}
-        />
+        {!sinCasilla && (
+          <Checkbox
+            mt={4}
+            size="md"
+            radius="xl"
+            color="teal"
+            checked={completado}
+            disabled={soloLectura}
+            onChange={(event) => onCompletar(event.currentTarget.checked)}
+            aria-label={paso.code?.text ?? 'Paso del plan'}
+          />
+        )}
         <Stack gap={6} style={{ flex: 1 }}>
           <Group gap="xs" justify="space-between" wrap="nowrap" align="flex-start">
             <Text fw={600} c={completado ? 'dimmed' : undefined}>
@@ -75,7 +86,16 @@ function PasoCard({
               {paso.description}
             </Text>
           )}
-          {pasoConCuestionario(paso) && !completado && (
+          {momentos.length > 0 && (
+            <Group gap={4}>
+              {momentos.map((momento) => (
+                <Badge key={momento} size="xs" variant="outline" color="gray" radius="xl">
+                  {momento}
+                </Badge>
+              ))}
+            </Group>
+          )}
+          {pasoConCuestionario(paso) && !completado && !soloLectura && (
             <div>
               <Button variant="light" color="teal" size="xs" radius="xl" onClick={onCuestionario}>
                 Responder cuestionario →
@@ -88,11 +108,43 @@ function PasoCard({
   );
 }
 
+/**
+ * Invitación a completar el cuestionario inicial.
+ *
+ * Aparece también cuando todavía no hay plan: esa es justo la paciente que más
+ * necesita responderlo, porque de sus respuestas sale la personalización del
+ * plan que le van a armar.
+ */
+function InvitacionBaseline({ onIr }: { onIr: () => void }): ReactElement {
+  return (
+    <Card withBorder radius="lg" p="lg" bg="teal.0">
+      <Group justify="space-between" wrap="wrap" gap="md">
+        <Group gap="sm" wrap="nowrap">
+          <ThemeIcon variant="light" color="teal" size={40} radius="xl">
+            📝
+          </ThemeIcon>
+          <div>
+            <Text fw={600}>Contanos de vos</Text>
+            <Text size="sm" c="dimmed">
+              Unas preguntas cortas para que tu plan se parezca a tu día a día.
+            </Text>
+          </div>
+        </Group>
+        <Button color="teal" radius="xl" onClick={onIr}>
+          Empezar
+        </Button>
+      </Group>
+    </Card>
+  );
+}
+
 /** "Pasos del plan": the CarePlan's Tasks as a warm, completable checklist. */
 export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
   const navigate = useNavigate();
   const basePath = useBasePath(props.basePath);
   const plan = usePlanBienestar({ patient: props.patient });
+  const cobertura = useCobertura({ patient: props.patient });
+  const baseline = useBaseline({ patient: props.patient });
 
   if (plan.cargando) {
     return (
@@ -106,21 +158,32 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
 
   if (!plan.carePlan) {
     return (
-      <Card withBorder radius="lg" p="xl">
-        <Stack gap="xs" align="center">
-          <ThemeIcon variant="light" color="teal" size={48} radius="xl">
-            🌱
-          </ThemeIcon>
-          <Title order={4}>Todavia no empezaste el plan</Title>
-          <Text c="dimmed" ta="center">
-            Volvé a la página de inicio y tocá «Empezar mi plan» para dar el primer paso.
-          </Text>
-        </Stack>
-      </Card>
+      <Stack gap="lg">
+        {!baseline.cargando && !baseline.respondido && (
+          <InvitacionBaseline onIr={() => navigate(`${basePath}/contanos`)} />
+        )}
+        <Card withBorder radius="lg" p="xl">
+          <Stack gap="xs" align="center">
+            <ThemeIcon variant="light" color="teal" size={48} radius="xl">
+              🌱
+            </ThemeIcon>
+            <Title order={4}>Todavia no empezaste el plan</Title>
+            <Text c="dimmed" ta="center">
+              Volvé a la página de inicio y tocá «Empezar mi plan» para dar el primer paso.
+            </Text>
+            <Anchor size="sm" fw={500} onClick={() => navigate(`${basePath}/tablero`)}>
+              Mientras tanto, mirá tu tablero de 8 hábitos →
+            </Anchor>
+          </Stack>
+        </Card>
+      </Stack>
     );
   }
 
-  const progreso = plan.total > 0 ? Math.round((plan.completados / plan.total) * 100) : 0;
+  // Los pasos que la persona marca; los controles del equipo se listan aparte.
+  const marcables = plan.pasos.filter((paso) => tipoDePaso(paso) !== 'evaluacion');
+  const completados = marcables.filter((paso) => paso.status === 'completed').length;
+  const progreso = marcables.length > 0 ? Math.round((completados / marcables.length) * 100) : 0;
   const dia = diaDelPlan(plan.carePlan.period?.start);
 
   return (
@@ -136,6 +199,10 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
           </div>
         </Group>
       </div>
+
+      {!baseline.cargando && !baseline.respondido && (
+        <InvitacionBaseline onIr={() => navigate(`${basePath}/contanos`)} />
+      )}
 
       <Card withBorder radius="lg" p="lg">
         <Group gap="lg" align="center" wrap="wrap">
@@ -161,7 +228,7 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
           <Stack gap="xs" style={{ flex: 1, minWidth: 220 }}>
             <Group justify="space-between">
               <Text fw={600}>
-                {plan.completados} de {plan.total} pasos completados
+                {completados} de {marcables.length} pasos completados
               </Text>
               <Badge size="lg" variant="light" color="teal" radius="xl">
                 {progreso}%
@@ -172,9 +239,19 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
               <Text size="sm" c="dimmed">
                 {fraseDeAliento(progreso)}
               </Text>
-              <Anchor size="sm" fw={500} onClick={() => navigate(`${basePath}/metas`)}>
-                Ver mis metas →
-              </Anchor>
+              <Group gap="md">
+                {baseline.respondido && (
+                  <Anchor size="sm" fw={500} onClick={() => navigate(`${basePath}/contanos`)}>
+                    Actualizar mis respuestas
+                  </Anchor>
+                )}
+                <Anchor size="sm" fw={500} onClick={() => navigate(`${basePath}/tablero`)}>
+                  Mi tablero de 8 hábitos →
+                </Anchor>
+                <Anchor size="sm" fw={500} onClick={() => navigate(`${basePath}/metas`)}>
+                  Ver mis metas →
+                </Anchor>
+              </Group>
             </Group>
           </Stack>
         </Group>
@@ -200,6 +277,8 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
               <PasoCard
                 key={paso.id}
                 paso={paso}
+                soloLectura={cobertura.soloLectura}
+                sinCasilla={grupo.soloLectura}
                 onCompletar={(completado) => plan.completarPaso(paso, completado)}
                 onCuestionario={() => navigate(`${basePath}/cuestionario/${paso.id}`)}
               />

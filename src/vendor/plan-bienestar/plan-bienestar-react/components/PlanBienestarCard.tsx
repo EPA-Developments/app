@@ -1,8 +1,9 @@
 import type { Patient } from '@medplum/fhirtypes';
-import { Badge, Button, Card, Group, Progress, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Anchor, Badge, Button, Card, Group, Progress, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 import { useBasePath } from '../PlanBienestarContext';
+import { useCobertura } from '../hooks/useCobertura';
 import { useElegibilidad } from '../hooks/useElegibilidad';
 import { usePlanBienestar } from '../hooks/usePlanBienestar';
 
@@ -11,7 +12,7 @@ export interface PlanBienestarCardProps {
   patient?: Patient;
   /** Where `PlanBienestarRoutes` is mounted. Default `/care-plan/plan-100-dias`. */
   basePath?: string;
-  /** Canonical URL of the PlanDefinition. Defaults to the menopause plan. */
+  /** Canonical URL of the PlanDefinition. Defaults to the CKM-stage plan (`pb100d-ckm`). */
   planDefinitionUrl?: string;
 }
 
@@ -32,9 +33,11 @@ export function PlanBienestarCard(props: PlanBienestarCardProps): ReactElement |
     patient: props.patient,
     planDefinitionUrl: props.planDefinitionUrl,
   });
+  const cobertura = useCobertura({ patient: props.patient });
   const [creando, setCreando] = useState(false);
+  const [solicitando, setSolicitando] = useState(false);
 
-  if (elegibilidad.cargando || plan.cargando || !elegibilidad.elegible) {
+  if (elegibilidad.cargando || plan.cargando || cobertura.cargando || !elegibilidad.elegible) {
     return null;
   }
 
@@ -44,12 +47,63 @@ export function PlanBienestarCard(props: PlanBienestarCardProps): ReactElement |
   const empezar = async (): Promise<void> => {
     setCreando(true);
     try {
-      await plan.empezarPlan();
-      navigate(basePath);
+      // Sin estadio (validado o estimado) el plan no se arma: el hook deja en
+      // `faltantesParaEmpezar` que datos faltan y la tarjeta los muestra.
+      const creado = await plan.empezarPlan();
+      if (creado) navigate(basePath);
     } finally {
       setCreando(false);
     }
   };
+
+  const solicitar = async (): Promise<void> => {
+    setSolicitando(true);
+    try {
+      await cobertura.solicitarAlta();
+    } finally {
+      setSolicitando(false);
+    }
+  };
+
+  // Elegible clinicamente pero sin cobertura: un solo click para pedir el alta.
+  // Recepcion cobra y activa; el plan se arma cuando la paciente vuelve a entrar.
+  if (!plan.carePlan && !cobertura.habilitado) {
+    const pendiente = cobertura.estado === 'pendiente';
+    const vencida = cobertura.estado === 'vencida';
+    return (
+      <Card withBorder radius="lg" p="lg" data-testid="plan-bienestar-card">
+        <Stack gap="sm">
+          <Group justify="space-between" align="flex-start" wrap="wrap">
+            <Group gap="sm" wrap="nowrap">
+              <ThemeIcon variant="light" color="pink" size={44} radius="xl">
+                ❤️
+              </ThemeIcon>
+              <div>
+                <Badge color={pendiente ? 'yellow' : 'teal'} variant="light" radius="xl">
+                  {pendiente ? 'Solicitud enviada' : vencida ? 'Programa pausado' : 'Recomendado para vos'}
+                </Badge>
+                <Title order={4} mt={4}>
+                  {titulo}
+                </Title>
+              </div>
+            </Group>
+            {!pendiente && (
+              <Button radius="xl" color="teal" onClick={solicitar} loading={solicitando}>
+                {vencida ? 'Quiero retomarlo' : 'Quiero sumarme'}
+              </Button>
+            )}
+          </Group>
+          <Text size="sm" c="dimmed">
+            {pendiente
+              ? 'Recibimos tu solicitud. Nuestro equipo te va a contactar para coordinar el alta y activarte el plan.'
+              : vencida
+                ? 'Tu programa está en pausa. Tus datos siguen disponibles; escribinos y lo retomamos donde lo dejaste.'
+                : (descripcion ?? '100 días, un paso por vez, con el respaldo de tu equipo de salud.')}
+          </Text>
+        </Stack>
+      </Card>
+    );
+  }
 
   if (plan.carePlan) {
     const progreso = plan.total > 0 ? Math.round((plan.completados / plan.total) * 100) : 0;
@@ -107,6 +161,14 @@ export function PlanBienestarCard(props: PlanBienestarCardProps): ReactElement |
         {descripcion && (
           <Text size="sm" c="dimmed">
             {descripcion}
+          </Text>
+        )}
+        {plan.faltantesParaEmpezar.length > 0 && (
+          <Text size="sm" c="orange.8" data-testid="plan-bienestar-faltantes">
+            Para armar tu plan necesitamos algunos datos: {plan.faltantesParaEmpezar.join(', ')}.{' '}
+            <Anchor size="sm" fw={600} onClick={() => navigate(`${basePath}/mis-datos`)}>
+              Cargar mis datos →
+            </Anchor>
           </Text>
         )}
         <Text size="xs" c="dimmed">

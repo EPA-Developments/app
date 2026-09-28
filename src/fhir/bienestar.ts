@@ -5,10 +5,13 @@
 //
 // El progreso, los hitos y la racha se calculan client-side desde los datos FHIR que el
 // paciente ya genera. La inscripción la detectamos así:
-//   1. CarePlan del paciente con category `care-plans|plan-bienestar-100` (contrato con
-//      recepcionistas: se crea al inscribir, con period de 100 días), o
+//   1. CarePlan activo del paciente con category `care-plans|plan-bienestar-100` (contrato
+//      con recepcionistas: se crea al inscribir, con period de 100 días), o que instancie
+//      una PlanDefinition del programa (`pb100d-ckm` o la de menopausia: el plan que la
+//      propia paciente inicia desde el módulo drop-in), o
 //   2. fallback: Coverage activo cuyo plan-codigo contenga "BIENESTAR".
 // Sin plan → `cargarPlanBienestar` devuelve undefined y la UI no muestra nada.
+import { esCarePlanDelPrograma } from '@epa/careplan-menopausia';
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { CarePlan, Coverage, Observation, Patient, QuestionnaireResponse } from '@medplum/fhirtypes';
@@ -91,13 +94,20 @@ export function calcularRachaSemanal(
   return { semanasActivas: semanas.size, rachaActual: racha };
 }
 
-/** Detecta la inscripción: CarePlan canónico primero, Coverage "BIENESTAR" como fallback. */
-function detectarInicio(carePlans: CarePlan[], coverages: Coverage[]): { inicio?: string; fin?: string } {
-  const cp = carePlans.find(
-    (c) =>
-      c.status === 'active' &&
+/** ¿Es un CarePlan del Plan Bienestar? Por la category de Recepción o por la PlanDefinition que instancia. */
+export function esCarePlanBienestar(c: CarePlan): boolean {
+  return (
+    Boolean(
       c.category?.some((cat) => cat.coding?.some((k) => k.system === CARE_PLAN_SYSTEM && k.code === PLAN_BIENESTAR_CODE))
+    ) || esCarePlanDelPrograma(c.instantiatesCanonical)
   );
+}
+
+/** Detecta la inscripción: CarePlan canónico primero (el más reciente), Coverage "BIENESTAR" como fallback. */
+function detectarInicio(carePlans: CarePlan[], coverages: Coverage[]): { inicio?: string; fin?: string } {
+  const cp = carePlans
+    .filter((c) => c.status === 'active' && esCarePlanBienestar(c) && c.period?.start)
+    .sort((a, b) => (b.period?.start ?? '').localeCompare(a.period?.start ?? ''))[0];
   if (cp?.period?.start) {
     return { inicio: cp.period.start, fin: cp.period.end };
   }
