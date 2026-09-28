@@ -8,14 +8,14 @@ import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 import marcaBase from './src/marca.json';
 
-if (!existsSync(path.join(__dirname, '.env'))) {
-  copyFileSync(path.join(__dirname, '.env.defaults'), path.join(__dirname, '.env'));
+if (!existsSync(path.join(import.meta.dirname, '.env'))) {
+  copyFileSync(path.join(import.meta.dirname, '.env.defaults'), path.join(import.meta.dirname, '.env'));
 }
 
 // Marca blanca: el <title> de index.html sale del mismo lugar que el resto de la marca
 // (MARCA_NOMBRE del entorno, o src/marca.json).
 function tituloDeMarca(mode: string): Plugin {
-  const nombre = loadEnv(mode, __dirname, 'MARCA_').MARCA_NOMBRE?.trim() || marcaBase.nombre;
+  const nombre = loadEnv(mode, import.meta.dirname, 'MARCA_').MARCA_NOMBRE?.trim() || marcaBase.nombre;
   const escapado = nombre.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return {
     name: 'titulo-de-marca',
@@ -30,11 +30,11 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     // Módulos vendorizados (ver src/vendor/*/README.md).
     alias: {
-      '@epa/careplan-menopausia': path.resolve(__dirname, 'src/vendor/plan-bienestar/careplan-menopausia/index.ts'),
-      '@epa/plan-bienestar-react': path.resolve(__dirname, 'src/vendor/plan-bienestar/plan-bienestar-react/index.ts'),
+      '@epa/careplan-menopausia': path.resolve(import.meta.dirname, 'src/vendor/plan-bienestar/careplan-menopausia/index.ts'),
+      '@epa/plan-bienestar-react': path.resolve(import.meta.dirname, 'src/vendor/plan-bienestar/plan-bienestar-react/index.ts'),
       // Teleconsulta vendorizada (ver src/vendor/teleconsulta/README.md).
-      '@epa/teleconsulta-core': path.resolve(__dirname, 'src/vendor/teleconsulta/teleconsulta-core/index.ts'),
-      '@epa/teleconsulta-react': path.resolve(__dirname, 'src/vendor/teleconsulta/teleconsulta-react/index.ts'),
+      '@epa/teleconsulta-core': path.resolve(import.meta.dirname, 'src/vendor/teleconsulta/teleconsulta-core/index.ts'),
+      '@epa/teleconsulta-react': path.resolve(import.meta.dirname, 'src/vendor/teleconsulta/teleconsulta-react/index.ts'),
     },
   },
   preview: {
