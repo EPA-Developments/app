@@ -10,6 +10,8 @@
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { Patient, Task } from '@medplum/fhirtypes';
+import type { Modalidad } from './agenda';
+import { modalidadDeCoding } from './agenda';
 import { buscarBotSOM } from './bots';
 
 const BOT_SOLICITAR = 'som-solicitar-turno';
@@ -22,6 +24,8 @@ export interface NuevaSolicitud {
   /** Preferencia en texto libre (opcional). */
   preferenciaTexto?: string;
   nota?: string;
+  /** Teleconsulta o presencial. La teleconsulta exige el consentimiento (lo verifica el bot). */
+  modalidad?: Modalidad;
 }
 
 export interface ResultadoSolicitud {
@@ -56,6 +60,32 @@ export async function cargarMisSolicitudes(medplum: MedplumClient, patient: Pati
     'Task',
     `patient=${getReferenceString(patient)}&code=solicitud-turno&_sort=-_lastUpdated&_count=50`
   );
+}
+
+/**
+ * Pedido a Recepción con lo que la paciente eligió en "Reservar un turno" cuando la reserva
+ * online no salió: la consulta, la modalidad y, si llegó a elegirlos, el horario y el profesional.
+ */
+export function pedidoDesdeReserva(eleccion: {
+  consulta: string;
+  servicioCodigo: string;
+  modalidad: Modalidad;
+  horarioInicio?: Date;
+  profesional?: string;
+}): NuevaSolicitud {
+  return {
+    servicio: eleccion.consulta,
+    servicioCodigo: eleccion.servicioCodigo,
+    modalidad: eleccion.modalidad,
+    ...(eleccion.horarioInicio ? { preferenciaInicio: eleccion.horarioInicio.toISOString() } : {}),
+    ...(eleccion.profesional ? { preferenciaTexto: `Con ${eleccion.profesional}` } : {}),
+    nota: 'No se pudo reservar online: pedido desde "Reservar un turno".',
+  };
+}
+
+/** Modalidad pedida en la solicitud (Task.input "modalidad", v3-ActCode VR / AMB). */
+export function modalidadDeSolicitud(t: Task): Modalidad | undefined {
+  return modalidadDeCoding(t.input?.find((i) => i.type?.text === 'modalidad')?.valueCoding);
 }
 
 /** Estado de la solicitud (Task.status) → etiqueta y color para el paciente. */

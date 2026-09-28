@@ -6,7 +6,7 @@ import path from 'path';
 import type { Plugin } from 'vite';
 import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
-import marcaBase from './src/marca.json';
+import marcaBase from './src/marca.json' with { type: 'json' };
 
 if (!existsSync(path.join(import.meta.dirname, '.env'))) {
   copyFileSync(path.join(import.meta.dirname, '.env.defaults'), path.join(import.meta.dirname, '.env'));

@@ -12,7 +12,15 @@ import { MedplumProvider } from '@medplum/react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { indexarDefinicionesFhir } from '../fhir/__fixtures__/glp1';
-import { EXT_AGENDA, SYSTEM_CONSENTIMIENTO, SYSTEM_GRUPO_ESPECIALIDAD, SYSTEM_MEDICO, SYSTEM_SERVICIO, V3_ACT_CODE } from '../fhir/agenda';
+import {
+  EXT_AGENDA,
+  MENSAJE_RESERVA_NO_DISPONIBLE,
+  SYSTEM_CONSENTIMIENTO,
+  SYSTEM_GRUPO_ESPECIALIDAD,
+  SYSTEM_MEDICO,
+  SYSTEM_SERVICIO,
+  V3_ACT_CODE,
+} from '../fhir/agenda';
 import { GetCare } from './GetCarePage';
 
 // El MockClient solo filtra por `status`, `start`, `active`, … con las definiciones FHIR indexadas.
@@ -163,4 +171,80 @@ test('si el bot rechaza el horario, se muestra su mensaje y se puede elegir otro
   expect(await screen.findByText('Ese horario ya está ocupado. Elegí otro.')).toBeInTheDocument();
   await click(screen.getByRole('button', { name: 'Elegir otro horario' }));
   expect(await screen.findByText('¿Cuándo?')).toBeInTheDocument();
+});
+
+test('si la reserva online no está disponible, se le pide a Recepción la teleconsulta con lo que eligió', async () => {
+  const { medplum, patient } = await escenario();
+  const ejecutar = vi
+    .spyOn(medplum, 'executeBot')
+    .mockResolvedValueOnce({ ok: false, mensaje: MENSAJE_RESERVA_NO_DISPONIBLE })
+    .mockResolvedValueOnce({ ok: true, taskId: 'task-1' });
+  await renderGetCare(medplum);
+
+  await click(await screen.findByRole('button', { name: 'Consulta por videollamada' }));
+  await click(await screen.findByRole('button', { name: 'Teleconsulta de Cardiología' }));
+  await click(await screen.findByRole('button', { name: 'Dra. Prueba' }));
+  await click(await screen.findByRole('button', { name: '18:00' }));
+  await click(screen.getByRole('checkbox', { name: 'Leí y acepto el consentimiento de teleconsulta' }));
+  await click(screen.getByRole('button', { name: 'Reservar' }));
+
+  expect(await screen.findByText(MENSAJE_RESERVA_NO_DISPONIBLE)).toBeInTheDocument();
+  await click(screen.getByRole('button', { name: 'Pedile a Recepción que te lo coordine' }));
+
+  expect(ejecutar).toHaveBeenLastCalledWith('bot-som-solicitar-turno', {
+    pacienteRef: `Patient/${patient.id}`,
+    servicio: 'Teleconsulta de Cardiología',
+    servicioCodigo: 'CARDIOLOGIA',
+    modalidad: 'teleconsulta',
+    preferenciaInicio: INICIO,
+    preferenciaTexto: 'Con Dra. Prueba',
+    nota: 'No se pudo reservar online: pedido desde "Reservar un turno".',
+  });
+  expect(await screen.findByText('¡Pedido enviado!')).toBeInTheDocument();
+});
+
+test('"¿No encontrás horario?": la teleconsulta pide el consentimiento y viaja con su modalidad', async () => {
+  const { medplum, patient } = await escenario();
+  const ejecutar = vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, taskId: 'task-2' });
+  await renderGetCare(medplum);
+
+  await click(await screen.findByRole('button', { name: '¿No encontrás horario? Pedí que te contactemos' }));
+  fireEvent.change(screen.getByLabelText('Contanos qué necesitás y cuándo podés'), {
+    target: { value: 'Nutrición, los jueves a la tarde' },
+  });
+  // Por videollamada (la opción por defecto) y sin consentimiento previo: hay que aceptarlo.
+  const aceptar = await screen.findByRole('checkbox', { name: 'Leí y acepto el consentimiento de teleconsulta' });
+  const enviar = screen.getByRole('button', { name: 'Enviar solicitud' });
+  expect(enviar).toBeDisabled();
+  await click(aceptar);
+  await click(enviar);
+
+  const consents = await medplum.searchResources('Consent', `patient=Patient/${patient.id}`);
+  expect(consents).toHaveLength(1);
+  expect(ejecutar).toHaveBeenCalledWith('bot-som-solicitar-turno', {
+    pacienteRef: `Patient/${patient.id}`,
+    servicio: 'Teleconsulta a coordinar con Recepción',
+    modalidad: 'teleconsulta',
+    preferenciaTexto: 'Nutrición, los jueves a la tarde',
+  });
+  expect(await screen.findByText('¡Solicitud enviada!')).toBeInTheDocument();
+});
+
+test('"¿No encontrás horario?" en el centro no pide el consentimiento de teleconsulta', async () => {
+  const { medplum, patient } = await escenario();
+  const ejecutar = vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, taskId: 'task-3' });
+  await renderGetCare(medplum);
+
+  await click(await screen.findByRole('button', { name: '¿No encontrás horario? Pedí que te contactemos' }));
+  await click(screen.getByText('En el centro'));
+  expect(screen.queryByRole('checkbox', { name: 'Leí y acepto el consentimiento de teleconsulta' })).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Contanos qué necesitás y cuándo podés'), { target: { value: 'Un control' } });
+  await click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+
+  expect(ejecutar).toHaveBeenCalledWith('bot-som-solicitar-turno', {
+    pacienteRef: `Patient/${patient.id}`,
+    servicio: 'Consulta a coordinar con Recepción',
+    modalidad: 'presencial',
+    preferenciaTexto: 'Un control',
+  });
 });

@@ -62,7 +62,8 @@ export const ETIQUETA_MODALIDAD: Record<Modalidad, string> = {
 
 const CODIGO_MODALIDAD: Record<string, Modalidad> = { AMB: 'presencial', VR: 'teleconsulta' };
 
-function modalidadDeCoding(c: Coding | undefined): Modalidad | undefined {
+/** Modalidad de un Coding v3-ActCode `AMB` / `VR` (el mismo contrato que `codingModalidad` de recepcionistas). */
+export function modalidadDeCoding(c: Coding | undefined): Modalidad | undefined {
   return c?.system === V3_ACT_CODE && c.code ? CODIGO_MODALIDAD[c.code] : undefined;
 }
 
