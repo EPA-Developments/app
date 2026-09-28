@@ -1,7 +1,15 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 import type { Patient } from '@medplum/fhirtypes';
-import { DNI_SYSTEM, aplicarDemografia, celularValido, conCelular, leerCelular, leerDemografia } from './demografia';
+import {
+  DNI_SYSTEM,
+  aplicarDemografia,
+  celularValido,
+  conCelular,
+  leerCelular,
+  leerDemografia,
+  normalizarCelular,
+} from './demografia';
 
 const base: Patient = {
   resourceType: 'Patient',
@@ -24,7 +32,7 @@ test('aplicarDemografia escribe gender, birthDate, celular, DNI y domicilio', ()
 
   expect(out.gender).toBe('female');
   expect(out.birthDate).toBe('1972-05-10');
-  expect(out.telecom).toContainEqual({ system: 'phone', use: 'mobile', value: '+54 9 11 5555-1234' });
+  expect(out.telecom).toContainEqual({ system: 'phone', use: 'mobile', value: '+5491155551234' });
   expect(out.identifier).toContainEqual({ system: DNI_SYSTEM, value: '12345678' });
   expect(out.address?.[0]).toMatchObject({
     use: 'home',
@@ -69,7 +77,7 @@ test('leerDemografia hace round-trip con aplicarDemografia (prefill de invitados
   expect(leerDemografia(guardado)).toEqual({
     sexo: 'female',
     fechaNacimiento: '1970-01-15',
-    celular: '+54 9 351 555-0000',
+    celular: '+5493515550000',
     dni: '20111222',
     calle: 'San Martín 450',
     localidad: 'Córdoba',
@@ -92,7 +100,7 @@ test('conCelular reemplaza solo el celular y conserva el email', () => {
       { system: 'email', value: 'ana@example.com' },
       { system: 'phone', use: 'mobile', value: '1111111111' },
     ],
-    ' +5491169315830 '
+    '11 6931-5830'
   );
   expect(telecom).toEqual([
     { system: 'email', value: 'ana@example.com' },
@@ -100,3 +108,29 @@ test('conCelular reemplaza solo el celular y conserva el email', () => {
   ]);
   expect(leerCelular({ resourceType: 'Patient', telecom })).toBe('+5491169315830');
 });
+
+test.each([
+  ['+54 9 11 5555-1234', '+5491155551234'],
+  ['+5491169315830', '+5491169315830'],
+  ['5491169315830', '+5491169315830'],
+  ['+54 11 5555-1234', '+5491155551234'],
+  ['11 5555-1234', '+5491155551234'],
+  ['(011) 5555-1234', '+5491155551234'],
+  ['011 15 5555-1234', '+5491155551234'],
+  ['11 15 5555-1234', '+5491155551234'],
+  ['+54 9 11 15 5555-1234', '+5491155551234'],
+  ['0351 15 555-1234', '+5493515551234'],
+  ['351 555-1234', '+5493515551234'],
+  ['02202 15 12-3456', '+5492202123456'],
+  ['0054 9 11 5555 1234', '+5491155551234'],
+  ['+598 99 123 456', '+59899123456'],
+])('normalizarCelular("%s") → %s', (entrada, esperado) => {
+  expect(normalizarCelular(entrada)).toBe(esperado);
+});
+
+test.each(['', '5555-1234', '15 5555-1234', 'no tengo', '+54 9 11 5555-1234 int 2', '1234'])(
+  'normalizarCelular("%s") no se puede interpretar',
+  (entrada) => {
+    expect(normalizarCelular(entrada)).toBeUndefined();
+  }
+);

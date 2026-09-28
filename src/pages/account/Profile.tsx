@@ -13,7 +13,7 @@ import { IconCircleCheck, IconCircleOff } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useState } from 'react';
 import { InfoSection } from '../../components/InfoSection';
-import { celularValido, conCelular, leerCelular } from '../../fhir/demografia';
+import { celularValido, conCelular, leerCelular, normalizarCelular } from '../../fhir/demografia';
 import { CoberturaSection } from './CoberturaSection';
 
 /** Domicilio argentino, apilado (usable en smartphone) y en español. */
@@ -90,7 +90,7 @@ function armarContactoEmergencia(d: {
 }): PatientContact | undefined {
   const given = d.nombre?.trim();
   const family = d.apellido?.trim();
-  const telefono = d.telefono?.trim();
+  const telefono = normalizarCelular(d.telefono) ?? d.telefono?.trim();
   const email = d.email?.trim();
   const name = given || family ? { ...(given ? { given: [given] } : {}), ...(family ? { family } : {}) } : undefined;
   const telecom = [
@@ -137,7 +137,7 @@ export function Profile(): JSX.Element | null {
         color: 'red',
         icon: <IconCircleOff />,
         title: 'Revisá tu celular (WhatsApp)',
-        message: 'Con código de área, p. ej. +54 9 11 5555-1234.',
+        message: 'Con código de área, p. ej. 11 5555-1234 o +54 9 11 5555-1234.',
       });
       return;
     }
@@ -250,6 +250,8 @@ export function Profile(): JSX.Element | null {
                   inputMode="tel"
                   placeholder="+54 9 11 5555-1234"
                   defaultValue={leerCelular(profile) ?? ''}
+                  // Tras guardar se vuelve a montar con el número ya normalizado (+549…).
+                  key={leerCelular(profile) ?? ''}
                   autoComplete="tel"
                   required
                 />

@@ -99,7 +99,7 @@ function validarContacto(datos: Demografia): Errores {
   if (!datos.celular?.trim()) {
     errores.celular = 'Ingresá tu celular (WhatsApp).';
   } else if (!celularValido(datos.celular)) {
-    errores.celular = 'Revisá el número: con código de área, p. ej. +54 9 11 5555-1234.';
+    errores.celular = 'Revisá el número: con código de área, p. ej. 11 5555-1234 o +54 9 11 5555-1234.';
   }
   const dni = datos.dni?.trim() ?? '';
   if (!dni) {
