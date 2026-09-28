@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 import { BackgroundImage, Box, SimpleGrid } from '@mantine/core';
-import { RegisterForm } from '@medplum/react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
+import { RegistroForm } from '../components/auth/RegistroForm';
 import { MARCA } from '../marca';
 
 const HERO_IMG =
@@ -17,8 +17,7 @@ export function RegisterPage(): JSX.Element {
       <BackgroundImage src={HERO_IMG} h={150} hiddenFrom="sm" />
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={0}>
         <Box px="md" pt={{ base: 24, sm: 100 }} pb={{ base: 48, sm: 200 }}>
-          <RegisterForm
-            type="patient"
+          <RegistroForm
             projectId={import.meta.env.MEDPLUM_PROJECT_ID}
             googleClientId={import.meta.env.GOOGLE_CLIENT_ID}
             clientId={import.meta.env.MEDPLUM_CLIENT_ID}
@@ -27,7 +26,7 @@ export function RegisterPage(): JSX.Element {
             onSignIn={() => navigate('/signin')?.catch(console.error)}
           >
             <h2>Crear cuenta en {MARCA.nombre}</h2>
-          </RegisterForm>
+          </RegistroForm>
         </Box>
         {/* Desktop: imagen al lateral (split). */}
         <BackgroundImage src={HERO_IMG} visibleFrom="sm" />
