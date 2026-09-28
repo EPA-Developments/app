@@ -86,7 +86,7 @@ function buildConsentPlainText(
   return lines.join('\n');
 }
 
-function ConsentBody({ block }: { block: ConsentBlock }): JSX.Element {
+export function ConsentBody({ block }: { block: ConsentBlock }): JSX.Element {
   switch (block.type) {
     case 'sub':
       return (

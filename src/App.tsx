@@ -11,6 +11,7 @@ import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Loading } from './components/Loading';
 import { OnboardingGate, useOnboardingPendiente } from './components/OnboardingGate';
+import { LegalPage } from './pages/LegalPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SetPasswordPage } from './pages/SetPasswordPage';
 import { SignInPage } from './pages/SignInPage';
@@ -30,6 +31,8 @@ export function App(): JSX.Element | null {
         <Route path="/" element={<LandingPage />} />
         <Route path="signin" element={<SignInPage />} />
         <Route path="register" element={<RegisterPage />} />
+        {/* Términos y privacidad: se enlazan desde "Crear cuenta". */}
+        <Route path="legal" element={<LegalPage />} />
         <Route path="setpassword/:id/:secret" element={<SetPasswordPage />} />
         <Route path="*" element={<Navigate replace to="/" />} />
       </Routes>

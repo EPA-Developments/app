@@ -132,4 +132,13 @@ export const consentSections: ConsentSection[] = [
   },
 ];
 
+function secciones(numeros: number[]): ConsentSection[] {
+  return consentSections.filter((s) => numeros.some((n) => s.heading.startsWith(`${n}.`)));
+}
+
+/** Página /legal · términos del servicio: qué es el servicio y su alcance y limitaciones. */
+export const SECCIONES_TERMINOS = secciones([2, 3]);
+/** Página /legal · privacidad: uso de inteligencia artificial y tratamiento de datos (Ley 25.326). */
+export const SECCIONES_PRIVACIDAD = secciones([4, 6]);
+
 export const consentFooter = `${MARCA.nombre} · ${MARCA.responsable}  |  ${MARCA.direccion}  |  ${MARCA.email}  ·  Powered by EPA Bienestar IA`;

@@ -13,7 +13,23 @@ test('marca por defecto: Segunda Opinión Médica', () => {
     dirigidoPor: 'el Dr. Alejandro Barbagelata',
     direccion: 'Húsares 2248 6° E, C1428 CABA (Bajo Belgrano), Argentina',
     email: 'info@segundaopinionmedica.org',
+    terminosUrl: '/legal#terminos',
+    privacidadUrl: '/legal#privacidad',
   });
+});
+
+test('términos y privacidad: https o ruta del portal; cualquier otra cosa vuelve a /legal', () => {
+  const propia = armarMarca({
+    MARCA_TERMINOS_URL: 'https://segundaopinionmedica.org/terminos',
+    MARCA_PRIVACIDAD_URL: '/privacidad',
+  });
+  expect(propia.terminosUrl).toBe('https://segundaopinionmedica.org/terminos');
+  expect(propia.privacidadUrl).toBe('/privacidad');
+  for (const mala of ['javascript:alert(1)', 'http://inseguro.com', '//otro.host/x', 'ftp://x']) {
+    const m = armarMarca({ MARCA_TERMINOS_URL: mala, MARCA_PRIVACIDAD_URL: mala });
+    expect(m.terminosUrl).toBe('/legal#terminos');
+    expect(m.privacidadUrl).toBe('/legal#privacidad');
+  }
 });
 
 test('las variables MARCA_* pisan a marca.json', () => {
