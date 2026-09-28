@@ -44,7 +44,7 @@ function guardarContacto(): void {
   fireEvent.click(boton);
 }
 
-test('Mis datos muestra el WhatsApp que se cargó en la Bienvenida y lo actualiza sin pisar el email', async () => {
+test('Mis datos muestra el WhatsApp de la Bienvenida y lo guarda normalizado a +549, sin pisar el email', async () => {
   const { medplum, patient } = await renderMisDatos([
     { system: 'email', value: 'ana@example.com' },
     { system: 'phone', use: 'mobile', value: '+5491155551234' },
@@ -60,8 +60,10 @@ test('Mis datos muestra el WhatsApp que se cargó en la Bienvenida y lo actualiz
   const guardado = await medplum.readResource('Patient', patient.id as string, { cache: 'no-cache' });
   expect(guardado.telecom).toEqual([
     { system: 'email', value: 'ana@example.com' },
-    { system: 'phone', use: 'mobile', value: '+54 9 11 6931-5830' },
+    { system: 'phone', use: 'mobile', value: '+5491169315830' },
   ]);
+  // El campo muestra el número como quedó guardado.
+  expect(screen.getByLabelText(/Celular \(WhatsApp\)/)).toHaveValue('+5491169315830');
 });
 
 test('Mis datos no guarda un WhatsApp inválido', async () => {

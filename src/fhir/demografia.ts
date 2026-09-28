@@ -45,16 +45,69 @@ export function leerCelular(patient: Patient): string | undefined {
   );
 }
 
-/** ¿Tiene forma de celular? Entre 10 y 15 dígitos (con o sin +54 9), admite espacios y guiones. */
-export function celularValido(celular: string | undefined): boolean {
-  const limpio = celular?.trim() ?? '';
-  return /^\+?[\d\s().-]+$/.test(limpio) && /^\d{10,15}$/.test(limpio.replace(/\D/g, ''));
+/**
+ * Normaliza un celular a E.164. Los argentinos quedan como +549 + código de área + número
+ * (10 dígitos, sin el 0 ni el 15), que es el formato de WhatsApp. Acepta las formas
+ * habituales: "11 5555-1234", "011 15 5555-1234", "+54 9 11 5555-1234", "+54 11 5555-1234".
+ * Un número de otro país escrito con + o 00 se guarda como + y sus dígitos.
+ * Devuelve undefined si no se puede interpretar (p. ej. falta el código de área).
+ */
+export function normalizarCelular(celular: string | undefined): string | undefined {
+  const texto = celular?.trim() ?? '';
+  if (!/^\+?[\d\s().-]+$/.test(texto)) {
+    return undefined;
+  }
+  let digitos = texto.replace(/\D/g, '');
+  const internacional = texto.startsWith('+') || digitos.startsWith('00');
+  if (digitos.startsWith('00')) {
+    digitos = digitos.slice(2);
+  }
+  if (internacional && !digitos.startsWith('54')) {
+    return digitos.length >= 8 && digitos.length <= 15 ? `+${digitos}` : undefined;
+  }
+  // Los códigos de área argentinos empiezan con 1, 2 o 3: un 54 adelante es el código de país.
+  let nacional = digitos.startsWith('54') && digitos.length >= 12 ? digitos.slice(2) : digitos;
+  // El 9 de móvil internacional (con o sin el 15 todavía adentro).
+  if ((nacional.length === 11 || nacional.length === 13) && nacional.startsWith('9')) {
+    nacional = nacional.slice(1);
+  }
+  if (nacional.startsWith('0')) {
+    nacional = nacional.slice(1);
+  }
+  if (nacional.length === 12) {
+    nacional = sinQuince(nacional) ?? '';
+  }
+  // 10 dígitos: el único código de área que empieza con 1 es el 11; el resto, con 2 o 3.
+  return /^(11\d{8}|[23]\d{9})$/.test(nacional) ? `+549${nacional}` : undefined;
 }
 
-/** Reemplaza el celular (phone/mobile) y conserva el resto de los telecom (email, etc.). */
+/**
+ * Saca el 15 que va después del código de área (de 2, 3 o 4 dígitos). Si hay más de un
+ * lugar posible, solo se resuelve para el 11 (el único código de 2 dígitos).
+ */
+function sinQuince(nacional: string): string | undefined {
+  const posibles = [2, 3, 4].filter((i) => nacional.slice(i, i + 2) === '15');
+  let posicion: number | undefined;
+  if (posibles.length === 1) {
+    posicion = posibles[0];
+  } else if (nacional.startsWith('11') && posibles.includes(2)) {
+    posicion = 2;
+  }
+  return posicion === undefined ? undefined : nacional.slice(0, posicion) + nacional.slice(posicion + 2);
+}
+
+/** ¿Se puede interpretar como celular? (ver normalizarCelular) */
+export function celularValido(celular: string | undefined): boolean {
+  return normalizarCelular(celular) !== undefined;
+}
+
+/**
+ * Reemplaza el celular (phone/mobile), normalizado a +549…, y conserva el resto de los
+ * telecom (email, etc.).
+ */
 export function conCelular(telecom: Patient['telecom'], celular: string | undefined): Patient['telecom'] {
   const resto = (telecom ?? []).filter((t) => !(t.system === 'phone' && t.use === 'mobile'));
-  const valor = celular?.trim();
+  const valor = normalizarCelular(celular) ?? celular?.trim();
   const todos = valor ? [...resto, { system: 'phone' as const, use: 'mobile' as const, value: valor }] : resto;
   return todos.length > 0 ? todos : undefined;
 }
