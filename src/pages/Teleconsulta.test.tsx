@@ -15,6 +15,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { buscarBotSOM } from '../fhir/bots';
 import { EXT_AGENDA, V3_ACT_CODE } from '../fhir/agenda';
 import { indexarDefinicionesFhir } from '../fhir/__fixtures__/glp1';
+import { estadoDeLaEspera, MINUTOS_PARA_ENTRAR_IGUAL, puedeEntrarIgual } from '../fhir/teleconsulta';
 import { GetCare } from './GetCarePage';
 import { TeleconsultaPage } from './TeleconsultaPage';
 
@@ -73,7 +74,12 @@ async function escenario(): Promise<Escenario> {
   return { medplum, confirmada, tentativa, presencial };
 }
 
-async function renderEn(medplum: MockClient, ruta: string, redirigir?: (url: string) => void): Promise<void> {
+async function renderEn(
+  medplum: MockClient,
+  ruta: string,
+  redirigir?: (url: string) => void,
+  refrescoEsperaMs?: number
+): Promise<void> {
   await act(async () => {
     render(
       <MemoryRouter initialEntries={[ruta]}>
@@ -82,7 +88,10 @@ async function renderEn(medplum: MockClient, ruta: string, redirigir?: (url: str
             <Notifications />
             <Routes>
               <Route path="/get-care" element={<GetCare />} />
-              <Route path="/teleconsulta/:appointmentId" element={<TeleconsultaPage redirigir={redirigir} />} />
+              <Route
+                path="/teleconsulta/:appointmentId"
+                element={<TeleconsultaPage redirigir={redirigir} refrescoEsperaMs={refrescoEsperaMs} />}
+              />
             </Routes>
           </MantineProvider>
         </MedplumProvider>
@@ -185,8 +194,9 @@ describe('/teleconsulta/:appointmentId', () => {
     expect(screen.getByRole('link', { name: 'Volver a Mis turnos' })).toHaveAttribute('href', '/get-care');
   });
 
-  test('con la sala abierta muestra la videollamada del Jitsi de SOM', async () => {
+  test('si el médico ya entró, la sala del Jitsi de SOM se abre directo', async () => {
     const { medplum, confirmada } = await escenario();
+    await medplum.updateResource<Appointment>({ ...confirmada, status: 'checked-in' });
     vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, url: JITSI });
     await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
 
@@ -195,6 +205,7 @@ describe('/teleconsulta/:appointmentId', () => {
     });
     expect(await screen.findByTitle('Videollamada')).toHaveAttribute('src', JITSI);
     expect(screen.getByRole('link', { name: /Abrir la videollamada en otra pestaña/ })).toHaveAttribute('href', JITSI);
+    expect(screen.queryByText('Ya estás en la sala de espera')).not.toBeInTheDocument();
   });
 
   test('sin la seña ofrece pagarla y redirige a Mercado Pago', async () => {
@@ -220,6 +231,83 @@ describe('/teleconsulta/:appointmentId', () => {
     await renderEn(medplum, `/teleconsulta/${presencial.id}`);
     expect(await screen.findByText('Este turno no es una teleconsulta.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Entrar a la videollamada' })).not.toBeInTheDocument();
+  });
+});
+
+// La paciente entra como invitada y el médico modera: si ella abre la sala antes, el
+// Jitsi le muestra «Esperando al anfitrión» con un botón de iniciar sesión, que parece
+// pedirle un usuario. Espera en el portal hasta que el turno pasa a checked-in (el médico
+// entró desde el dashboard).
+describe('La espera hasta que entra el médico', () => {
+  test('qué dice el turno sobre la espera', () => {
+    expect(estadoDeLaEspera({ status: 'booked' })).toBe('esperando');
+    expect(estadoDeLaEspera({ status: 'arrived' })).toBe('esperando');
+    expect(estadoDeLaEspera({ status: 'checked-in' })).toBe('medico-en-sala');
+    expect(estadoDeLaEspera({ status: 'fulfilled' })).toBe('terminada');
+    expect(estadoDeLaEspera({ status: 'cancelled' })).toBe('cancelada');
+  });
+
+  test(`entrar igual se ofrece desde ${MINUTOS_PARA_ENTRAR_IGUAL} minutos después del inicio`, () => {
+    const start = '2026-10-01T15:00:00Z';
+    expect(puedeEntrarIgual({ start }, new Date('2026-10-01T15:04:59Z'))).toBe(false);
+    expect(puedeEntrarIgual({ start }, new Date('2026-10-01T15:05:00Z'))).toBe(true);
+    expect(puedeEntrarIgual({}, new Date())).toBe(false);
+  });
+
+  test('espera en el portal, sin el Jitsi, y la sala se abre sola cuando entra el médico', async () => {
+    const { medplum, confirmada } = await escenario();
+    vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, url: JITSI });
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`, undefined, 20);
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Entrar a la videollamada' }));
+    });
+    expect(await screen.findByText('Ya estás en la sala de espera')).toBeInTheDocument();
+    expect(screen.getByText(/Tu médico todavía no entró/)).toBeInTheDocument();
+    expect(screen.queryByTitle('Videollamada')).not.toBeInTheDocument();
+    // Faltan días para el turno: no se le ofrece entrar igual.
+    expect(screen.queryByRole('button', { name: 'Entrar igual a la sala' })).not.toBeInTheDocument();
+
+    // El médico entra desde el dashboard: el turno pasa a checked-in.
+    await act(async () => {
+      await medplum.updateResource<Appointment>({ ...confirmada, status: 'checked-in' });
+    });
+    expect(await screen.findByTitle('Videollamada', {}, { timeout: 2000 })).toHaveAttribute('src', JITSI);
+  });
+
+  test('si el médico no aparece, pasados unos minutos del inicio puede entrar igual', async () => {
+    const { medplum, confirmada } = await escenario();
+    const inicio = new Date(Date.now() - (MINUTOS_PARA_ENTRAR_IGUAL + 1) * 60_000);
+    const empezado = await medplum.updateResource<Appointment>({
+      ...confirmada,
+      start: inicio.toISOString(),
+      end: new Date(inicio.getTime() + 30 * 60_000).toISOString(),
+    });
+    vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, url: JITSI });
+    await renderEn(medplum, `/teleconsulta/${empezado.id}`);
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Entrar a la videollamada' }));
+    });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Entrar igual a la sala' }));
+    });
+    expect(await screen.findByTitle('Videollamada')).toHaveAttribute('src', JITSI);
+  });
+
+  test('si la consulta se cierra mientras espera, lo dice', async () => {
+    const { medplum, confirmada } = await escenario();
+    vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, url: JITSI });
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`, undefined, 20);
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Entrar a la videollamada' }));
+    });
+    await act(async () => {
+      await medplum.updateResource<Appointment>({ ...confirmada, status: 'fulfilled' });
+    });
+    expect(await screen.findByText('Esta consulta ya terminó.', {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(screen.queryByTitle('Videollamada')).not.toBeInTheDocument();
   });
 });
 
