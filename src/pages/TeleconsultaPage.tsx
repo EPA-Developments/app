@@ -5,35 +5,54 @@
 // de SOM `som-teleconsulta-entrar`: si el turno es de la paciente, está confirmado y la sala
 // ya abrió, devuelve el link del Jitsi de SOM (y marca que llegó); si falta la seña, se paga
 // con `som-teleconsulta-pago`. El portal no ejecuta bots de otros proyectos.
-import { Alert, Anchor, Box, Button, Group, Stack, Text, Title } from '@mantine/core';
+//
+// LA PACIENTE ESPERA ACÁ, NO EN EL JITSI. Entra como invitada y el médico es el que
+// modera: si ella abre la sala antes, el Jitsi le muestra «Esperando al anfitrión» con
+// un botón para iniciar sesión, y parece que le falta un usuario. Así que, después de
+// «Entrar», el portal la hace esperar en su propia pantalla y abre la sala sola cuando
+// el turno pasa a `checked-in` (el médico entró desde el dashboard). Si el médico
+// entrara por otro lado y el turno no cambiara, a los pocos minutos del inicio se le
+// ofrece entrar igual: nunca queda esperando para siempre.
+import { Alert, Anchor, Box, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { formatDateTime } from '@medplum/core';
 import type { Appointment } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconCreditCard, IconExternalLink, IconVideo } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   entrarTeleconsulta,
+  estadoDeLaEspera,
   esTeleconsulta,
   esUrlDePago,
   esUrlDeSala,
   pagarSenaTeleconsulta,
+  puedeEntrarIgual,
+  REFRESCO_ESPERA_MS,
 } from '../fhir/teleconsulta';
 import type { RespuestaEntrar } from '../fhir/teleconsulta';
 
 export interface TeleconsultaPageProps {
   /** Redirección al pago (tests; por defecto `window.location.assign`). */
   readonly redirigir?: (url: string) => void;
+  /** Cada cuánto se mira si el médico entró (tests; por defecto `REFRESCO_ESPERA_MS`). */
+  readonly refrescoEsperaMs?: number;
 }
 
-export function TeleconsultaPage({ redirigir }: TeleconsultaPageProps = {}): JSX.Element {
+export function TeleconsultaPage({
+  redirigir,
+  refrescoEsperaMs = REFRESCO_ESPERA_MS,
+}: TeleconsultaPageProps = {}): JSX.Element {
   const { appointmentId = '' } = useParams();
   const medplum = useMedplum();
   const [turno, setTurno] = useState<Appointment | null>();
   const [entrando, setEntrando] = useState(false);
   const [respuesta, setRespuesta] = useState<RespuestaEntrar>();
   const [sala, setSala] = useState<string>();
+  /** La sala se muestra: el médico ya entró, o ella eligió entrar igual. */
+  const [abierta, setAbierta] = useState(false);
+  const [ahora, setAhora] = useState(() => new Date());
   const [pagando, setPagando] = useState(false);
   const [errorPago, setErrorPago] = useState<string>();
 
@@ -44,15 +63,43 @@ export function TeleconsultaPage({ redirigir }: TeleconsultaPageProps = {}): JSX
       .catch(() => setTurno(null));
   }, [medplum, appointmentId]);
 
+  /** El turno recién leído del servidor (sin caché): de ahí sale si el médico entró. */
+  const releer = useCallback(async (): Promise<Appointment | undefined> => {
+    try {
+      const fresco = await medplum.readResource('Appointment', appointmentId, { cache: 'no-cache' });
+      setTurno(fresco);
+      setAhora(new Date());
+      if (estadoDeLaEspera(fresco) === 'medico-en-sala') {
+        setAbierta(true);
+      }
+      return fresco;
+    } catch {
+      // Un refresco que falla no la saca de la espera: se vuelve a probar en el próximo.
+      return undefined;
+    }
+  }, [medplum, appointmentId]);
+
   const entrar = async (): Promise<void> => {
     setEntrando(true);
     const r = await entrarTeleconsulta(medplum, appointmentId);
-    setEntrando(false);
-    setRespuesta(r);
     if (r.ok && esUrlDeSala(r.url)) {
+      // Primero el turno y después la sala: si el médico ya está, se abre directo, sin
+      // pasar un instante por la pantalla de espera.
+      await releer();
       setSala(r.url);
     }
+    setEntrando(false);
+    setRespuesta(r);
   };
+
+  // Mientras espera, mirar el turno cada tanto: cuando el médico entra, se abre la sala.
+  useEffect(() => {
+    if (!sala || abierta) {
+      return undefined;
+    }
+    const intervalo = setInterval(() => void releer(), refrescoEsperaMs);
+    return () => clearInterval(intervalo);
+  }, [sala, abierta, releer, refrescoEsperaMs]);
 
   const pagar = async (): Promise<void> => {
     setPagando(true);
@@ -105,7 +152,9 @@ export function TeleconsultaPage({ redirigir }: TeleconsultaPageProps = {}): JSX
           </Text>
         </div>
 
-        {sala ? (
+        {sala && !abierta ? (
+          <SalaDeEspera turno={turno} ahora={ahora} onEntrarIgual={() => setAbierta(true)} />
+        ) : sala ? (
           <Stack gap="xs">
             <Box
               component="iframe"
@@ -153,5 +202,46 @@ export function TeleconsultaPage({ redirigir }: TeleconsultaPageProps = {}): JSX
         {volver}
       </Stack>
     </Document>
+  );
+}
+
+/** La espera en el portal, hasta que el médico entra a la sala. */
+function SalaDeEspera(props: { turno: Appointment; ahora: Date; onEntrarIgual: () => void }): JSX.Element {
+  const estado = estadoDeLaEspera(props.turno);
+  if (estado === 'terminada') {
+    return (
+      <Alert color="gray" variant="light">
+        Esta consulta ya terminó.
+      </Alert>
+    );
+  }
+  if (estado === 'cancelada') {
+    return (
+      <Alert color="gray" variant="light">
+        Este turno se canceló. Si es un error, escribinos por Mensajes.
+      </Alert>
+    );
+  }
+  return (
+    <Stack gap="sm">
+      <Group gap="sm" wrap="nowrap">
+        <Loader size="sm" />
+        <Text fw={600}>Ya estás en la sala de espera</Text>
+      </Group>
+      <Text>
+        Tu médico todavía no entró. Cuando entre, la videollamada se abre sola en esta pantalla. No hace falta que hagas
+        nada más: dejala abierta.
+      </Text>
+      <Text size="sm" c="dimmed">
+        Mientras tanto, buscá un lugar tranquilo y, si podés, usá auriculares.
+      </Text>
+      {puedeEntrarIgual(props.turno, props.ahora) && (
+        <Group>
+          <Button variant="light" onClick={props.onEntrarIgual} leftSection={<IconVideo size={16} />}>
+            Entrar igual a la sala
+          </Button>
+        </Group>
+      )}
+    </Stack>
   );
 }

@@ -106,6 +106,48 @@ export function puedeEntrar(appt: Appointment, ahora: Date = new Date()): boolea
   );
 }
 
+// ───────────────────── La espera hasta que entra el médico ─────────────────────
+//
+// La paciente entra a la sala como invitada: el médico es el único con token y el que
+// modera (decisión de SOM del 29/09/2026). Si ella llega antes, el Jitsi le muestra
+// «Esperando al anfitrión» con un botón para iniciar sesión, y eso confunde: parece
+// que le falta un usuario. Por eso el portal la hace esperar en SU pantalla y abre la
+// sala recién cuando el médico entró. Lo sabe por el turno: el dashboard del médico lo
+// pasa a `checked-in` («En curso», con `som-estado-turno`) cuando entra a la sala.
+
+/** Cada cuánto se mira si el médico ya entró. */
+export const REFRESCO_ESPERA_MS = 10_000;
+
+/**
+ * Minutos después del inicio en que, si el médico todavía no figura en la sala, se
+ * ofrece entrar igual. Es la salida para cuando el médico entró sin pasar por el
+ * dashboard y el turno no cambió: no puede quedar esperando para siempre.
+ */
+export const MINUTOS_PARA_ENTRAR_IGUAL = 5;
+
+export type EstadoEspera = 'medico-en-sala' | 'esperando' | 'terminada' | 'cancelada';
+
+/** Qué pasa con la consulta mientras la paciente espera, leído del turno. */
+export function estadoDeLaEspera(appt: Pick<Appointment, 'status'>): EstadoEspera {
+  switch (appt.status) {
+    case 'checked-in':
+      return 'medico-en-sala';
+    case 'fulfilled':
+    case 'noshow':
+      return 'terminada';
+    case 'cancelled':
+    case 'entered-in-error':
+      return 'cancelada';
+    default:
+      return 'esperando';
+  }
+}
+
+/** ¿Ya pasó el tiempo para ofrecerle entrar igual? */
+export function puedeEntrarIgual(appt: Pick<Appointment, 'start'>, ahora: Date = new Date()): boolean {
+  return !!appt.start && ahora.getTime() >= Date.parse(appt.start) + MINUTOS_PARA_ENTRAR_IGUAL * 60_000;
+}
+
 const CHECKOUT_MP = /^https:\/\/([a-z0-9-]+\.)*mercadopago\.com(\.[a-z]{2})?\//i;
 
 /** Solo se sigue un checkout de Mercado Pago (nunca `javascript:` ni otro host). */
