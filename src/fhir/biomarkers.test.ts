@@ -8,6 +8,9 @@ import definiciones from './__fixtures__/biomarcadores-servidor.json';
 import {
   ANALITO_SYSTEM,
   codigosDe,
+  edadEn,
+  egfrCkdEpi2021,
+  egfrDesdeCreatinina,
   esencialesFaltantes,
   fechaDesde,
   LOINC,
@@ -18,6 +21,7 @@ import {
   parseServerBiomarker,
   rangoAplicable,
   rangoDelLaboratorio,
+  requisitosEgfr,
   semaforo,
   TIPO_RANGO_SYSTEM,
   textoRango,
@@ -234,5 +238,72 @@ describe('Valor cargado a mano', () => {
     );
     expect(o.referenceRange).toBeUndefined();
     expect(o.valueQuantity).toEqual({ value: 2.1, unit: 'mUI/L', system: UCUM, code: 'm[IU]/L' });
+  });
+});
+
+describe('eGFR: edad, sexo biológico y creatinina en sangre', () => {
+  const ana = { gender: 'female', birthDate: '1976-03-10' };
+  const creatinina = (valor: number, extra: Partial<Observation> = {}): Observation =>
+    obs(['2160-0'], { id: 'crea1', valueQuantity: { value: valor, unit: 'mg/dL', code: 'mg/dL' }, ...extra });
+
+  test('CKD-EPI 2021 (la misma ecuación que el bot): valores de referencia', () => {
+    expect(egfrCkdEpi2021(0.8, 50, 'female')).toBeCloseTo(89.7, 1);
+    expect(egfrCkdEpi2021(1.0, 50, 'female')).toBeCloseTo(68.6, 1);
+    expect(egfrCkdEpi2021(1.0, 60, 'male')).toBeCloseTo(86.2, 1);
+    expect(edadEn('1976-03-10', '2026-09-18')).toBe(50);
+    expect(edadEn('1976-09-19', '2026-09-18')).toBe(49);
+  });
+
+  test('los tres datos completos', () => {
+    expect(requisitosEgfr(ana, [creatinina(0.8)])).toEqual([
+      { dato: 'edad', titulo: 'Tu edad', ok: true, detalle: '50 años' },
+      { dato: 'sexo', titulo: 'Tu sexo biológico', ok: true, detalle: 'Femenino' },
+      { dato: 'creatinina', titulo: 'Tu valor de creatinina en sangre', ok: true, detalle: '0,8 mg/dL del 18/09/2026' },
+    ]);
+  });
+
+  test('qué falta: fecha de nacimiento, sexo femenino o masculino, una creatinina con número', () => {
+    const sinNada = requisitosEgfr({ gender: 'other' }, [], '2026-10-01');
+    expect(sinNada.map((r) => [r.dato, r.ok, r.detalle])).toEqual([
+      ['edad', false, 'Falta tu fecha de nacimiento en tu perfil.'],
+      ['sexo', false, 'El cálculo usa el sexo biológico (femenino o masculino) de tu perfil.'],
+      ['creatinina', false, 'Falta: cargala o envianos tu laboratorio en PDF.'],
+    ]);
+    expect(requisitosEgfr({ gender: 'female', birthDate: '2012-01-01' }, [], '2026-10-01')[0]).toMatchObject({
+      ok: false,
+      detalle: 'El cálculo es para mayores de 18 años.',
+    });
+    // Ni una anulada ni un "< 0,5" sirven; en µmol/L se convierte.
+    const noSirven = [
+      creatinina(0.8, { status: 'entered-in-error' }),
+      creatinina(0.5, { valueQuantity: { comparator: '<', value: 0.5 } }),
+    ];
+    expect(requisitosEgfr(ana, noSirven)[2]?.ok).toBe(false);
+    expect(
+      requisitosEgfr(ana, [creatinina(70.72, { valueQuantity: { value: 70.72, unit: 'µmol/L' } })])[2]?.detalle
+    ).toBe('0,8 mg/dL del 18/09/2026');
+  });
+
+  test('con una creatinina cargada a mano se calcula el eGFR (preliminar, con los tres códigos)', () => {
+    const calculada = egfrDesdeCreatinina(creatinina(0.8), ana, porSlug('e_gfr'), biomarkerPanels.renal);
+    expect(calculada).toMatchObject({
+      status: 'preliminary',
+      effectiveDateTime: '2026-09-18',
+      valueQuantity: { value: 90, unit: 'mL/min/1,73 m²', system: UCUM, code: 'mL/min/{1.73_m2}' },
+      method: { text: expect.stringMatching(/CKD-EPI 2021/) },
+      derivedFrom: [{ reference: 'Observation/crea1' }],
+    });
+    expect(calculada?.code?.coding?.map((c) => c.code)).toEqual(['62238-1', '33914-3', '98979-8']);
+    expect(
+      egfrDesdeCreatinina(
+        creatinina(0.8),
+        { gender: 'other', birthDate: '1976-03-10' },
+        porSlug('e_gfr'),
+        biomarkerPanels.renal
+      )
+    ).toBeUndefined();
+    expect(
+      egfrDesdeCreatinina(creatinina(0.8), { gender: 'female' }, porSlug('e_gfr'), biomarkerPanels.renal)
+    ).toBeUndefined();
   });
 });

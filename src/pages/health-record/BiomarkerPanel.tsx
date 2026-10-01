@@ -30,13 +30,16 @@ import { showErrorNotification } from '../../utils/notifications';
 import type { Biomarker, PatientSex } from './Biomarkers.data';
 import { biomarkerPanels, isSexSpecific } from './Biomarkers.data';
 import { EsencialesPendientes } from './EsencialesPendientes';
+import { RequisitosEgfr } from './RequisitosEgfr';
 import type { ServerBiomarker } from '../../fhir/biomarkers';
 import {
   codigosDe,
+  egfrDesdeCreatinina,
   fetchServerBiomarkers,
   observacionCargada,
   observacionesDe,
   rangoAplicable,
+  requisitosEgfr,
   semaforo,
   textoRango,
   textoValor,
@@ -73,7 +76,8 @@ export function BiomarkerPanel(): JSX.Element {
     }
     medplum
       .searchResources('Observation', `code=${codes}&patient=${getReferenceString(patient)}&_sort=-date&_count=200`)
-      .then(setObservations)
+      // Los anulados (entered-in-error: un duplicado, un informe que se volvió a leer) no se muestran.
+      .then((obs) => setObservations(obs.filter((o) => o.status !== 'entered-in-error')))
       .catch(showErrorNotification);
   }, [medplum, codes, patient]);
 
@@ -105,10 +109,20 @@ export function BiomarkerPanel(): JSX.Element {
     if (!bm || !panel || value === '' || Number.isNaN(Number(value))) {
       return;
     }
+    // Con la creatinina, la edad y el sexo se calcula también el eGFR (CKD-EPI 2021).
+    const egfr = bm.slug === 'creatinina_serica' ? catalogo?.find((b) => b.slug === 'e_gfr') : undefined;
     medplum
       .createResource(observacionCargada(bm, panel, Number(value), date, createReference(patient), sex))
-      .then(() => {
-        notifications.show({ color: 'green', title: 'Cargado', message: `${bm.title} guardado correctamente.` });
+      .then(async (creada) => {
+        const calculada = egfr ? egfrDesdeCreatinina(creada, patient, egfr, panel) : undefined;
+        const guardada = calculada ? await medplum.createResource(calculada) : undefined;
+        notifications.show({
+          color: 'green',
+          title: 'Cargado',
+          message: guardada
+            ? `${bm.title} guardado. Tu eGFR estimado: ${guardada.valueQuantity?.value} ${unidadVisible(egfr as Biomarker)}.`
+            : `${bm.title} guardado correctamente.`,
+        });
         setActiveBiomarker(null);
         loadData();
       })
@@ -196,6 +210,7 @@ export function BiomarkerPanel(): JSX.Element {
                       </>
                     )}
                   </Text>
+                  {bm.slug === 'e_gfr' && <RequisitosEgfr requisitos={requisitosEgfr(patient, observations)} />}
                   {latest?.method?.text && (
                     <Text size="xs" c="dimmed">
                       Último valor: {latest.method.text}.

@@ -270,3 +270,155 @@ export function observacionCargada(
       : {}),
   };
 }
+
+// ───────────────────── Filtrado glomerular estimado (eGFR) ─────────────────────
+//
+// El eGFR se obtiene con tres datos: la edad, el sexo biológico y la creatinina en sangre.
+// Es la misma ecuación que usa el bot de laboratorio (EPA-Developments/recepcionistas,
+// `completarEgfr`): CKD-EPI 2021 sin coeficiente de raza (Inker LA et al., N Engl J Med
+// 2021;385:1737-49), la que usan KDIGO y la guía CKM 2026.
+
+/** Creatinina en suero/plasma (2160-0) o en sangre (38483-4). */
+export const CODIGOS_CREATININA: readonly string[] = ['2160-0', '38483-4'];
+/** eGFR por creatinina, ecuación CKD-EPI 2021. */
+export const LOINC_EGFR_CKD_EPI_2021 = '98979-8';
+export const METODO_EGFR = 'CKD-EPI 2021 (sin coeficiente de raza), calculado desde la creatinina';
+
+/** eGFR (mL/min/1,73 m²) con CKD-EPI 2021. */
+export function egfrCkdEpi2021(creatininaMgDl: number, edad: number, sexo: 'female' | 'male'): number {
+  const mujer = sexo === 'female';
+  const kappa = mujer ? 0.7 : 0.9;
+  const alfa = mujer ? -0.241 : -0.302;
+  const r = creatininaMgDl / kappa;
+  return 142 * Math.min(r, 1) ** alfa * Math.max(r, 1) ** -1.2 * 0.9938 ** edad * (mujer ? 1.012 : 1);
+}
+
+/** Edad en años cumplidos a una fecha (AAAA-MM-DD…). */
+export function edadEn(fechaNacimiento: string, fecha: string): number | undefined {
+  const n = new Date(fechaNacimiento.slice(0, 10));
+  const f = new Date(fecha.slice(0, 10));
+  if (Number.isNaN(n.getTime()) || Number.isNaN(f.getTime())) {
+    return undefined;
+  }
+  const cumplio =
+    f.getUTCMonth() > n.getUTCMonth() || (f.getUTCMonth() === n.getUTCMonth() && f.getUTCDate() >= n.getUTCDate());
+  return f.getUTCFullYear() - n.getUTCFullYear() - (cumplio ? 0 : 1);
+}
+
+/** La creatinina en sangre más reciente con un número en mg/dL (o µmol/L, convertida). */
+export function creatininaParaEgfr(
+  observaciones: Observation[]
+): { observacion: Observation; mgDl: number; fecha: string } | undefined {
+  for (const o of observaciones) {
+    const q = o.valueQuantity;
+    if (
+      o.status === 'entered-in-error' ||
+      !o.code?.coding?.some((c) => c.code !== undefined && CODIGOS_CREATININA.includes(c.code)) ||
+      q?.value === undefined ||
+      q.comparator ||
+      !o.effectiveDateTime
+    ) {
+      continue;
+    }
+    const u = (q.code ?? q.unit ?? 'mg/dL').toLowerCase().replace(/\s+/g, '').replace(/μ/g, 'µ');
+    const mgDl = u === 'mg/dl' ? q.value : u === 'umol/l' || u === 'µmol/l' ? q.value / 88.4 : undefined;
+    if (mgDl !== undefined) {
+      return { observacion: o, mgDl, fecha: o.effectiveDateTime };
+    }
+  }
+  return undefined;
+}
+
+export interface RequisitoEgfr {
+  readonly dato: 'edad' | 'sexo' | 'creatinina';
+  readonly titulo: string;
+  readonly ok: boolean;
+  readonly detalle: string;
+}
+
+/** Los tres datos del eGFR: cuáles tiene la paciente y qué le falta. */
+export function requisitosEgfr(
+  paciente: { gender?: string; birthDate?: string },
+  observaciones: Observation[],
+  hoy: string = new Date().toISOString()
+): RequisitoEgfr[] {
+  const creatinina = creatininaParaEgfr(observaciones);
+  const edad = paciente.birthDate ? edadEn(paciente.birthDate, creatinina?.fecha ?? hoy) : undefined;
+  const sexo = paciente.gender === 'female' ? 'Femenino' : paciente.gender === 'male' ? 'Masculino' : undefined;
+  return [
+    {
+      dato: 'edad',
+      titulo: 'Tu edad',
+      ok: edad !== undefined && edad >= 18,
+      detalle:
+        edad === undefined
+          ? 'Falta tu fecha de nacimiento en tu perfil.'
+          : edad < 18
+            ? 'El cálculo es para mayores de 18 años.'
+            : `${edad} años`,
+    },
+    {
+      dato: 'sexo',
+      titulo: 'Tu sexo biológico',
+      ok: sexo !== undefined,
+      detalle: sexo ?? 'El cálculo usa el sexo biológico (femenino o masculino) de tu perfil.',
+    },
+    {
+      dato: 'creatinina',
+      titulo: 'Tu valor de creatinina en sangre',
+      ok: creatinina !== undefined,
+      detalle: creatinina
+        ? `${Number(creatinina.mgDl.toFixed(2)).toLocaleString('es-AR')} mg/dL del ${creatinina.fecha.slice(0, 10).split('-').reverse().join('/')}`
+        : 'Falta: cargala o envianos tu laboratorio en PDF.',
+    },
+  ];
+}
+
+/**
+ * El eGFR calculado desde una creatinina que la paciente cargó a mano (preliminar, como
+ * ella). Undefined si falta alguno de los tres datos.
+ */
+export function egfrDesdeCreatinina(
+  creatinina: Observation,
+  paciente: { gender?: string; birthDate?: string },
+  egfr: Biomarker,
+  panel: { id: string; title: string }
+): Observation | undefined {
+  const c = creatininaParaEgfr([creatinina]);
+  const sexo = paciente.gender === 'female' || paciente.gender === 'male' ? paciente.gender : undefined;
+  const edad = c && paciente.birthDate ? edadEn(paciente.birthDate, c.fecha) : undefined;
+  if (!c || !sexo || edad === undefined || edad < 18) {
+    return undefined;
+  }
+  const codings = egfr.codings?.length ? egfr.codings : [{ system: LOINC, code: egfr.code }];
+  return {
+    resourceType: 'Observation',
+    status: 'preliminary',
+    category: [
+      { coding: [{ system: CATEGORIA_OBSERVACION_SYSTEM, code: 'laboratory', display: 'Laboratory' }] },
+      { coding: [{ system: PANEL_SYSTEM, code: panel.id, display: panel.title }] },
+    ],
+    subject: creatinina.subject,
+    effectiveDateTime: c.fecha,
+    code: {
+      coding: [
+        ...codings.map((x) => ({ system: x.system ?? LOINC, code: x.code, display: egfr.title })),
+        { system: LOINC, code: LOINC_EGFR_CKD_EPI_2021, display: 'eGFR por creatinina (CKD-EPI 2021)' },
+      ],
+      text: 'Filtrado glomerular estimado (CKD-EPI 2021)',
+    },
+    valueQuantity: {
+      value: Math.round(egfrCkdEpi2021(c.mgDl, edad, sexo)),
+      unit: unidadVisible(egfr),
+      system: UCUM,
+      code: egfr.unit,
+    },
+    method: { text: METODO_EGFR },
+    note: [
+      {
+        text: `Calculado con la creatinina que cargaste (${Number(c.mgDl.toFixed(2))} mg/dL), tu edad (${edad} años) y tu sexo.`,
+      },
+    ],
+    ...(creatinina.id ? { derivedFrom: [{ reference: `Observation/${creatinina.id}` }] } : {}),
+  };
+}
