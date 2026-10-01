@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   Group,
+  Loader,
   Modal,
   NumberInput,
   Stack,
@@ -17,7 +18,7 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { createReference, formatDate, getReferenceString } from '@medplum/core';
-import type { Observation, ObservationReferenceRange, Patient, Quantity } from '@medplum/fhirtypes';
+import type { Observation, Patient } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconInfoCircle, IconPlus } from '@tabler/icons-react';
 import type { ChartData } from 'chart.js';
@@ -26,51 +27,26 @@ import type { JSX } from 'react';
 import { Navigate, useParams } from 'react-router';
 import { LineChart } from '../../components/LineChart';
 import { showErrorNotification } from '../../utils/notifications';
-import type { Biomarker, BiomarkerRange, PatientSex } from './Biomarkers.data';
-import { biomarkerPanels, isSexSpecific, resolveBiomarkerRanges } from './Biomarkers.data';
+import type { Biomarker, PatientSex } from './Biomarkers.data';
+import { biomarkerPanels, isSexSpecific } from './Biomarkers.data';
+import { EsencialesPendientes } from './EsencialesPendientes';
 import type { ServerBiomarker } from '../../fhir/biomarkers';
-import { fetchServerBiomarkers, PANEL_SYSTEM, serverBiomarkerToBiomarker, TIPO_RANGO_SYSTEM } from '../../fhir/biomarkers';
+import {
+  codigosDe,
+  fetchServerBiomarkers,
+  observacionCargada,
+  observacionesDe,
+  rangoAplicable,
+  semaforo,
+  textoRango,
+  textoValor,
+  unidadVisible,
+} from '../../fhir/biomarkers';
 
 const chartColors = {
   backgroundColor: 'rgba(29, 112, 214, 0.7)',
   borderColor: 'rgba(29, 112, 214, 1)',
 };
-
-/** Devuelve true si el valor cae dentro del rango (límites opcionales). */
-function inRange(value: number, range: BiomarkerRange): boolean {
-  return (range.low === undefined || value >= range.low) && (range.high === undefined || value <= range.high);
-}
-
-/** Color del semáforo: verde = rango funcional, amarillo = convencional, rojo = fuera. */
-function rangeColor(value: number | undefined, functional?: BiomarkerRange, conventional?: BiomarkerRange): string {
-  if (value === undefined) {
-    return 'gray';
-  }
-  if (functional && inRange(value, functional)) {
-    return 'green';
-  }
-  if (conventional && inRange(value, conventional)) {
-    return 'yellow';
-  }
-  if (functional || conventional) {
-    return 'red';
-  }
-  return 'gray';
-}
-
-/** Formatea un rango como texto legible. */
-function formatRange(range?: BiomarkerRange): string {
-  if (!range || (range.low === undefined && range.high === undefined)) {
-    return '—';
-  }
-  if (range.low !== undefined && range.high !== undefined) {
-    return `${range.low} – ${range.high}`;
-  }
-  if (range.low !== undefined) {
-    return `≥ ${range.low}`;
-  }
-  return `≤ ${range.high}`;
-}
 
 export function BiomarkerPanel(): JSX.Element {
   const { panelId } = useParams();
@@ -80,19 +56,16 @@ export function BiomarkerPanel(): JSX.Element {
   const panel = panelId ? biomarkerPanels[panelId] : undefined;
 
   const [observations, setObservations] = useState<Observation[]>([]);
-  const [serverBiomarkers, setServerBiomarkers] = useState<ServerBiomarker[]>([]);
+  // undefined = cargando; [] = el servidor no publica el catálogo (o no se pudo leer).
+  const [catalogo, setCatalogo] = useState<ServerBiomarker[] | undefined>();
   const [activeBiomarker, setActiveBiomarker] = useState<Biomarker | null>(null);
   const [value, setValue] = useState<number | string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
-  // Lista de biomarcadores del panel: del servidor (ObservationDefinition) si está disponible,
-  // si no se cae al catálogo local (Biomarkers.data.ts).
-  const items: Biomarker[] = useMemo(() => {
-    const fromServer = serverBiomarkers.filter((b) => b.panel === panelId).map(serverBiomarkerToBiomarker);
-    return fromServer.length > 0 ? fromServer : (panel?.biomarkers ?? []);
-  }, [serverBiomarkers, panelId, panel]);
+  // Los analitos del panel los publica el servidor (ObservationDefinition).
+  const items: Biomarker[] = useMemo(() => (catalogo ?? []).filter((b) => b.panel === panelId), [catalogo, panelId]);
 
-  const codes = items.map((b) => b.code).join(',');
+  const codes = [...new Set(items.flatMap(codigosDe))].join(',');
 
   const loadData = useCallback(() => {
     if (!codes) {
@@ -108,21 +81,17 @@ export function BiomarkerPanel(): JSX.Element {
     loadData();
   }, [loadData]);
 
-  // Catálogo de biomarcadores publicado por el servidor (incluye rangos por sexo). Es
-  // enriquecimiento OPCIONAL: si no está disponible (403 por permisos, o el proyecto no lo
-  // publica), `items` cae al catálogo local — no hay que molestar al paciente con un error.
   useEffect(() => {
     fetchServerBiomarkers(medplum)
-      .then(setServerBiomarkers)
-      .catch((err) => console.warn('Catálogo de biomarcadores del servidor no disponible; usando el local.', err));
+      .then(setCatalogo)
+      .catch((err) => {
+        console.warn('Catálogo de biomarcadores del servidor no disponible.', err);
+        setCatalogo([]);
+      });
   }, [medplum]);
 
   if (!panel) {
     return <Navigate replace to="/health-record/biomarkers/metabolico" />;
-  }
-
-  function observationsFor(code: string): Observation[] {
-    return observations.filter((obs) => obs.code?.coding?.some((c) => c.code === code));
   }
 
   function openModal(bm: Biomarker): void {
@@ -136,45 +105,8 @@ export function BiomarkerPanel(): JSX.Element {
     if (!bm || !panel || value === '' || Number.isNaN(Number(value))) {
       return;
     }
-
-    // El biomarcador ya trae los rangos del servidor si estaban disponibles.
-    const { conventional, functional } = resolveBiomarkerRanges(bm, sex);
-    const qty = (v: number): Quantity => ({ value: v, unit: bm.unit, system: 'http://unitsofmeasure.org', code: bm.unit });
-    const referenceRange: ObservationReferenceRange[] = [];
-    const pushRange = (range: BiomarkerRange | undefined, tipo: 'convencional' | 'funcional'): void => {
-      if (!range || (range.low === undefined && range.high === undefined)) {
-        return;
-      }
-      referenceRange.push({
-        ...(range.low !== undefined ? { low: qty(range.low) } : {}),
-        ...(range.high !== undefined ? { high: qty(range.high) } : {}),
-        type: { coding: [{ system: TIPO_RANGO_SYSTEM, code: tipo }] },
-      });
-    };
-    pushRange(conventional, 'convencional');
-    pushRange(functional, 'funcional');
-
-    const obs: Observation = {
-      resourceType: 'Observation',
-      status: 'preliminary',
-      category: [{ coding: [{ system: PANEL_SYSTEM, code: panel.id, display: panel.title }] }],
-      subject: createReference(patient),
-      effectiveDateTime: date,
-      code: {
-        coding: [{ system: bm.system ?? 'http://loinc.org', code: bm.code, display: bm.title }],
-        text: bm.title,
-      },
-      valueQuantity: {
-        value: Number(value),
-        unit: bm.unit,
-        system: 'http://unitsofmeasure.org',
-        code: bm.unit,
-      },
-      ...(referenceRange.length ? { referenceRange } : {}),
-    };
-
     medplum
-      .createResource(obs)
+      .createResource(observacionCargada(bm, panel, Number(value), date, createReference(patient), sex))
       .then(() => {
         notifications.show({ color: 'green', title: 'Cargado', message: `${bm.title} guardado correctamente.` });
         setActiveBiomarker(null);
@@ -192,21 +124,32 @@ export function BiomarkerPanel(): JSX.Element {
         {panel.description}
       </Text>
 
+      {catalogo && catalogo.length > 0 && <EsencialesPendientes catalogo={catalogo} />}
+
+      {catalogo === undefined && <Loader size="sm" />}
+      {catalogo !== undefined && items.length === 0 && (
+        <Alert icon={<IconInfoCircle size={16} />} color="gray" radius="md">
+          Los estudios de este panel no están disponibles en este momento. Probá de nuevo más tarde.
+        </Alert>
+      )}
+
       <Accordion variant="separated" multiple>
         {items.map((bm) => {
-          const { conventional, functional } = resolveBiomarkerRanges(bm, sex);
+          const unidad = unidadVisible(bm);
+          const history = observacionesDe(bm, observations);
+          const latest = history[0];
+          const aplicable = rangoAplicable(bm, sex, latest);
           const sexAware = isSexSpecific(bm);
-          const noRangeForSex = sexAware && conventional === undefined && functional === undefined;
-          const history = observationsFor(bm.code);
-          const latest = history[0]?.valueQuantity?.value;
-          const color = rangeColor(latest, functional, conventional);
+          const noRangeForSex = sexAware && !aplicable;
+          const valorTexto = textoValor(latest, unidad);
+          const color = semaforo(latest?.valueQuantity?.value, aplicable?.rango);
 
-          const ascending = [...history].reverse();
+          const ascending = [...history].reverse().filter((obs) => obs.valueQuantity?.value !== undefined);
           const chartData: ChartData<'line', number[]> = {
             labels: ascending.map((obs) => formatDate(obs.effectiveDateTime)),
             datasets: [
               {
-                label: `${bm.title} (${bm.unit})`,
+                label: `${bm.title} (${unidad})`,
                 data: ascending.map((obs) => obs.valueQuantity?.value as number),
                 ...chartColors,
               },
@@ -217,25 +160,47 @@ export function BiomarkerPanel(): JSX.Element {
             <Accordion.Item key={bm.code} value={bm.code}>
               <Accordion.Control>
                 <Group justify="space-between" wrap="nowrap" pr="md">
-                  <Text fw={500}>{bm.title}</Text>
+                  <Group gap="xs" wrap="nowrap">
+                    <Text fw={500}>{bm.title}</Text>
+                    {bm.nivel === 'esencial' && (
+                      <Badge color="blue" variant="outline" size="xs">
+                        Esencial
+                      </Badge>
+                    )}
+                  </Group>
                   <Badge color={color} variant="light" size="lg">
-                    {latest !== undefined ? `${latest} ${bm.unit}` : 'Sin datos'}
+                    {valorTexto ?? 'Sin datos'}
                   </Badge>
                 </Group>
               </Accordion.Control>
               <Accordion.Panel>
                 <Stack gap="md">
-                  <Text size="sm" c="dimmed">
-                    {bm.description}
+                  {bm.description && (
+                    <Text size="sm" c="dimmed">
+                      {bm.description}
+                    </Text>
+                  )}
+                  <Text size="sm">
+                    {aplicable?.fuente === 'guia' ? (
+                      <>
+                        <b>Rango de referencia (guía):</b> {textoRango(aplicable.rango)} {unidad}
+                      </>
+                    ) : aplicable ? (
+                      <>
+                        <b>Rango de tu laboratorio:</b> {textoRango(aplicable.rango)}
+                        {aplicable.rango.low !== undefined || aplicable.rango.high !== undefined ? ` ${unidad}` : ''}
+                      </>
+                    ) : (
+                      <>
+                        <b>Rango de referencia:</b> el que figura en tu informe de laboratorio.
+                      </>
+                    )}
                   </Text>
-                  <Group gap="xl">
-                    <Text size="sm">
-                      <b>Rango funcional:</b> {formatRange(functional)} {bm.unit}
+                  {latest?.method?.text && (
+                    <Text size="xs" c="dimmed">
+                      Último valor: {latest.method.text}.
                     </Text>
-                    <Text size="sm">
-                      <b>Rango convencional:</b> {formatRange(conventional)} {bm.unit}
-                    </Text>
-                  </Group>
+                  )}
                   {sexAware &&
                     (sex ? (
                       <Text size="xs" c="dimmed">
@@ -260,7 +225,7 @@ export function BiomarkerPanel(): JSX.Element {
 
                   {history.length > 0 ? (
                     <>
-                      {history.length > 1 && <LineChart chartData={chartData} />}
+                      {ascending.length > 1 && <LineChart chartData={chartData} />}
                       <Table.ScrollContainer minWidth={320}>
                         <Table striped highlightOnHover>
                           <Table.Thead>
@@ -271,27 +236,26 @@ export function BiomarkerPanel(): JSX.Element {
                             </Table.Tr>
                           </Table.Thead>
                           <Table.Tbody>
-                            {history.map((obs) => {
-                              const v = obs.valueQuantity?.value;
-                              return (
-                                <Table.Tr key={obs.id}>
-                                  <Table.Td>{formatDate(obs.effectiveDateTime)}</Table.Td>
-                                  <Table.Td>
-                                    {v} {bm.unit}
-                                  </Table.Td>
-                                  <Table.Td>
-                                    <Badge color={rangeColor(v, functional, conventional)} variant="dot" size="sm" />
-                                  </Table.Td>
-                                </Table.Tr>
-                              );
-                            })}
+                            {history.map((obs) => (
+                              <Table.Tr key={obs.id}>
+                                <Table.Td>{formatDate(obs.effectiveDateTime)}</Table.Td>
+                                <Table.Td>{textoValor(obs, unidad) ?? '—'}</Table.Td>
+                                <Table.Td>
+                                  <Badge
+                                    color={semaforo(obs.valueQuantity?.value, rangoAplicable(bm, sex, obs)?.rango)}
+                                    variant="dot"
+                                    size="sm"
+                                  />
+                                </Table.Td>
+                              </Table.Tr>
+                            ))}
                           </Table.Tbody>
                         </Table>
                       </Table.ScrollContainer>
                     </>
                   ) : (
                     <Text size="sm" c="dimmed">
-                      Todavía no cargaste resultados para este biomarcador.
+                      Todavía no hay resultados para este estudio.
                     </Text>
                   )}
                 </Stack>
@@ -303,8 +267,9 @@ export function BiomarkerPanel(): JSX.Element {
 
       <Box mt="xl">
         <Alert icon={<IconInfoCircle size={16} />} color="gray" radius="md">
-          Los valores que cargás quedan registrados como preliminares hasta que un profesional de tu equipo los valide.
-          El rango funcional representa el valor óptimo; puede ser más estricto que el rango del laboratorio.
+          Los valores que cargás a mano quedan registrados como preliminares hasta que un profesional de tu equipo los
+          valide. Los rangos son los de las guías (AHA/ACC, ADA, guía cardio-reno-metabólica 2026); si la guía no fija
+          uno, se usa el de tu laboratorio.
         </Alert>
       </Box>
 
@@ -315,7 +280,7 @@ export function BiomarkerPanel(): JSX.Element {
       >
         <Stack gap="md">
           <NumberInput
-            label={`Valor${activeBiomarker ? ` (${activeBiomarker.unit})` : ''}`}
+            label={`Valor${activeBiomarker ? ` (${unidadVisible(activeBiomarker)})` : ''}`}
             placeholder="Ingresá el valor"
             value={value}
             onChange={setValue}
