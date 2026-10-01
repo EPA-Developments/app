@@ -1,0 +1,4022 @@
+[
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2093-3",
+          "display": "Colesterol total"
+        }
+      ],
+      "text": "Colesterol total"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "colesterol_total"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Colesterol"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "CT"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 200,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "13457-7",
+          "display": "Colesterol LDL"
+        }
+      ],
+      "text": "Colesterol LDL"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "colesterol_ldl"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "LDL"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "LDL calculado"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Colesterol LDL (Friedewald)"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "c-LDL"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 100,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "18262-6",
+          "display": "Colesterol LDL (directo)"
+        }
+      ],
+      "text": "Colesterol LDL (directo)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "colesterol_ldl_directo"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "LDL directo"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "LDL medido"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/cuenta-como",
+        "valueString": "colesterol_ldl"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 100,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2085-9",
+          "display": "Colesterol HDL"
+        }
+      ],
+      "text": "Colesterol HDL"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "colesterol_hdl"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "HDL"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "c-HDL"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "low": {
+            "value": 40,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      },
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "low": {
+            "value": 40,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        },
+        "gender": "male"
+      },
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "low": {
+            "value": 50,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        },
+        "gender": "female"
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "43396-1",
+          "display": "Colesterol no-HDL"
+        }
+      ],
+      "text": "Colesterol no-HDL"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "colesterol_no_hdl"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "No-HDL"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Colesterol no HDL"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2571-8",
+          "display": "Triglicéridos"
+        }
+      ],
+      "text": "Triglicéridos"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "trigliceridos"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TG"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Trigliceridemia"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 150,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "1558-6",
+          "display": "Glucemia en ayunas"
+        }
+      ],
+      "text": "Glucemia en ayunas"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "glucemia_ayunas"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Glucemia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Glucosa"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Glucosa en ayunas"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Glucosa basal"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "low": {
+            "value": 70,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          },
+          "high": {
+            "value": 100,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "4548-4",
+          "display": "Hemoglobina glicosilada (HbA1c)"
+        }
+      ],
+      "text": "Hemoglobina glicosilada (HbA1c)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "hba1c"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "metabolico",
+            "display": "Perfil básico y riesgo cardiovascular"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "HbA1c"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Hemoglobina A1c"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Glicohemoglobina"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Hemoglobina glicada"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "%"
+          }
+        ],
+        "text": "%"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 5.7,
+            "unit": "%",
+            "system": "http://unitsofmeasure.org",
+            "code": "%"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2160-0",
+          "display": "Creatinina sérica"
+        }
+      ],
+      "text": "Creatinina sérica"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "creatinina_serica"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "renal",
+            "display": "Función renal y síndrome cardiorrenal"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Creatinina"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Creatininemia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Creatinina en sangre"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "62238-1",
+          "display": "Filtrado glomerular estimado (eGFR)"
+        },
+        {
+          "system": "http://loinc.org",
+          "code": "33914-3",
+          "display": "Filtrado glomerular estimado (eGFR)"
+        }
+      ],
+      "text": "Filtrado glomerular estimado (eGFR)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "e_gfr"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "renal",
+            "display": "Función renal y síndrome cardiorrenal"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Filtrado glomerular estimado"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "FG estimado"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TFG estimada"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Tasa de filtrado glomerular"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "eGFR"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "CKD-EPI"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "MDRD"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mL/min/{1.73_m2}"
+          }
+        ],
+        "text": "mL/min/1,73 m²"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "low": {
+            "value": 60,
+            "unit": "mL/min/{1.73_m2}",
+            "system": "http://unitsofmeasure.org",
+            "code": "mL/min/{1.73_m2}"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "3091-6",
+          "display": "Urea sérica"
+        }
+      ],
+      "text": "Urea sérica"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "urea_serica"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "renal",
+            "display": "Función renal y síndrome cardiorrenal"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Urea"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Uremia"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "3094-0",
+          "display": "Nitrógeno ureico (BUN)"
+        }
+      ],
+      "text": "Nitrógeno ureico (BUN)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "bun"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "renal",
+            "display": "Función renal y síndrome cardiorrenal"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "BUN"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Nitrógeno ureico"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/cuenta-como",
+        "valueString": "urea_serica"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "33863-2",
+          "display": "Cistatina C"
+        }
+      ],
+      "text": "Cistatina C"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "cistatina_c"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "renal",
+            "display": "Función renal y síndrome cardiorrenal"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cistatina"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/L"
+          }
+        ],
+        "text": "mg/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "9318-7",
+          "display": "Cociente albúmina/creatinina en orina (UACR)"
+        }
+      ],
+      "text": "Cociente albúmina/creatinina en orina (UACR)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "acr_urinaria"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "renal",
+            "display": "Función renal y síndrome cardiorrenal"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "UACR"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "RAC"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Índice albúmina/creatinina"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Microalbuminuria/creatininuria"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Albuminuria"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/g"
+          }
+        ],
+        "text": "mg/g"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 30,
+            "unit": "mg/g",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/g"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2823-3",
+          "display": "Potasio sérico"
+        }
+      ],
+      "text": "Potasio sérico"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "potasio_serico"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "electrolitos",
+            "display": "Electrolitos y conducción eléctrica"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Potasio"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Kalemia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "K"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "meq/L"
+          }
+        ],
+        "text": "mEq/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2951-2",
+          "display": "Sodio sérico"
+        }
+      ],
+      "text": "Sodio sérico"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "sodio_serico"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "electrolitos",
+            "display": "Electrolitos y conducción eléctrica"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Sodio"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Natremia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Na"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "meq/L"
+          }
+        ],
+        "text": "mEq/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2601-3",
+          "display": "Magnesio sérico"
+        }
+      ],
+      "text": "Magnesio sérico"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "magnesio_serico"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "electrolitos",
+            "display": "Electrolitos y conducción eléctrica"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Magnesio"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Magnesemia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Mg"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "17861-6",
+          "display": "Calcio total"
+        }
+      ],
+      "text": "Calcio total"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "calcio_serico"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "electrolitos",
+            "display": "Electrolitos y conducción eléctrica"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Calcio"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Calcemia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Calcio sérico"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "1994-3",
+          "display": "Calcio iónico"
+        }
+      ],
+      "text": "Calcio iónico"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "calcio_ionico"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "electrolitos",
+            "display": "Electrolitos y conducción eléctrica"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Calcio iónico"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Calcio ionizado"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Ca++"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/cuenta-como",
+        "valueString": "calcio_serico"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mmol/L"
+          }
+        ],
+        "text": "mmol/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2075-0",
+          "display": "Cloro sérico"
+        }
+      ],
+      "text": "Cloro sérico"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "cloro_serico"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "electrolitos",
+            "display": "Electrolitos y conducción eléctrica"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "esencial",
+            "display": "Esencial"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cloro"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cloremia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cloruro"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cl"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "meq/L"
+          }
+        ],
+        "text": "mEq/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "67151-1",
+          "display": "Troponina T de alta sensibilidad"
+        }
+      ],
+      "text": "Troponina T de alta sensibilidad"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "hs_tnt"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "cardiaco",
+            "display": "Biomarcadores cardíacos"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Troponina T ultrasensible"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "hs-TnT"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TnT-hs"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/L"
+          }
+        ],
+        "text": "ng/L"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 14,
+            "unit": "ng/L",
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/L"
+          }
+        },
+        "gender": "female"
+      },
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 22,
+            "unit": "ng/L",
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/L"
+          }
+        },
+        "gender": "male"
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "89579-7",
+          "display": "Troponina I de alta sensibilidad"
+        }
+      ],
+      "text": "Troponina I de alta sensibilidad"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "hs_tni"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "cardiaco",
+            "display": "Biomarcadores cardíacos"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Troponina I ultrasensible"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "hs-TnI"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TnI-hs"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/L"
+          }
+        ],
+        "text": "ng/L"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 10,
+            "unit": "ng/L",
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/L"
+          }
+        },
+        "gender": "female"
+      },
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 12,
+            "unit": "ng/L",
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/L"
+          }
+        },
+        "gender": "male"
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "30934-4",
+          "display": "Péptido natriurético tipo B (BNP)"
+        }
+      ],
+      "text": "Péptido natriurético tipo B (BNP)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "bnp"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "cardiaco",
+            "display": "Biomarcadores cardíacos"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "BNP"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "pg/mL"
+          }
+        ],
+        "text": "pg/mL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 35,
+            "unit": "pg/mL",
+            "system": "http://unitsofmeasure.org",
+            "code": "pg/mL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "33762-6",
+          "display": "NT-proBNP"
+        }
+      ],
+      "text": "NT-proBNP"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "nt_probnp"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "cardiaco",
+            "display": "Biomarcadores cardíacos"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "NT-proBNP"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Pro-BNP N-terminal"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Fracción N-terminal del pro-BNP"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "pg/mL"
+          }
+        ],
+        "text": "pg/mL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 125,
+            "unit": "pg/mL",
+            "system": "http://unitsofmeasure.org",
+            "code": "pg/mL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "13969-1",
+          "display": "CK-MB (masa)"
+        }
+      ],
+      "text": "CK-MB (masa)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "ck_mb_masa"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "cardiaco",
+            "display": "Biomarcadores cardíacos"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "CK-MB"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "CPK-MB"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "CK-MB masa"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/mL"
+          }
+        ],
+        "text": "ng/mL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2157-6",
+          "display": "Creatina quinasa total (CK)"
+        }
+      ],
+      "text": "Creatina quinasa total (CK)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "ck_total"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "cardiaco",
+            "display": "Biomarcadores cardíacos"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "CK"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "CPK"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Creatina quinasa"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Creatinfosfoquinasa"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "U/L"
+          }
+        ],
+        "text": "U/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "30522-7",
+          "display": "PCR ultrasensible (hs-PCR)"
+        }
+      ],
+      "text": "PCR ultrasensible (hs-PCR)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "hs_pcr"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "inflamatorios",
+            "display": "Inflamación y riesgo residual"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "PCR ultrasensible"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Proteína C reactiva de alta sensibilidad"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "hs-CRP"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "PCR us"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "pcr_ultrasensible"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/L"
+          }
+        ],
+        "text": "mg/L"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 2,
+            "unit": "mg/L",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/L"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "13965-9",
+          "display": "Homocisteína"
+        }
+      ],
+      "text": "Homocisteína"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "homocisteina"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "inflamatorios",
+            "display": "Inflamación y riesgo residual"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Homocisteinemia"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "umol/L"
+          }
+        ],
+        "text": "µmol/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "3084-1",
+          "display": "Ácido úrico"
+        }
+      ],
+      "text": "Ácido úrico"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "acido_urico"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "inflamatorios",
+            "display": "Inflamación y riesgo residual"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Uricemia"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "43583-4",
+          "display": "Lipoproteína(a) — Lp(a)"
+        }
+      ],
+      "text": "Lipoproteína(a) — Lp(a)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "lp_a"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "inflamatorios",
+            "display": "Inflamación y riesgo residual"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Lp(a)"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Lipoproteína a"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "nmol/L"
+          }
+        ],
+        "text": "nmol/L"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 125,
+            "unit": "nmol/L",
+            "system": "http://unitsofmeasure.org",
+            "code": "nmol/L"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "10835-7",
+          "display": "Lipoproteína(a) — Lp(a) (en mg/dL)"
+        }
+      ],
+      "text": "Lipoproteína(a) — Lp(a) (en mg/dL)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "lp_a_masa"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "inflamatorios",
+            "display": "Inflamación y riesgo residual"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Lp(a)"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Lipoproteína a"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/cuenta-como",
+        "valueString": "lp_a"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 50,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "1884-6",
+          "display": "ApoB (Apolipoproteína B)"
+        }
+      ],
+      "text": "ApoB (Apolipoproteína B)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "apo_b"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "inflamatorios",
+            "display": "Inflamación y riesgo residual"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Apolipoproteína B"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Apo B"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    },
+    "qualifiedInterval": [
+      {
+        "category": "reference",
+        "context": {
+          "coding": [
+            {
+              "system": "https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango",
+              "code": "convencional"
+            }
+          ]
+        },
+        "range": {
+          "high": {
+            "value": 130,
+            "unit": "mg/dL",
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "1869-7",
+          "display": "Apolipoproteína A1"
+        }
+      ],
+      "text": "Apolipoproteína A1"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "apo_a1"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "inflamatorios",
+            "display": "Inflamación y riesgo residual"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Apo A1"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Apo A-I"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL"
+          }
+        ],
+        "text": "mg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "718-7",
+          "display": "Hemoglobina"
+        }
+      ],
+      "text": "Hemoglobina"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "hemoglobina"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Hb"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "g/dL"
+          }
+        ],
+        "text": "g/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "4544-3",
+          "display": "Hematocrito"
+        }
+      ],
+      "text": "Hematocrito"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "hematocrito"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Hto"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Hct"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "%"
+          }
+        ],
+        "text": "%"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "777-3",
+          "display": "Recuento de plaquetas"
+        }
+      ],
+      "text": "Recuento de plaquetas"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "plaquetas"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Plaquetas"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Recuento plaquetario"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "10*3/uL"
+          }
+        ],
+        "text": "10³/µL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "6301-6",
+          "display": "Tiempo de protrombina (RIN)"
+        }
+      ],
+      "text": "Tiempo de protrombina (RIN)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "inr"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "RIN"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "INR"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Quick (RIN)"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "{INR}"
+          }
+        ],
+        "text": "RIN"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "3173-2",
+          "display": "Tiempo de tromboplastina parcial activada (TTPA)"
+        }
+      ],
+      "text": "Tiempo de tromboplastina parcial activada (TTPA)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "ttpa"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "KPTT"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TTPa"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "APTT"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "s"
+          }
+        ],
+        "text": "segundos"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "48065-7",
+          "display": "Dímero D"
+        }
+      ],
+      "text": "Dímero D"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "dimero_d"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "D-dímero"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Dimero D"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/mL{FEU}"
+          }
+        ],
+        "text": "ng/mL FEU"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2276-4",
+          "display": "Ferritina"
+        }
+      ],
+      "text": "Ferritina"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "ferritina"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Ferritinemia"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/mL"
+          }
+        ],
+        "text": "ng/mL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2502-3",
+          "display": "Saturación de transferrina"
+        }
+      ],
+      "text": "Saturación de transferrina"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "saturacion_transferrina"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "hematologia",
+            "display": "Hematología, coagulación y trombosis"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "IST"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Índice de saturación de transferrina"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "% de saturación"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "%"
+          }
+        ],
+        "text": "%"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "3016-3",
+          "display": "TSH (tirotrofina)"
+        }
+      ],
+      "text": "TSH (tirotrofina)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "tsh"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "endocrinologia",
+            "display": "Eje endocrino y metabólico secundario"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TSH"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Tirotrofina"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Hormona estimulante de la tiroides"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "m[IU]/L"
+          }
+        ],
+        "text": "mUI/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "3024-7",
+          "display": "T4 libre"
+        }
+      ],
+      "text": "T4 libre"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "t4_libre"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "endocrinologia",
+            "display": "Eje endocrino y metabólico secundario"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Tiroxina libre"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "FT4"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "T4L"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/dL"
+          }
+        ],
+        "text": "ng/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2143-6",
+          "display": "Cortisol sérico"
+        }
+      ],
+      "text": "Cortisol sérico"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "cortisol"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "endocrinologia",
+            "display": "Eje endocrino y metabólico secundario"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cortisol"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cortisolemia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Cortisol matinal"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ug/dL"
+          }
+        ],
+        "text": "µg/dL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "1989-3",
+          "display": "Vitamina D (25-OH)"
+        }
+      ],
+      "text": "Vitamina D (25-OH)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "vitamina_d"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "endocrinologia",
+            "display": "Eje endocrino y metabólico secundario"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "25-hidroxivitamina D"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "25-OH vitamina D"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Vitamina D"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/mL"
+          }
+        ],
+        "text": "ng/mL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "1742-6",
+          "display": "ALT (TGP)"
+        }
+      ],
+      "text": "ALT (TGP)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "alt"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "endocrinologia",
+            "display": "Eje endocrino y metabólico secundario"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TGP"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "GPT"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "ALAT"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Transaminasa glutámico pirúvica"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "U/L"
+          }
+        ],
+        "text": "U/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "1920-8",
+          "display": "AST (TGO)"
+        }
+      ],
+      "text": "AST (TGO)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "ast"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "endocrinologia",
+            "display": "Eje endocrino y metabólico secundario"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "TGO"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "GOT"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "ASAT"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Transaminasa glutámico oxalacética"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "U/L"
+          }
+        ],
+        "text": "U/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2324-2",
+          "display": "GGT (gamma-glutamil transferasa)"
+        }
+      ],
+      "text": "GGT (gamma-glutamil transferasa)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "ggt"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "endocrinologia",
+            "display": "Eje endocrino y metabólico secundario"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Gamma GT"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Gamma glutamil transpeptidasa"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "U/L"
+          }
+        ],
+        "text": "U/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "15067-2",
+          "display": "FSH (hormona folículo estimulante)"
+        }
+      ],
+      "text": "FSH (hormona folículo estimulante)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "fsh"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "menopausia",
+            "display": "Menopausia"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "FSH"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Folitropina"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Hormona folículo estimulante"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "m[IU]/mL"
+          }
+        ],
+        "text": "mUI/mL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2243-4",
+          "display": "Estradiol (E2)"
+        }
+      ],
+      "text": "Estradiol (E2)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "estradiol"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "menopausia",
+            "display": "Menopausia"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "E2"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "17-beta estradiol"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "pg/mL"
+          }
+        ],
+        "text": "pg/mL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "13967-5",
+          "display": "SHBG (globulina fijadora de hormonas sexuales)"
+        }
+      ],
+      "text": "SHBG (globulina fijadora de hormonas sexuales)"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "shbg"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "menopausia",
+            "display": "Menopausia"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "SHBG"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Globulina transportadora de hormonas sexuales"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "nmol/L"
+          }
+        ],
+        "text": "nmol/L"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2986-8",
+          "display": "Testosterona total"
+        }
+      ],
+      "text": "Testosterona total"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "testosterona_total"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "menopausia",
+            "display": "Menopausia"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Testosterona"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "ng/mL"
+          }
+        ],
+        "text": "ng/mL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "http://loinc.org",
+          "code": "2484-4",
+          "display": "Insulina en ayunas"
+        }
+      ],
+      "text": "Insulina en ayunas"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "insulina_ayunas"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "menopausia",
+            "display": "Menopausia"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Insulina"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Insulinemia"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Insulina basal"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "u[IU]/mL"
+          }
+        ],
+        "text": "µUI/mL"
+      }
+    }
+  },
+  {
+    "resourceType": "ObservationDefinition",
+    "code": {
+      "coding": [
+        {
+          "system": "https://segundaopinionmedica.org/fhir/CodeSystem/biomarker",
+          "code": "homa-ir",
+          "display": "Índice HOMA-IR"
+        }
+      ],
+      "text": "Índice HOMA-IR"
+    },
+    "identifier": [
+      {
+        "system": "https://segundaopinionmedica.org/fhir/Identifier/analito",
+        "value": "homa_ir"
+      }
+    ],
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador",
+            "code": "menopausia",
+            "display": "Menopausia"
+          }
+        ]
+      },
+      {
+        "coding": [
+          {
+            "system": "https://segundaopinionmedica.org/fhir/CodeSystem/nivel-laboratorio",
+            "code": "extensivo",
+            "display": "Extensivo"
+          }
+        ]
+      }
+    ],
+    "extension": [
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "HOMA"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "HOMA-IR"
+      },
+      {
+        "url": "https://segundaopinionmedica.org/fhir/StructureDefinition/sinonimo-analito",
+        "valueString": "Índice HOMA"
+      }
+    ],
+    "permittedDataType": [
+      "Quantity"
+    ],
+    "quantitativeDetails": {
+      "unit": {
+        "coding": [
+          {
+            "system": "http://unitsofmeasure.org",
+            "code": "{index}"
+          }
+        ],
+        "text": "índice"
+      }
+    }
+  }
+]

@@ -15,7 +15,9 @@ Portal del paciente de **Segunda Opinión Médica** — segunda opinión cardiol
 
 - Solicitud de Segunda Opinión (caso + estudios) e informe con score PREVENT.
 - Plan Bienestar · 100 días y plan cardiovascular en menopausia (módulo drop-in).
-- Historia clínica, biomarcadores cardiometabólicos, signos vitales, cuestionarios
+- Historia clínica, biomarcadores (laboratorio de rutina: 7 grupos + Menopausia, con
+  analitos, nivel esencial/extensivo y rangos de guía publicados por el servidor como
+  `ObservationDefinition`; "te faltan X estudios esenciales"), signos vitales, cuestionarios
   LE8 (PSQI / MEDAS / EVS / tabaco), consentimiento informado y membresía.
 
 **Stack**: React 19 + TypeScript + Vite + Mantine 8 + Medplum React SDK · FHIR R4 en

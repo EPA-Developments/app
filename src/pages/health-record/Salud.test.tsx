@@ -80,7 +80,7 @@ test('smartphone: el inicio de Salud muestra cada sección en tarjetas, sin el m
   }
   expect(screen.getByRole('button', { name: /Consentimiento Informado/ })).toBeInTheDocument();
 
-  await act(async () => fireEvent.click(screen.getByRole('button', { name: /Cardiometabólico/ })));
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: /Perfil básico y riesgo cardiovascular/ })));
   expect(await screen.findByText('panel de biomarcadores')).toBeInTheDocument();
 
   const volver = screen.getByRole('link', { name: 'Salud' });
