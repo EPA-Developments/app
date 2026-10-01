@@ -17,7 +17,9 @@ const LOINC = 'http://loinc.org';
 // El gráfico necesita canvas, que jsdom no tiene.
 vi.mock('../../components/LineChart', () => ({ LineChart: () => null }));
 
-async function pacienteConLaboratorio(): Promise<{ medplum: MockClient; patient: Patient }> {
+async function pacienteConLaboratorio(
+  datos: Partial<Patient> = { gender: 'female', birthDate: '1976-03-10' }
+): Promise<{ medplum: MockClient; patient: Patient }> {
   indexarDefinicionesFhir();
   const medplum = new MockClient();
   for (const od of definiciones as ObservationDefinition[]) {
@@ -26,8 +28,7 @@ async function pacienteConLaboratorio(): Promise<{ medplum: MockClient; patient:
   const patient = await medplum.createResource<Patient>({
     resourceType: 'Patient',
     name: [{ given: ['Ana'], family: 'Prueba' }],
-    gender: 'female',
-    birthDate: '1976-03-10',
+    ...datos,
   });
   const reciente = fechaDesde(1);
   const resultado = (codigos: string[], extra: Partial<Observation>): Promise<Observation> =>
@@ -84,6 +85,12 @@ test('panel renal: el eGFR calculado por el bot, con su unidad, el rango de la g
   await act(async () => fireEvent.click(egfr));
   expect(screen.getByText(/≥ 60 mL\/min\/1,73 m²/)).toBeInTheDocument();
   expect(screen.getByText(/Último valor: CKD-EPI 2021/)).toBeInTheDocument();
+  // Los tres datos con los que se obtiene.
+  expect(screen.getByText('El eGFR se obtiene con tres datos:')).toBeInTheDocument();
+  expect(screen.getByText(/^\d+ años$/)).toBeInTheDocument();
+  expect(screen.getByText('Femenino')).toBeInTheDocument();
+  expect(screen.getByText(/^1,3 mg\/dL del /)).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Completar mi perfil' })).not.toBeInTheDocument();
 
   // Creatinina: sin rango de guía, vale el del laboratorio.
   const creatinina = screen.getByRole('button', { name: /Creatinina/ });
@@ -122,4 +129,49 @@ test('sin el catálogo del servidor, el panel lo dice en vez de quedar vacío', 
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   await renderPanel(medplum, 'cardiaco');
   expect(await screen.findByText(/no están disponibles en este momento/)).toBeInTheDocument();
+});
+
+test('eGFR: si falta la fecha de nacimiento o el sexo, lo dice y lleva al perfil', async () => {
+  const { medplum } = await pacienteConLaboratorio({ gender: 'other' });
+  await renderPanel(medplum, 'renal');
+  await act(async () => fireEvent.click(await screen.findByRole('button', { name: /Filtrado glomerular estimado/ })));
+  expect(screen.getByText('Falta tu fecha de nacimiento en tu perfil.')).toBeInTheDocument();
+  expect(screen.getByText(/El cálculo usa el sexo biológico/)).toBeInTheDocument();
+  for (const link of screen.getAllByRole('link', { name: 'Completar mi perfil', hidden: true })) {
+    expect(link).toHaveAttribute('href', '/account/profile');
+  }
+});
+
+test('una creatinina cargada a mano suma el eGFR calculado', async () => {
+  const { medplum, patient } = await pacienteConLaboratorio();
+  await renderPanel(medplum, 'renal');
+  const creatinina = await screen.findByRole('button', { name: /Creatinina/ });
+  await act(async () => fireEvent.click(creatinina));
+  const item = creatinina.closest('.mantine-Accordion-item') as HTMLElement;
+  await act(async () => fireEvent.click(within(item).getByRole('button', { name: 'Cargar resultado', hidden: true })));
+  await act(async () => fireEvent.change(screen.getByLabelText(/Valor/), { target: { value: '0.8' } }));
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Guardar' })));
+
+  const cargadas = await medplum.searchResources('Observation', `patient=Patient/${patient.id}&status=preliminary`);
+  const egfr = cargadas.find((o) => o.code?.coding?.some((c) => c.code === '98979-8'));
+  expect(cargadas).toHaveLength(2);
+  expect(egfr?.code?.coding?.map((c) => c.code)).toEqual(['62238-1', '33914-3', '98979-8']);
+  expect(egfr?.derivedFrom?.[0]?.reference).toMatch(/^Observation\//);
+  expect(await screen.findByText(/Tu eGFR estimado: \d+ mL\/min\/1,73 m²/)).toBeInTheDocument();
+});
+
+test('los valores anulados (entered-in-error) no se muestran', async () => {
+  const { medplum, patient } = await pacienteConLaboratorio();
+  await medplum.createResource<Observation>({
+    resourceType: 'Observation',
+    status: 'entered-in-error',
+    code: { coding: [{ system: LOINC, code: '2160-0' }] },
+    subject: { reference: `Patient/${patient.id}` },
+    effectiveDateTime: new Date().toISOString().slice(0, 10),
+    valueQuantity: { value: 9.9, unit: 'mg/dL' },
+  });
+  await renderPanel(medplum, 'renal');
+  const creatinina = await screen.findByRole('button', { name: /Creatinina/ });
+  expect(within(creatinina).getByText('1.3 mg/dL')).toBeInTheDocument();
+  expect(screen.queryByText(/9\.9/)).not.toBeInTheDocument();
 });
