@@ -42,6 +42,7 @@ async function renderEn(medplum: MockClient, ruta: string): Promise<void> {
                 <Route path="/health-record/consent" element={<InformedConsent />} />
                 <Route path="/health-record/cuestionarios/:slug" element={<LE8QuestionnairePage />} />
                 <Route path="/health-record/cuestionarios" element={<Marca texto="Mi salud cardiovascular" />} />
+                <Route path="/care-plan/plan-100-dias/mis-datos" element={<Marca texto="Tus datos de salud" />} />
               </Routes>
             </Suspense>
           </MantineProvider>
@@ -87,10 +88,13 @@ describe('ninguna opción ofrece la Segunda Opinión', () => {
   });
 });
 
-describe('camino de Bienvenida → consentimiento → Mi salud cardiovascular', () => {
-  test('la Bienvenida anuncia Mi salud cardiovascular como tercer paso', async () => {
+describe('camino de Bienvenida → consentimiento → Mi salud cardiovascular → Tus datos de salud', () => {
+  test('la Bienvenida anuncia los 4 pasos del Plan Bienestar', async () => {
     await renderEn(await paciente(), '/bienvenida');
-    expect(screen.getByText('3. Completá Mi salud cardiovascular')).toBeInTheDocument();
+    for (const paso of ['1. Tus datos personales', '2. Tu consentimiento', '3. Tus hábitos', '4. Tus datos de salud']) {
+      expect(screen.getByText(paso)).toBeInTheDocument();
+    }
+    expect(screen.getByText(/Mi salud cardiovascular: 4 cuestionarios/)).toBeInTheDocument();
     expect(screen.getByText('Plan Bienestar · 100 días')).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent(OFRECE_SOM);
   });
@@ -115,5 +119,24 @@ describe('camino de Bienvenida → consentimiento → Mi salud cardiovascular', 
     expect(
       await screen.findByText(`Mi salud cardiovascular · ${LE8_QUESTIONNAIRES.length} de ${LE8_QUESTIONNAIRES.length}`)
     ).toBeInTheDocument();
+  });
+
+  test('el último cuestionario: en castellano, sin título repetido, y sigue en Tus datos de salud', async () => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    const medplum = await paciente();
+    const ultimo = LE8_QUESTIONNAIRES[LE8_QUESTIONNAIRES.length - 1];
+    await renderEn(medplum, `/health-record/cuestionarios/${ultimo.slug}`);
+    const enviar = await screen.findByRole('button', { name: 'Enviar respuestas' });
+    expect(screen.queryByRole('button', { name: 'Submit' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'Tabaco y nicotina' })).toHaveLength(1);
+    // La pregunta de sí/no no es obligatoria (tampoco con la copia local del cuestionario).
+    expect(screen.getByRole('checkbox')).not.toBeRequired();
+
+    await act(async () => fireEvent.click(screen.getByLabelText('Nunca fumé (ni vapeo)')));
+    await act(async () => fireEvent.click(enviar));
+    expect(await screen.findByText('¡Completaste Mi salud cardiovascular!')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver mi tablero de 8 hábitos' })).toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /Siguiente: tus datos de salud/ })));
+    expect(await screen.findByText('Tus datos de salud')).toBeInTheDocument();
   });
 });
