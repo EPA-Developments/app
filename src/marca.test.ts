@@ -61,14 +61,14 @@ test('el nombre del consentimiento se puede fijar aparte', () => {
   });
 });
 
-test('con la marca por defecto, el consentimiento dice lo mismo que antes', () => {
-  expect(consentSubtitle).toBe('Servicio de Segunda Opinión Médica cardiovascular');
+test('con la marca por defecto, el consentimiento nombra a la marca, su responsable y su email', () => {
+  expect(consentSubtitle).toBe('Servicios de salud cardiovascular de Segunda Opinión Médica');
   expect(consentFooter).toBe(
     'Segunda Opinión Médica · Dr. Alejandro Barbagelata  |  Húsares 2248 6° E, C1428 CABA (Bajo Belgrano), Argentina  |  info@segundaopinionmedica.org  ·  Powered by EPA Bienestar IA'
   );
   const texto = JSON.stringify(consentSections);
   expect(texto).toContain(
-    'Segunda Opinión Médica es un servicio de segunda opinión médica cardiovascular dirigido por el Dr. Alejandro Barbagelata.'
+    'Segunda Opinión Médica, dirigido por el Dr. Alejandro Barbagelata, brinda servicios de prevención y seguimiento de la salud cardiovascular'
   );
-  expect(texto).toContain('mediante solicitud a info@segundaopinionmedica.org.');
+  expect(texto).toContain('supresión escribiendo a info@segundaopinionmedica.org.');
 });

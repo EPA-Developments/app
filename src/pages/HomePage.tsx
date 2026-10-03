@@ -35,6 +35,7 @@ import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { RUTA_ENVIAR_ESTUDIOS } from '../components/AccionesRapidas';
+import { AvisoConsentimiento } from '../components/AvisoConsentimiento';
 import { PlanBienestar100 } from '../components/PlanBienestar100';
 import { SeguimientoGlp1Card } from '../components/SeguimientoGlp1Card';
 import { PLAN_BIENESTAR_CKM } from './ckm/ckm.contenido';
@@ -53,10 +54,30 @@ const mobileTiles: { icon: Icon; title: string; href: string }[] = [
 ];
 
 const mobileRows: { icon: Icon; title: string; description: string; href: string }[] = [
-  { icon: IconDropletHeart, title: 'Entendé tu salud CKM', description: 'Corazón, riñones y metabolismo, fase por fase', href: '/ckm' },
-  { icon: IconHeartbeat, title: 'Mi salud cardiovascular', description: "Tus hábitos: Life's Essential 8", href: RUTA_MI_SALUD_CV },
-  { icon: IconHeartbeat, title: 'Mi tablero de 8 hábitos', description: 'Tu puntaje LE8 y tu respuesta a 100 días', href: `${RUTA_PLAN}/tablero` },
-  { icon: IconReportMedical, title: 'Mis biomarcadores', description: 'Resultados y evolución', href: '/health-record/biomarkers' },
+  {
+    icon: IconDropletHeart,
+    title: 'Entendé tu salud CKM',
+    description: 'Corazón, riñones y metabolismo, fase por fase',
+    href: '/ckm',
+  },
+  {
+    icon: IconHeartbeat,
+    title: 'Mi salud cardiovascular',
+    description: "Tus hábitos: Life's Essential 8",
+    href: RUTA_MI_SALUD_CV,
+  },
+  {
+    icon: IconHeartbeat,
+    title: 'Mi tablero de 8 hábitos',
+    description: 'Tu puntaje LE8 y tu respuesta a 100 días',
+    href: `${RUTA_PLAN}/tablero`,
+  },
+  {
+    icon: IconReportMedical,
+    title: 'Mis biomarcadores',
+    description: 'Resultados y evolución',
+    href: '/health-record/biomarkers',
+  },
   { icon: IconFileText, title: 'Historia clínica', description: 'Estudios y registros', href: '/health-record' },
   { icon: IconClipboardHeart, title: 'Mi plan', description: 'Los pasos de tu seguimiento', href: '/care-plan' },
   { icon: IconWallet, title: 'Mi membresía', description: 'Turnos, sesiones y pagos', href: '/membership' },
@@ -150,6 +171,8 @@ export function HomePage(): JSX.Element {
           {profileName || 'qué bueno verte'}
         </Title>
 
+        <AvisoConsentimiento />
+
         {/* Tarjeta de prioridad */}
         <Card radius="lg" p="lg" mb="lg" style={{ backgroundColor: 'var(--mantine-primary-color-filled)' }}>
           <Text c="white" fw={700} fz="lg">
@@ -221,108 +244,109 @@ export function HomePage(): JSX.Element {
 
       {/* DESKTOP — home completa */}
       <Box visibleFrom="sm" bg="gray.0">
-      {/* Hero */}
-      <div className={classes.hero}>
-        <Overlay
-          gradient="linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.55) 100%)"
-          opacity={1}
-          zIndex={0}
-        />
-        <Container className={classes.heroContainer}>
-          <Title className={classes.heroTitle}>
-            Hola <span>{profileName}</span>,<br /> tu Plan Bienestar de 100 días para cuidar tu corazón
-          </Title>
-          <Text c="white" size="lg" maw={640} mt="md" style={{ position: 'relative', zIndex: 1 }}>
-            Salud 3.0: datos y prevención. Tus datos, tus hábitos y tus metas, paso a paso, basados en las guías
-            y en tu riesgo cardiovascular.
-          </Text>
-          <Group mt="xl" style={{ position: 'relative', zIndex: 1 }}>
-            <Button size="lg" radius="xl" className={classes.heroButton} onClick={() => go(RUTA_PLAN)}>
-              Ver mi Plan Bienestar
-            </Button>
-            <Button
-              size="lg"
-              radius="xl"
-              variant="white"
-              onClick={() => navigate('/health-record/biomarkers')?.catch(console.error)}
-            >
-              Cargar mis biomarcadores
-            </Button>
-          </Group>
+        {/* Hero */}
+        <div className={classes.hero}>
+          <Overlay
+            gradient="linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.55) 100%)"
+            opacity={1}
+            zIndex={0}
+          />
+          <Container className={classes.heroContainer}>
+            <Title className={classes.heroTitle}>
+              Hola <span>{profileName}</span>,<br /> tu Plan Bienestar de 100 días para cuidar tu corazón
+            </Title>
+            <Text c="white" size="lg" maw={640} mt="md" style={{ position: 'relative', zIndex: 1 }}>
+              Salud 3.0: datos y prevención. Tus datos, tus hábitos y tus metas, paso a paso, basados en las guías y en
+              tu riesgo cardiovascular.
+            </Text>
+            <Group mt="xl" style={{ position: 'relative', zIndex: 1 }}>
+              <Button size="lg" radius="xl" className={classes.heroButton} onClick={() => go(RUTA_PLAN)}>
+                Ver mi Plan Bienestar
+              </Button>
+              <Button
+                size="lg"
+                radius="xl"
+                variant="white"
+                onClick={() => navigate('/health-record/biomarkers')?.catch(console.error)}
+              >
+                Cargar mis biomarcadores
+              </Button>
+            </Group>
+          </Container>
+        </div>
+
+        {/* Plan Bienestar · 100 días (solo si el paciente está inscripto) */}
+        <Container pt={48}>
+          <AvisoConsentimiento />
+          <SeguimientoGlp1Card />
+          <Box mt="md">
+            <PlanBienestar100 />
+          </Box>
         </Container>
-      </div>
+        {/* Accesos rápidos */}
+        <Container py={48}>
+          {/* Plan Bienestar · 100 días: la card se auto-gestiona (null si el paciente no es elegible). */}
+          <Box mb="xl">
+            <PlanBienestarCard />
+            <Box mt="md">
+              <TableroLe8 basePath={RUTA_PLAN} rutaCuestionarios={RUTA_MI_SALUD_CV} />
+            </Box>
+            <Box mt="md">
+              <EstadioCkmCard />
+            </Box>
+            <Box mt="md">
+              <RiesgoPreventCard basePath="/care-plan/plan-100-dias" />
+            </Box>
+          </Box>
+          <Title order={2} mb="lg">
+            Accesos rápidos
+          </Title>
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
+            {quickActions.map((item) => (
+              <Card
+                key={item.title}
+                withBorder
+                radius="md"
+                p="lg"
+                className={classes.card}
+                style={{ cursor: 'pointer' }}
+                onClick={() => item.href && navigate(item.href)?.catch(console.error)}
+              >
+                <Group wrap="nowrap" align="flex-start">
+                  <ThemeIcon size={44} radius="md" variant="light" color={theme.primaryColor}>
+                    <item.icon size={24} stroke={1.5} />
+                  </ThemeIcon>
+                  <div>
+                    <Text fw={600}>{item.title}</Text>
+                    <Text size="sm" c="dimmed">
+                      {item.description}
+                    </Text>
+                  </div>
+                </Group>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Container>
 
-      {/* Plan Bienestar · 100 días (solo si el paciente está inscripto) */}
-      <Container pt={48}>
-        <SeguimientoGlp1Card />
-        <Box mt="md">
-          <PlanBienestar100 />
-        </Box>
-      </Container>
-      {/* Accesos rápidos */}
-      <Container py={48}>
-        {/* Plan Bienestar · 100 días: la card se auto-gestiona (null si el paciente no es elegible). */}
-        <Box mb="xl">
-          <PlanBienestarCard />
-          <Box mt="md">
-            <TableroLe8 basePath={RUTA_PLAN} rutaCuestionarios={RUTA_MI_SALUD_CV} />
-          </Box>
-          <Box mt="md">
-            <EstadioCkmCard />
-          </Box>
-          <Box mt="md">
-            <RiesgoPreventCard basePath="/care-plan/plan-100-dias" />
-          </Box>
-        </Box>
-        <Title order={2} mb="lg">
-          Accesos rápidos
-        </Title>
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
-          {quickActions.map((item) => (
-            <Card
-              key={item.title}
-              withBorder
-              radius="md"
-              p="lg"
-              className={classes.card}
-              style={{ cursor: 'pointer' }}
-              onClick={() => item.href && navigate(item.href)?.catch(console.error)}
-            >
-              <Group wrap="nowrap" align="flex-start">
-                <ThemeIcon size={44} radius="md" variant="light" color={theme.primaryColor}>
-                  <item.icon size={24} stroke={1.5} />
+        {/* Cómo funciona */}
+        <Container py={48}>
+          <Title order={2} mb={4}>
+            Cómo funciona
+          </Title>
+          <Text c="dimmed" mb="lg" maw={720}>
+            Tu Plan Bienestar · 100 días, en tres pasos.
+          </Text>
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+            {steps.map((step) => (
+              <Card key={step.n} withBorder radius="md" p="lg" className={classes.card}>
+                <ThemeIcon size={40} radius="xl" color={theme.primaryColor}>
+                  {step.n}
                 </ThemeIcon>
-                <div>
-                  <Text fw={600}>{item.title}</Text>
-                  <Text size="sm" c="dimmed">
-                    {item.description}
-                  </Text>
-                </div>
-              </Group>
-            </Card>
-          ))}
-        </SimpleGrid>
-      </Container>
-
-      {/* Cómo funciona */}
-      <Container py={48}>
-        <Title order={2} mb={4}>
-          Cómo funciona
-        </Title>
-        <Text c="dimmed" mb="lg" maw={720}>
-          Tu Plan Bienestar · 100 días, en tres pasos.
-        </Text>
-        <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
-          {steps.map((step) => (
-            <Card key={step.n} withBorder radius="md" p="lg" className={classes.card}>
-              <ThemeIcon size={40} radius="xl" color={theme.primaryColor}>
-                {step.n}
-              </ThemeIcon>
-              <Text mt="md">{step.description}</Text>
-            </Card>
-          ))}
-        </SimpleGrid>
-      </Container>
+                <Text mt="md">{step.description}</Text>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Container>
       </Box>
     </>
   );

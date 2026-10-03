@@ -18,15 +18,18 @@ test('/legal muestra los términos y la privacidad de la marca con sus anclas', 
       </MedplumProvider>
     </MemoryRouter>
   );
-  expect(SECCIONES_TERMINOS.map((s) => s.heading)).toEqual(['2. Descripción del servicio', '3. Alcance y limitaciones']);
+  expect(SECCIONES_TERMINOS.map((s) => s.heading)).toEqual(['2. Qué servicios incluye', '3. Alcance y limitaciones']);
   expect(SECCIONES_PRIVACIDAD.map((s) => s.heading)).toEqual([
-    '4. Uso de inteligencia artificial',
-    '6. Privacidad y tratamiento de datos personales',
+    '4. Inteligencia artificial',
+    '5. Cómo te contactamos',
+    '7. Tus datos personales y tu historia clínica',
+    '8. Revocación',
   ]);
   expect(screen.getByRole('heading', { name: 'Términos del servicio' }).closest('#terminos')).not.toBeNull();
   expect(screen.getByRole('heading', { name: 'Política de privacidad' }).closest('#privacidad')).not.toBeNull();
   expect(screen.getByRole('heading', { name: 'Alcance y limitaciones' })).toBeInTheDocument();
-  expect(screen.getByText(/Ley N° 25\.326/)).toBeInTheDocument();
+  expect(screen.getAllByText(/Ley N° 25\.326/).length).toBeGreaterThan(0);
+  expect(screen.getByText(/AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA/)).toBeInTheDocument();
   expect(screen.getByText(/Segunda Opinión Médica · Dr\. Alejandro Barbagelata/)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'info@segundaopinionmedica.org' })).toHaveAttribute(
     'href',

@@ -34,7 +34,7 @@ export const LOINC_INFORME_LABORATORIO = { system: 'http://loinc.org', code: '11
 /** Política bajo la que se otorga el Consent (FHIR R4, invariante ppc-1). */
 export const CONSENTIMIENTO_SYSTEM = `${SOM_SYSTEM}/consentimiento`;
 export const CONSENTIMIENTO_PROCESAMIENTO = 'procesamiento-datos-salud';
-export const TEXTO_AUTORIZACION = `Autorizo a ${MARCA.nombre} a procesar este documento e incorporar sus resultados a mi historia clínica. Sé que puedo revocar esta autorización cuando quiera.`;
+export const TEXTO_AUTORIZACION = `Autorizo a ${MARCA.nombre} a procesar este documento, con apoyo de inteligencia artificial, e incorporar sus resultados a mi historia clínica. Sé que puedo revocar esta autorización cuando quiera.`;
 
 export const PDF = 'application/pdf';
 export const MAX_MB = 15;
