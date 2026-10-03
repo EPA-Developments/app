@@ -28,8 +28,13 @@ import type { Accion } from './acciones-nivel1.js';
  * Cada acción cita los ítems del catálogo (`items`) que operacionaliza; un test
  * comprueba que existan y que cada `condicion:` esté en `CONDICIONES`.
  *
- * Estado: borrador para firma de los Dres. Barbagelata y D'Alessandro, con el
- * mismo formato que el Anexo C.
+ * Estado: firmado el 03/10/2026 por los Dres. Barbagelata y D'Alessandro, con el
+ * mismo formato que el Anexo C. Aprobaron 36 acciones como estaban y modificaron
+ * cuatro: A14 (caminata posprandial de 10 minutos), P01 (presión en casa los 2 días
+ * antes del control), P05 (peso semanal) y R02 (cintura una vez por semana). En C14
+ * el título dice "medicamentos" en vez de "remedios". También aprobaron que las seis
+ * acciones de piso pélvico y sofocos del Anexo C requieran menopausia y los pares
+ * excluyentes. Hoja de firma: `docs/anexo-c-bis.md`.
  */
 
 const N: Accion[] = [
@@ -204,13 +209,14 @@ const A: Accion[] = [
     codigo: 'A14',
     anexo: 'C-bis',
     pilar: 'osteomuscular-movimiento',
-    nombre: 'Treinta minutos de caminata después de la comida principal',
+    nombre: 'Diez minutos de caminata después de la comida principal',
     practica:
-      'Caminar a paso cómodo durante 30 minutos dentro de la hora siguiente al almuerzo o la cena, al menos 4 días ' +
+      'Caminar a paso cómodo durante 10 minutos dentro de la hora siguiente al almuerzo o la cena, al menos 4 días ' +
       'por semana.',
     racional:
       'La actividad posprandial reduce el pico glucémico y el ejercicio aeróbico baja la PA (Secciones 5.5.1 y 5.5.3). ' +
-      'Versión larga de A07 para quien ya tiene HTA o diabetes.',
+      'Para quien ya tiene HTA, diabetes o prediabetes; no se emite junto con A07, la pausa activa posprandial del ' +
+      'Anexo C. Duración fijada en la firma del 03/10/2026.',
     activadaPor: ['condicion:dm2', 'condicion:hta', 'condicion:prediabetes'],
     items: ['E2-AF-04'],
   },
@@ -362,10 +368,10 @@ const C: Accion[] = [
     codigo: 'C14',
     anexo: 'C-bis',
     pilar: 'conducta-adherencia',
-    nombre: 'Un solo horario para todos los remedios',
+    nombre: 'Un solo horario para todos los medicamentos',
     practica:
-      'Pedirle a tu equipo que agrupe los remedios en el menor número de tomas posible y asociar cada toma a una rutina ' +
-      'fija (desayuno, cena), sin cambiar nada por tu cuenta.',
+      'Pedirle a tu equipo que agrupe los medicamentos en el menor número de tomas posible y asociar cada toma a una ' +
+      'rutina fija (desayuno, cena), sin cambiar nada por tu cuenta.',
     racional:
       'Simplificación del esquema y anclaje de hábitos para la adherencia con polifarmacia (Tabla 12); el ' +
       'reordenamiento lo hace el médico o farmacia clínica, no la persona.',
@@ -400,13 +406,13 @@ const P: Accion[] = [
     codigo: 'P01',
     anexo: 'C-bis',
     pilar: 'presion-corazon',
-    nombre: 'Presión en casa los 7 días antes de cada control',
+    nombre: 'Presión en casa los 2 días antes de cada control',
     practica:
-      'Los 7 días previos al control: dos tomas a la mañana y dos a la noche, sentado, 5 minutos de reposo, espalda ' +
+      'Los 2 días previos al control: dos tomas a la mañana y dos a la noche, sentado, 5 minutos de reposo, espalda ' +
       'apoyada, brazo a la altura del corazón, sin hablar; anotar las cuatro en la app.',
     racional:
-      'AMPA con promedio de 7 días es la medida de control de la guía HTA 2025; detecta HTA incipiente (paso a estadío ' +
-      '2), de bata blanca y enmascarada.',
+      'AMPA antes del control: detecta HTA incipiente (paso a estadío 2), de bata blanca y enmascarada. La guía HTA ' +
+      '2025 promedia 7 días; el esquema de 2 días lo fijó la firma del 03/10/2026.',
     activadaPor: ['estadio:1', 'estadio:2', 'estadio:3', 'estadio:4', 'condicion:pa-elevada'],
     generaRegistro: true,
     items: ['E1-PA-01', 'E2-HTA-01'],
@@ -468,13 +474,15 @@ const P: Accion[] = [
     codigo: 'P05',
     anexo: 'C-bis',
     pilar: 'presion-corazon',
-    nombre: 'Peso diario a la mañana',
+    nombre: 'Peso semanal a la mañana',
     practica:
-      'Pesarse todos los días al levantarse, después de orinar y antes de desayunar, con la misma balanza, y anotarlo ' +
-      'en la app; si subís 2 kg en 3 días o dormís con más almohadas, avisar ese día.',
+      'Pesarse una vez por semana, el mismo día, al levantarse, después de orinar y antes de desayunar, con la misma ' +
+      'balanza, y anotarlo en la app; si se te hinchan los tobillos, te falta el aire o dormís con más almohadas, ' +
+      'pesate ese día y avisá.',
     racional:
-      'Detección temprana de congestión en pre-IC e IC; regla de 2 kg en 3 días (guía IC 2022). Distinto de R01 (peso ' +
-      'semanal para la meta de peso).',
+      'Seguimiento del peso en pre-IC e IC, con aviso el mismo día ante síntomas de congestión. La guía IC 2022 usa el ' +
+      'peso diario (regla de 2 kg en 3 días); la frecuencia semanal la fijó la firma del 03/10/2026. Reemplaza a R01 ' +
+      'con pre-IC o IC.',
     activadaPor: ['condicion:pre-ic', 'condicion:ic'],
     generaRegistro: true,
     items: ['E3-PREIC-02', 'E4-IC-02'],
@@ -688,7 +696,7 @@ const R: Accion[] = [
       'anotarlo en la app.',
     racional:
       'Automonitoreo del peso para la respuesta a 100 días (≥ 5 % / 3 a < 5 % / < 3 %); el protocolo único evita ' +
-      'ruido. Con pre-IC o IC el peso es diario (P05).',
+      'ruido. Con pre-IC o IC va P05, que suma el aviso ante síntomas de congestión.',
     activadaPor: ['condicion:exceso-adiposidad', 'etapa:preparacion', 'etapa:accion'],
     generaRegistro: true,
     items: ['E1-PESO-03', 'E0-PESO-02'],
@@ -697,20 +705,20 @@ const R: Accion[] = [
     codigo: 'R02',
     anexo: 'C-bis',
     pilar: 'medicion-registro',
-    nombre: 'Medite la cintura una vez por mes',
+    nombre: 'Medite la cintura una vez por semana',
     practica:
-      'Una vez por mes, de pie y al final de una espiración normal, medir la cintura en el punto medio entre la última ' +
-      'costilla y la cresta ilíaca, dos veces, y anotar el promedio; mirar primero el video de un minuto.',
+      'Una vez por semana, el mismo día, de pie y al final de una espiración normal, medir la cintura en el punto medio ' +
+      'entre la última costilla y la cresta ilíaca, dos veces, y anotar el promedio; mirar primero el video de un minuto.',
     racional:
       'Protocolo de cintura OMS firmado, dos mediciones promediadas; la cintura vale como respuesta alternativa al peso ' +
-      '(5 cm menos como meta).',
+      '(5 cm menos como meta). Frecuencia semanal fijada en la firma del 03/10/2026.',
     activadaPor: ['condicion:exceso-adiposidad', 'condicion:sindrome-metabolico'],
     generaRegistro: true,
     items: ['E1-PESO-03', 'E2-TG-03'],
   },
 ];
 
-/** Las 40 acciones del Anexo C bis. Borrador para firma; misma regla cerrada que el Anexo C. */
+/** Las 40 acciones del Anexo C bis, firmado el 03/10/2026; misma regla cerrada que el Anexo C. */
 export const BIBLIOTECA_C_BIS: readonly Accion[] = Object.freeze(
   [...N, ...A, ...S, ...C, ...P, ...M, ...T, ...R].map((accion) => Object.freeze(accion)),
 );
