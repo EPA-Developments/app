@@ -19,6 +19,7 @@ import { showErrorNotification } from '../utils/notifications';
 import { fixQuestionnaireResponseTimes, relaxRequiredBooleans } from '../utils/questionnaire';
 import { LE8_QUESTIONNAIRES, le8QuestionnaireBySlug } from '../le8';
 import { le8QuestionnaireDef } from '../le8.questionnaires';
+import { RUTA_DATOS_DE_SALUD } from '../fhir/datosDeSalud';
 
 export function LE8QuestionnairePage(): JSX.Element {
   const medplum = useMedplum();
@@ -50,10 +51,13 @@ export function LE8QuestionnairePage(): JSX.Element {
     const local = le8QuestionnaireDef(meta.slug);
     medplum
       .searchOne('Questionnaire', { url: meta.url })
-      .then((q) => setQuestionnaire(q ? relaxRequiredBooleans(q) : (local ?? null)))
+      .then((q) => {
+        const elegido = q ?? local;
+        setQuestionnaire(elegido ? relaxRequiredBooleans(elegido) : null);
+      })
       .catch((err) => {
         console.warn('Cuestionario LE8 desde el server no disponible; usando definición local.', err);
-        setQuestionnaire(local ?? null);
+        setQuestionnaire(local ? relaxRequiredBooleans(local) : null);
       });
   }, [medplum, meta?.url]);
 
@@ -113,8 +117,9 @@ export function LE8QuestionnairePage(): JSX.Element {
             {siguiente ? '¡Gracias por completar tu cuestionario!' : '¡Completaste Mi salud cardiovascular!'}
           </Title>
           <Text c="dimmed" ta="center" maw={460}>
-            Tus respuestas quedaron registradas. Tu equipo las usa para tu evaluación cardiovascular (Life's
-            Essential 8).
+            {siguiente
+              ? "Tus respuestas quedaron registradas. Tu equipo las usa para tu evaluación cardiovascular (Life's Essential 8)."
+              : 'Tus respuestas quedaron registradas. Falta el último paso: tus datos de salud (peso, presión y tu último laboratorio).'}
           </Text>
           <Group justify="center">
             {siguiente ? (
@@ -126,15 +131,24 @@ export function LE8QuestionnairePage(): JSX.Element {
                 Siguiente: {siguiente.label}
               </Button>
             ) : (
-              <Button
-                radius="xl"
-                rightSection={<IconArrowRight size={16} />}
-                onClick={() => navigate('/care-plan/plan-100-dias/tablero')?.catch(console.error)}
-              >
-                Ver mi tablero de 8 hábitos
-              </Button>
+              <>
+                <Button
+                  radius="xl"
+                  rightSection={<IconArrowRight size={16} />}
+                  onClick={() => navigate(RUTA_DATOS_DE_SALUD)?.catch(console.error)}
+                >
+                  Siguiente: tus datos de salud
+                </Button>
+                <Button
+                  variant="light"
+                  radius="xl"
+                  onClick={() => navigate('/care-plan/plan-100-dias/tablero')?.catch(console.error)}
+                >
+                  Ver mi tablero de 8 hábitos
+                </Button>
+              </>
             )}
-            <Button variant="light" radius="xl" onClick={() => setIsSubmitted(false)}>
+            <Button variant="subtle" radius="xl" onClick={() => setIsSubmitted(false)}>
               Responder de nuevo
             </Button>
           </Group>
@@ -152,7 +166,12 @@ export function LE8QuestionnairePage(): JSX.Element {
               {meta.description}
             </Text>
           )}
-          <QuestionnaireForm questionnaire={questionnaire} onSubmit={handleSubmit} />
+          {/* El título ya está arriba: el formulario no lo repite. */}
+          <QuestionnaireForm
+            questionnaire={{ ...questionnaire, title: undefined }}
+            submitButtonText="Enviar respuestas"
+            onSubmit={handleSubmit}
+          />
         </>
       )}
     </Document>

@@ -11,6 +11,7 @@ import { CarePlanPage } from './pages/care-plan';
 import { ActionItem } from './pages/care-plan/ActionItem';
 import { ActionItems } from './pages/care-plan/ActionItems';
 import { CuidadoInicio } from './pages/care-plan/CuidadoInicio';
+import { DatosDeSalud } from './pages/care-plan/DatosDeSalud';
 import { SeguimientoGlp1 } from './pages/care-plan/SeguimientoGlp1';
 import { EnviarEstudiosPage } from './pages/EnviarEstudiosPage';
 import { GetCare } from './pages/GetCarePage';
@@ -89,6 +90,9 @@ export function Router(): JSX.Element {
         <Route index element={<CuidadoInicio />} />
         <Route path="action-items" element={<ActionItems />} />
         <Route path="action-items/:itemId" element={<ActionItem />} />
+        {/* Paso 4 del Plan Bienestar: "Tus datos de salud" (un solo Guardar). Reemplaza al
+            "Mis datos" del módulo, en la misma URL. */}
+        <Route path="plan-100-dias/mis-datos" element={<DatosDeSalud />} />
         {/* Plan Bienestar · 100 días (módulo drop-in; elegibilidad auto-gestionada por PlanDefinition). */}
         <Route path="plan-100-dias/*" element={<PlanBienestarRoutes />} />
         {/* Seguimiento de tratamiento GLP-1 (solo lectura; lo arma el backend). */}

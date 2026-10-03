@@ -1,14 +1,17 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Patient Journey — pantalla de primera vez, en tres pasos:
+// Patient Journey — pantalla de primera vez. Anuncia los 4 pasos del Plan Bienestar:
+//  1. Tus datos personales (esta pantalla) · 2. Tu consentimiento · 3. Tus hábitos (Mi
+//  salud cardiovascular, LE8) · 4. Tus datos de salud (care-plan/DatosDeSalud.tsx).
+// Esta pantalla, en tres partes:
 //  1. Bienvenida según origen: auto-registrado / invitado por Recepción / derivado.
 //  2. Datos personales: sexo y fecha de nacimiento (habilitan la elegibilidad del
 //     Plan Bienestar · 100 días, que la PlanDefinition evalúa por gender + edad).
 //  3. Contacto: celular, DNI (FHIR Argentina / RENAPER) y domicilio.
 // Todo se guarda en el Patient en una sola escritura junto con la extensión
 // onboarding-completed, y la pantalla no vuelve a aparecer (OnboardingGate).
-// El camino sigue en el consentimiento y de ahí en Mi salud cardiovascular (LE8).
+// El camino sigue en el consentimiento, Mi salud cardiovascular y Tus datos de salud.
 import {
   Button,
   Card,
@@ -26,7 +29,7 @@ import {
 import { formatHumanName } from '@medplum/core';
 import type { Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
-import { IconArrowRight, IconFileCheck, IconHeartbeat, IconUserCheck } from '@tabler/icons-react';
+import { IconArrowRight, IconFileCheck, IconHeartRateMonitor, IconHeartbeat, IconUserCheck } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -41,40 +44,45 @@ interface Paso {
   readonly description: string;
 }
 
+const PASO_CONSENTIMIENTO: Paso = {
+  icon: IconFileCheck,
+  title: 'Tu consentimiento',
+  description: 'Leé y firmá el consentimiento informado del servicio.',
+};
+
+const PASO_HABITOS: Paso = {
+  icon: IconHeartbeat,
+  title: 'Tus hábitos',
+  description:
+    "Mi salud cardiovascular: 4 cuestionarios de Life's Essential 8 (sueño, alimentación, actividad y tabaco).",
+};
+
+const PASO_DATOS_DE_SALUD: Paso = {
+  icon: IconHeartRateMonitor,
+  title: 'Tus datos de salud',
+  description: 'Peso, presión y tu último laboratorio: si tenés el PDF, lo leemos por vos.',
+};
+
 const PASOS_SELF: Paso[] = [
   {
     icon: IconUserCheck,
-    title: 'Completá tu perfil',
+    title: 'Tus datos personales',
     description: 'Unas preguntas simples para personalizar tu plan.',
   },
-  {
-    icon: IconFileCheck,
-    title: 'Firmá el consentimiento',
-    description: 'Leé y firmá el consentimiento informado del servicio.',
-  },
-  {
-    icon: IconHeartbeat,
-    title: 'Completá Mi salud cardiovascular',
-    description: "Respondé los cuestionarios de Life's Essential 8: sueño, alimentación, actividad y tabaco.",
-  },
+  PASO_CONSENTIMIENTO,
+  PASO_HABITOS,
+  PASO_DATOS_DE_SALUD,
 ];
 
 const PASOS_INVITADO: Paso[] = [
   {
     icon: IconUserCheck,
-    title: 'Confirmá tus datos',
+    title: 'Tus datos personales',
     description: 'Verificá que tu información personal esté correcta.',
   },
-  {
-    icon: IconFileCheck,
-    title: 'Firmá el consentimiento',
-    description: 'Leé y firmá el consentimiento informado del servicio.',
-  },
-  {
-    icon: IconHeartbeat,
-    title: 'Completá Mi salud cardiovascular',
-    description: "Respondé los cuestionarios de Life's Essential 8: sueño, alimentación, actividad y tabaco.",
-  },
+  PASO_CONSENTIMIENTO,
+  PASO_HABITOS,
+  PASO_DATOS_DE_SALUD,
 ];
 
 type Errores = Partial<Record<keyof Demografia, string>>;
@@ -217,12 +225,7 @@ export function Welcome(): JSX.Element {
               </Stack>
 
               <Group mt="md">
-                <Button
-                  size="md"
-                  radius="xl"
-                  rightSection={<IconArrowRight size={18} />}
-                  onClick={() => setActive(1)}
-                >
+                <Button size="md" radius="xl" rightSection={<IconArrowRight size={18} />} onClick={() => setActive(1)}>
                   Comenzar
                 </Button>
               </Group>
@@ -232,9 +235,7 @@ export function Welcome(): JSX.Element {
           <Stepper.Step label="Datos personales">
             <Stack gap="md" mt="md">
               <Title order={2}>{esInvitado ? 'Confirmá tus datos personales' : 'Contanos sobre vos'}</Title>
-              <Text c="gray.7">
-                Con tu sexo y tu fecha de nacimiento personalizamos tu Plan Bienestar · 100 días.
-              </Text>
+              <Text c="gray.7">Con tu sexo y tu fecha de nacimiento personalizamos tu Plan Bienestar · 100 días.</Text>
 
               <div>
                 <Text fw={600} size="sm" mb={6}>
@@ -267,7 +268,12 @@ export function Welcome(): JSX.Element {
                 <Button variant="subtle" radius="xl" onClick={() => setActive(0)}>
                   Volver
                 </Button>
-                <Button size="md" radius="xl" rightSection={<IconArrowRight size={18} />} onClick={continuarDatosPersonales}>
+                <Button
+                  size="md"
+                  radius="xl"
+                  rightSection={<IconArrowRight size={18} />}
+                  onClick={continuarDatosPersonales}
+                >
                   Continuar
                 </Button>
               </Group>
@@ -278,8 +284,8 @@ export function Welcome(): JSX.Element {
             <Stack gap="md" mt="md">
               <Title order={2}>{esInvitado ? 'Confirmá cómo contactarte' : '¿Cómo te contactamos?'}</Title>
               <Text c="gray.7">
-                Usamos tu celular y tu domicilio solo para el seguimiento de tu atención. El DNI identifica tu
-                historia clínica en la red de salud argentina.
+                Usamos tu celular y tu domicilio solo para el seguimiento de tu atención. El DNI identifica tu historia
+                clínica en la red de salud argentina.
               </Text>
 
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
