@@ -21,6 +21,7 @@ import type {
   Task,
 } from '@medplum/fhirtypes';
 import { buscarBotSOM } from './bots';
+import { MARCA } from '../marca';
 
 export const SOM_FHIR = 'https://segundaopinionmedica.org/fhir';
 export const SYSTEM_SERVICIO = `${SOM_FHIR}/CodeSystem/servicio`;
@@ -145,7 +146,9 @@ export function parseConsulta(ad: ActivityDefinition): ConsultaCatalogo | undefi
   return {
     codigo,
     nombre: ad.title ?? ad.name ?? codigo,
-    ...(grupoCoding?.code ? { grupo: grupoCoding.code, grupoNombre: grupoCoding.display ?? topicoGrupo?.text ?? grupoCoding.code } : {}),
+    ...(grupoCoding?.code
+      ? { grupo: grupoCoding.code, grupoNombre: grupoCoding.display ?? topicoGrupo?.text ?? grupoCoding.code }
+      : {}),
     precioARS: decimalDe(ad, EXT_AGENDA.precioArs) ?? 0,
     ...(valorReferenciaARS !== undefined ? { valorReferenciaARS } : {}),
     modalidades,
@@ -221,7 +224,8 @@ export function parseConsultaPlan(t: Task): ConsultaPlan | undefined {
     titulo: TITULO_CONSULTA_PLAN[clave],
     ventana: { desde: t.restriction?.period?.start?.slice(0, 10), hasta: t.restriction?.period?.end?.slice(0, 10) },
     estado: agendada ? 'agendada' : 'por-agendar',
-    appointmentRef: t.output?.find((o) => o.valueReference?.reference?.startsWith('Appointment/'))?.valueReference?.reference,
+    appointmentRef: t.output?.find((o) => o.valueReference?.reference?.startsWith('Appointment/'))?.valueReference
+      ?.reference,
   };
 }
 
@@ -242,7 +246,12 @@ export async function cargarConsultasPlan(medplum: MedplumClient, patient: Patie
 
 /** Día `AAAA-MM-DD` en hora de Argentina. */
 export function diaArgentina(d: Date): string {
-  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d);
   const v = (tipo: string): string => partes.find((p) => p.type === tipo)?.value ?? '';
   return `${v('year')}-${v('month')}-${v('day')}`;
 }
@@ -277,17 +286,26 @@ export function parseProfesional(rol: PractitionerRole): Profesional | undefined
     nombre: rol.practitioner?.display ?? codigo,
     especialidad: rol.specialty?.[0]?.text ?? rol.specialty?.[0]?.coding?.[0]?.display,
     modalidades: modalidadesDe(rol),
-    servicios: (rol.code ?? []).flatMap((c) => c.coding ?? []).filter((c) => c.system === SYSTEM_SERVICIO && c.code).map((c) => c.code!),
+    servicios: (rol.code ?? [])
+      .flatMap((c) => c.coding ?? [])
+      .filter((c) => c.system === SYSTEM_SERVICIO && c.code)
+      .map((c) => c.code!),
   };
 }
 
 /** Profesionales que atienden una consulta en una modalidad. */
-export async function cargarProfesionales(medplum: MedplumClient, servicioCodigo: string, modalidad: Modalidad): Promise<Profesional[]> {
+export async function cargarProfesionales(
+  medplum: MedplumClient,
+  servicioCodigo: string,
+  modalidad: Modalidad
+): Promise<Profesional[]> {
   const roles = await medplum.searchResources('PractitionerRole', 'active=true&_count=100');
   return roles
     .map(parseProfesional)
     .filter((p): p is Profesional => p !== undefined)
-    .filter((p) => p.servicios.includes(servicioCodigo) && (p.modalidades.length === 0 || p.modalidades.includes(modalidad)))
+    .filter(
+      (p) => p.servicios.includes(servicioCodigo) && (p.modalidades.length === 0 || p.modalidades.includes(modalidad))
+    )
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
@@ -347,20 +365,31 @@ export async function cargarHorarios(
 // ───────────────────────────── consentimiento de teleconsulta ─────────────────────────────
 
 /**
- * Texto que acepta la paciente antes de su primera teleconsulta. PROVISIONAL: lo redactan
- * los médicos de SOM / legales (recepcionistas, docs/decisiones-pendientes.md).
+ * Texto que acepta la paciente antes de su primera teleconsulta (Consent `teleconsulta`,
+ * R-21). BORRADOR 2026-10, junto con el consentimiento informado: lo revisan los médicos y
+ * el equipo legal (recepcionistas, docs/decisiones-pendientes.md).
  */
 export const TEXTO_CONSENTIMIENTO_TELECONSULTA =
-  'Acepto ser atendida por videollamada (teleconsulta) por los profesionales de Segunda Opinión Médica. ' +
+  `Acepto recibir atención por videollamada (teleconsulta) de los profesionales de ${MARCA.nombre}. ` +
   'Entiendo que la teleconsulta no reemplaza la atención presencial cuando el profesional la considere necesaria, ' +
-  'que puede requerir estudios o una consulta en el centro, y que mis datos de salud se tratan según la Ley 25.326. ' +
-  'Puedo revocar este consentimiento en cualquier momento desde Mensajes. (Texto provisional, pendiente de revisión.)';
+  'que puede indicarme estudios o una consulta presencial, y que para hacerla necesito una conexión adecuada y un lugar privado. ' +
+  'La videollamada se hace en una sala privada de la plataforma. Mis datos de salud se tratan según la Ley N° 25.326 ' +
+  'y el consentimiento informado que firmé. Puedo revocar este consentimiento en cualquier momento desde Mensajes.';
 
 /** ¿La paciente ya aceptó el consentimiento de teleconsulta (Consent activo y vigente)? */
-export async function tieneConsentimientoTeleconsulta(medplum: MedplumClient, patient: Patient, ahora: Date = new Date()): Promise<boolean> {
-  const consents = await medplum.searchResources('Consent', `patient=${getReferenceString(patient)}&status=active&_count=50`);
+export async function tieneConsentimientoTeleconsulta(
+  medplum: MedplumClient,
+  patient: Patient,
+  ahora: Date = new Date()
+): Promise<boolean> {
+  const consents = await medplum.searchResources(
+    'Consent',
+    `patient=${getReferenceString(patient)}&status=active&_count=50`
+  );
   return consents.some((c) => {
-    const esDeTele = c.policyRule?.coding?.some((k) => k.system === SYSTEM_CONSENTIMIENTO && k.code === CONSENTIMIENTO_TELECONSULTA);
+    const esDeTele = c.policyRule?.coding?.some(
+      (k) => k.system === SYSTEM_CONSENTIMIENTO && k.code === CONSENTIMIENTO_TELECONSULTA
+    );
     const fin = c.provision?.period?.end;
     return Boolean(esDeTele) && (!fin || Date.parse(fin) >= ahora.getTime());
   });
@@ -378,7 +407,13 @@ export function construirConsentimientoTeleconsulta(patient: Patient, ahora: Dat
     performer: [{ reference: ref }],
     dateTime: ahora.toISOString(),
     policyRule: {
-      coding: [{ system: SYSTEM_CONSENTIMIENTO, code: CONSENTIMIENTO_TELECONSULTA, display: 'Consentimiento de teleconsulta (telemedicina)' }],
+      coding: [
+        {
+          system: SYSTEM_CONSENTIMIENTO,
+          code: CONSENTIMIENTO_TELECONSULTA,
+          display: 'Consentimiento de teleconsulta (telemedicina)',
+        },
+      ],
       text: TEXTO_CONSENTIMIENTO_TELECONSULTA,
     },
     provision: { type: 'permit' },
@@ -424,12 +459,19 @@ export const MENSAJE_RESERVA_NO_DISPONIBLE =
   'La reserva online todavía no está disponible. Escribinos por Mensajes y coordinamos tu turno.';
 
 /** Reserva el horario elegido ejecutando el bot de recepcionistas (no escribe la agenda). */
-export async function reservarHorario(medplum: MedplumClient, patient: Patient, pedido: PedidoReserva): Promise<ResultadoReserva> {
+export async function reservarHorario(
+  medplum: MedplumClient,
+  patient: Patient,
+  pedido: PedidoReserva
+): Promise<ResultadoReserva> {
   const bot = await buscarBotSOM(medplum, BOT_RESERVAR);
   if (!bot?.id) {
     return { ok: false, mensaje: MENSAJE_RESERVA_NO_DISPONIBLE };
   }
-  return (await medplum.executeBot(bot.id, { pacienteRef: getReferenceString(patient), ...pedido })) as ResultadoReserva;
+  return (await medplum.executeBot(bot.id, {
+    pacienteRef: getReferenceString(patient),
+    ...pedido,
+  })) as ResultadoReserva;
 }
 
 // ───────────────────────────── mis turnos ─────────────────────────────
@@ -448,7 +490,11 @@ export function estadoReservaPortal(appt: Appointment, ahora: Date = new Date())
   if (appt.status === 'pending' && (expiraISO || linkPago)) {
     const expira = expiraISO ? new Date(expiraISO) : undefined;
     const vencido = expira !== undefined && expira.getTime() <= ahora.getTime();
-    return { estado: vencido ? 'vencido' : 'tentativo', ...(expira ? { expira } : {}), ...(linkPago && !vencido ? { linkPago } : {}) };
+    return {
+      estado: vencido ? 'vencido' : 'tentativo',
+      ...(expira ? { expira } : {}),
+      ...(linkPago && !vencido ? { linkPago } : {}),
+    };
   }
   if (appt.status === 'cancelled' && expiraISO) {
     return { estado: 'cancelado-por-vencimiento', expira: new Date(expiraISO) };
@@ -456,8 +502,18 @@ export function estadoReservaPortal(appt: Appointment, ahora: Date = new Date())
   return undefined;
 }
 
-export const fmtHoraArg = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ });
-export const fmtDiaArg = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ });
+export const fmtHoraArg = new Intl.DateTimeFormat('es-AR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: TZ,
+});
+export const fmtDiaArg = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: TZ,
+});
 
 /** "$150.000" */
 export function pesos(n: number): string {
