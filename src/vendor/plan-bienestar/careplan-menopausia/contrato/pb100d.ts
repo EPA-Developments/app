@@ -150,6 +150,14 @@ export const SYS_SUFIJO = {
   catalogo: 'CodeSystem/catalogo-pb100d',
   /** Condiciones que activan ítems del catálogo (`dm2`, `hta`, `toma-glp1`, ...). */
   catalogoCondicion: 'CodeSystem/catalogo-condicion',
+  /**
+   * `CarePlan.category` de los planes de cuidado de SOM. La inscripción comercial al
+   * programa que hace Recepción (`plan-bienestar-100`, con las tres consultas) es otro
+   * CarePlan que el clínico (`pb100d-ckm`): se lee, no se escribe desde acá.
+   */
+  planCuidado: 'CodeSystem/care-plans',
+  /** Consultas programadas del plan (`inicial` | `mitad` | `final`), en las actividades del CarePlan de inscripción. */
+  consultaPlanBienestar: 'CodeSystem/consulta-plan-bienestar',
 } as const;
 
 /** URLs canónicas de extensión. Usar **siempre estas** al escribir. */
@@ -168,6 +176,8 @@ export const SYS = {
   taskTipo: `${BASE_CANONICA}/${SYS_SUFIJO.taskTipo}`,
   catalogo: `${BASE_CANONICA}/${SYS_SUFIJO.catalogo}`,
   catalogoCondicion: `${BASE_CANONICA}/${SYS_SUFIJO.catalogoCondicion}`,
+  planCuidado: `${BASE_CANONICA}/${SYS_SUFIJO.planCuidado}`,
+  consultaPlanBienestar: `${BASE_CANONICA}/${SYS_SUFIJO.consultaPlanBienestar}`,
 } as const;
 
 /** Códigos del contrato. Estos no llevan namespace: son valores, no URLs. */
@@ -176,6 +186,10 @@ export const COD = {
   solicitudPlan: 'solicitud-plan',
   /** Valor de `tipo-cobertura` para un programa por ventana de tiempo. */
   coberturaPrograma: 'programa',
+  /** `CarePlan.category` (`care-plans`) de la inscripción al programa que hace Recepción. */
+  planBienestar100: 'plan-bienestar-100',
+  /** `Task.code` (`task-tipo`) de Recepción: agendar una consulta programada del plan (días 1, 50 y 100). */
+  agendarConsultaPb100d: 'agendar-consulta-pb100d',
 } as const;
 
 // ---------------------------------------------------------------------------

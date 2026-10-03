@@ -127,24 +127,46 @@ const def = (v: number | undefined): v is number => typeof v === 'number' && Num
 const noNegativo = (v: number): number => Math.max(0, v);
 
 /**
- * Dieta: la AHA puntúa por quintil de adherencia (MEPA de 16 ítems: 15–16 = 100,
- * 12–14 = 80, 8–11 = 50, 4–7 = 25, 0–3 = 0). El portal usa el MEDAS de 13 criterios
- * que puntúan, así que se aplica la misma proporción sobre el total del instrumento.
- * PENDIENTE_VALIDACION: la conversión MEDAS → quintiles la definen nutrición y los
- * cardiólogos (decisión abierta n.º 10 del catálogo); el corte firmado es MEDAS ≥ 9 =
- * buena adherencia.
+ * Dieta: la AHA puntúa con el MEPA de 16 ítems (15–16 = 100, 12–14 = 80, 8–11 = 50,
+ * 4–7 = 25, 0–3 = 0). El portal usa el MEDAS-14, que puntúa 13 criterios: la pregunta
+ * del vino es informativa y no suma.
+ *
+ * Conversión firmada el 03/10/2026 por los Dres. Barbagelata y D'Alessandro (opción B,
+ * anclada al corte firmado de MEDAS ≥ 9 = buena adherencia): 12–13 = 100, 9–11 = 80,
+ * 6–8 = 50, 3–5 = 25, 0–2 = 0. Así "9 o más" coincide con 80 o más en LE8 (salud
+ * cardiovascular alta). No hay una tabla publicada MEDAS → LE8: es una conversión
+ * práctica, decidida por el equipo médico.
  */
-export const LE8_DIETA_PENDIENTE_VALIDACION = true;
-const DIETA_CORTES: ReadonlyArray<{ proporcion: number; puntaje: number }> = [
-  { proporcion: 15 / 16, puntaje: 100 },
-  { proporcion: 12 / 16, puntaje: 80 },
-  { proporcion: 8 / 16, puntaje: 50 },
-  { proporcion: 4 / 16, puntaje: 25 },
-];
+export const LE8_DIETA_PENDIENTE_VALIDACION = false;
 
+/** Puntos LE8 por puntaje MEDAS sobre 13 criterios (firmado el 03/10/2026). */
+export const DIETA_MEDAS_13: ReadonlyArray<{ desde: number; puntaje: number }> = Object.freeze([
+  { desde: 12, puntaje: 100 },
+  { desde: 9, puntaje: 80 },
+  { desde: 6, puntaje: 50 },
+  { desde: 3, puntaje: 25 },
+  { desde: 0, puntaje: 0 },
+]);
+
+/** Puntos LE8 por puntaje MEPA de 16 ítems (tabla de la AHA). */
+export const DIETA_MEPA_16: ReadonlyArray<{ desde: number; puntaje: number }> = Object.freeze([
+  { desde: 15, puntaje: 100 },
+  { desde: 12, puntaje: 80 },
+  { desde: 8, puntaje: 50 },
+  { desde: 4, puntaje: 25 },
+  { desde: 0, puntaje: 0 },
+]);
+
+/**
+ * Puntaje LE8 de la dieta. Con 13 criterios (el MEDAS del portal) usa la tabla firmada;
+ * con 16, la del MEPA de la AHA. Otro total se lleva a 13 criterios (redondeando hacia
+ * abajo) antes de aplicar la tabla firmada.
+ */
 export function puntajeDieta(medasPuntos: number, medasTotal = 13): number {
-  const proporcion = Math.min(1, Math.max(0, medasPuntos / medasTotal));
-  return DIETA_CORTES.find((c) => proporcion >= c.proporcion - 1e-9)?.puntaje ?? 0;
+  const tabla = medasTotal === 16 ? DIETA_MEPA_16 : DIETA_MEDAS_13;
+  const acotado = Math.min(medasTotal, Math.max(0, medasPuntos));
+  const puntos = medasTotal === 16 || medasTotal === 13 ? acotado : Math.floor((acotado * 13) / medasTotal + 1e-9);
+  return tabla.find((c) => puntos >= c.desde)?.puntaje ?? 0;
 }
 
 export function puntajeActividad(minSemana: number): number {

@@ -688,9 +688,10 @@ export function buscarAccion(codigo: string): Accion | undefined {
  *
  * A03 (caminata de impacto) vs A04 (alternativa sin impacto): A04 existe
  * justamente porque A03 está contraindicada. A07 y A14 son la misma caminata
- * posprandial en dos duraciones; S01 y S11 el mismo dormitorio con y sin
- * sofocos; N10 y N15 dos diarios de comida; R01 y P05 el peso semanal y el
- * diario (con pre-IC o IC gana el diario).
+ * posprandial de 10 minutos (A07 por sedentarismo, A14 con HTA o diabetes);
+ * S01 y S11 el mismo dormitorio con y sin sofocos; N10 y N15 dos diarios de
+ * comida; R01 y P05 el mismo peso semanal (con pre-IC o IC va P05, que suma el
+ * aviso ante síntomas de congestión). Pares aprobados en la firma del 03/10/2026.
  */
 export const EXCLUSIONES_MUTUAS: readonly (readonly [CodigoAccion, CodigoAccion])[] = Object.freeze([
   ['A03', 'A04'] as const,

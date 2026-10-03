@@ -51,6 +51,11 @@ export const LOINC = {
   smokingStatus: loinc('72166-2', 'Tobacco smoking status'),
   steps24h: loinc('55423-8', 'Number of steps in 24 hour Measured'),
   sleepDuration: loinc('93832-4', 'Sleep duration'),
+
+  // Liver panel (FIB-4: AST, ALT, platelets) ----------------------------
+  ast: loinc('1920-8', 'Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma'),
+  alt: loinc('1742-6', 'Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma'),
+  platelets: loinc('777-3', 'Platelets [#/volume] in Blood by Automated count'),
 } as const;
 
 export type LoincKey = keyof typeof LOINC;

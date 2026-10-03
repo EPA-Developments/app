@@ -1,22 +1,13 @@
 import {
-  BASELINE_QUESTIONNAIRE_URL,
-  LIFE_STAGES,
   MENOPAUSE_QUESTIONNAIRE_URL,
   PLAN_DEFINITION_SUFIJO_MENOPAUSIA,
   PLAN_DEFINITION_URL,
-  SNOMED,
-  SYSTEM,
   buildMenopauseCarePlanBundle,
   buildPb100dCarePlanBundle,
   coincide,
-  condicionesDesdeCkm,
   esCarePlanDelPrograma,
-  estadioCatalogo,
-  evaluateCkmStage,
-  extractCkmInput,
-  perfilDesdeRespuesta,
-  type CkmStage,
-  type Condicion,
+  estadioValidado,
+  perfilDeLaPersona,
   type PerfilCatalogo,
 } from '@epa/careplan-menopausia';
 import { createReference, getReferenceString } from '@medplum/core';
@@ -121,64 +112,48 @@ export async function buscarPlanActivo(
     .sort((a, b) => fechaDelPlan(b).localeCompare(fechaDelPlan(a)))[0];
 }
 
-const CODIGOS_MENOPAUSIA = new Set([
-  SNOMED.menopausePresent.code,
-  ...Object.values(LIFE_STAGES).map((etapa) => etapa.coding.code),
-]);
-
-function condicionActiva(condition: Condition): boolean {
-  const estado = condition.clinicalStatus?.coding?.[0]?.code;
-  return estado === undefined || estado === 'active' || estado === 'recurrence' || estado === 'relapse';
-}
-
-/** Stage validated by the team: the latest `estadio-ckm` Observation (EPA code system). */
-export function estadioValidado(observations: Observation[]): { stage: CkmStage; observation: Observation } | undefined {
-  const registros = observations
-    .filter(
-      (o) =>
-        o.status !== 'entered-in-error' &&
-        (o.code?.coding ?? []).some((c) => c.system === SYSTEM.epa && c.code === 'estadio-ckm'),
-    )
-    .sort((a, b) => (b.effectiveDateTime ?? b.issued ?? '').localeCompare(a.effectiveDateTime ?? a.issued ?? ''));
-  for (const observation of registros) {
-    const code = (observation.valueCodeableConcept?.coding ?? []).find((c) => c.system === SYSTEM.epa)?.code ?? '';
-    const match = /^estadio-ckm-([0-4])/.exec(code);
-    if (match) return { stage: Number(match[1]) as CkmStage, observation };
-  }
-  return undefined;
-}
+/**
+ * Stage validated by the team: the latest `estadio-ckm` Observation written with
+ * the validated method (`@epa/careplan-menopausia` → `estadioValidado`). What the
+ * portal estimates and records (`useCkm().registrarEstadio`) never counts as
+ * validated: without a validation the plan falls back to the estimate.
+ */
+export { estadioValidado };
 
 export type PerfilParaEmpezar =
   | { perfil: PerfilCatalogo; ckmObservation?: Observation; estimado: boolean }
   | { faltantes: string[] };
 
 /**
- * Builds the catalog profile (stage + conditions) of a patient from the record:
- * the validated stage if the team registered one, otherwise the estimate; plus
- * what the record adds (menopause finding, GLP-1 from the baseline questionnaire).
+ * Builds the catalog profile (stage + conditions) of a patient from the record,
+ * with the same logic the team's menu uses (`perfilDeLaPersona`): the validated
+ * stage if the team registered one, otherwise the estimate; the conditions the
+ * data derive, the ones the team registered, the ones the team's instruments
+ * derive, and what the record adds (menopause finding, GLP-1 from the baseline).
  */
 export function perfilParaEmpezar(d: {
   patient: Patient;
   observations: Observation[];
   conditions: Condition[];
+  /** The baseline questionnaire response (kept for compatibility; `questionnaireResponses` covers it). */
   baseline?: QuestionnaireResponse;
+  /** All the patient's questionnaire responses: baseline (GLP-1) and the team's instruments. */
+  questionnaireResponses?: QuestionnaireResponse[];
 }): PerfilParaEmpezar {
-  const input = extractCkmInput({ patient: d.patient, observations: d.observations, conditions: d.conditions });
-  const resultado = evaluateCkmStage(input);
-  const validado = estadioValidado(d.observations);
-  const stage = validado?.stage ?? resultado.stage;
-  if (stage === undefined) {
-    return { faltantes: resultado.faltantes.length ? resultado.faltantes : ['datos básicos (peso, presión, glucemia, lípidos)'] };
+  const respuestas = [...(d.questionnaireResponses ?? []), ...(d.baseline ? [d.baseline] : [])];
+  const persona = perfilDeLaPersona({
+    patient: d.patient,
+    observations: d.observations,
+    conditions: d.conditions,
+    questionnaireResponses: respuestas,
+  });
+  if (!persona.perfil) {
+    return { faltantes: persona.faltantes };
   }
-  const extras: Condicion[] = [];
-  if (d.conditions.some((c) => condicionActiva(c) && (c.code?.coding ?? []).some((k) => k.system === SYSTEM.snomed && CODIGOS_MENOPAUSIA.has(k.code)))) {
-    extras.push('menopausia');
-  }
-  if (perfilDesdeRespuesta(d.baseline).conGlp1) extras.push('toma-glp1');
   return {
-    perfil: { estadio: estadioCatalogo(stage), condiciones: condicionesDesdeCkm(resultado, input, extras) },
-    ...(validado ? { ckmObservation: validado.observation } : {}),
-    estimado: validado === undefined,
+    perfil: persona.perfil,
+    ...(persona.validado ? { ckmObservation: persona.validado.observation } : {}),
+    estimado: persona.validado === undefined,
   };
 }
 
@@ -290,19 +265,14 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
       // PB100D por estadio CKM: el plan se arma con lo que aplica al estadio
       // (validado por el equipo o estimado) y a las condiciones de la persona.
       const ref = getReferenceString(paciente);
-      const [observations, conditions, baselines] = await Promise.all([
+      const [observations, conditions, questionnaireResponses] = await Promise.all([
         medplum.searchResources('Observation', { subject: ref, _count: '200' }).catch(() => [] as Observation[]),
-        medplum.searchResources('Condition', { subject: ref, _count: '100' }).catch(() => [] as Condition[]),
+        medplum.searchResources('Condition', { subject: ref, _count: '200' }).catch(() => [] as Condition[]),
         medplum
-          .searchResources('QuestionnaireResponse', {
-            subject: ref,
-            questionnaire: BASELINE_QUESTIONNAIRE_URL,
-            _sort: '-_lastUpdated',
-            _count: '1',
-          })
+          .searchResources('QuestionnaireResponse', { subject: ref, _count: '200' })
           .catch(() => [] as QuestionnaireResponse[]),
       ]);
-      const armado = perfilParaEmpezar({ patient: paciente, observations, conditions, baseline: baselines[0] });
+      const armado = perfilParaEmpezar({ patient: paciente, observations, conditions, questionnaireResponses });
       if ('faltantes' in armado) {
         setFaltantesParaEmpezar(armado.faltantes);
         return undefined;

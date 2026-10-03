@@ -38,6 +38,12 @@ export function buildCkmStageObservation(result: CkmResult, ctx: CkmObservationC
       text: 'Estadio CKM',
     },
     subject: toReference(ctx.patient),
+    // Estimación del sistema: nunca vale como el estadío validado por el equipo
+    // (`estadioValidado` sólo toma el método `estadio-ckm-validado`).
+    method: {
+      coding: [{ system: SYSTEM.epa, code: 'estadio-ckm-estimado', display: 'Estimado por el sistema' }],
+      text: 'Estimado por el sistema',
+    },
     valueCodeableConcept: {
       coding: [{ system: SYSTEM.epa, code: codigo, display: etiqueta }],
       text: `Estadio ${result.stage}${result.subStage ? ` (${result.subStage})` : ''} - ${etiqueta}`,
