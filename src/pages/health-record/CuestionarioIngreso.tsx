@@ -7,23 +7,27 @@
 //   (el formulario precargado con la última respuesta; actualizar crea una respuesta
 //   nueva y la anterior queda en el historial).
 // El Questionnaire sale del server (compartido con la app clínica) y, si no está, de la
-// definición local. Cada respuesta es un QuestionnaireResponse del paciente.
+// definición local, y se adapta al paciente (`ingresoParaPaciente`: sin preguntas
+// retiradas y sin la de embarazo para hombres). El contacto de emergencia no va acá: se
+// carga en Mi perfil (si falta, se sugiere). Cada respuesta es un QuestionnaireResponse.
 import { Alert, Anchor, Button, Group, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { createReference, formatDateTime } from '@medplum/core';
 import type { Patient, Questionnaire, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { Document, QuestionnaireForm, useMedplum } from '@medplum/react';
 import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router';
-import { buscarUltimoIngreso } from '../../fhir/ingreso';
+import { tieneContactoEmergencia } from '../../fhir/demografia';
+import { buscarUltimoIngreso, ingresoParaPaciente } from '../../fhir/ingreso';
 import { showErrorNotification } from '../../utils/notifications';
 import { fixQuestionnaireResponseTimes } from '../../utils/questionnaire';
 import { INTAKE_QUESTIONNAIRE_URL, intakeQuestionnaire } from '../intake.questionnaire';
 
 const RUTA_RESPUESTAS = '/health-record/questionnaire-responses';
 const RUTA_MI_SALUD_CV = '/health-record/cuestionarios';
+const RUTA_MI_PERFIL = '/account/profile';
 
 /** Respuesta previa como punto de partida del formulario (sin id ni fechas). */
 function comoBorrador(r: QuestionnaireResponse): QuestionnaireResponse {
@@ -37,6 +41,7 @@ export function CuestionarioIngreso(): JSX.Element {
   const patient = medplum.getProfile() as Patient;
   const [questionnaire, setQuestionnaire] = useState<Questionnaire>(intakeQuestionnaire);
   const [estado, setEstado] = useState<Estado>({ tipo: 'cargando' });
+  const preguntas = useMemo(() => ingresoParaPaciente(questionnaire, patient), [questionnaire, patient]);
 
   useEffect(() => {
     // Fuente de verdad: el Questionnaire del server; si no está o no hay acceso, el local.
@@ -79,9 +84,19 @@ export function CuestionarioIngreso(): JSX.Element {
               Cargamos tus respuestas anteriores: cambiá lo que sea distinto y guardalo.
             </Alert>
           )}
+          {!tieneContactoEmergencia(patient) && (
+            <Alert variant="light" color="gray">
+              Tu contacto de emergencia lo cargás en{' '}
+              <Anchor component={Link} to={RUTA_MI_PERFIL}>
+                Mi perfil
+              </Anchor>
+              : lo ve tu equipo de salud en caso de necesitarlo.
+            </Alert>
+          )}
           <QuestionnaireForm
-            key={estado.previa?.id ?? 'nuevo'}
-            questionnaire={questionnaire}
+            // Se rearma si llega la copia del server (el formulario toma el cuestionario una sola vez).
+            key={`${estado.previa?.id ?? 'nuevo'}|${preguntas.id ?? 'local'}|${preguntas.version ?? ''}`}
+            questionnaire={preguntas}
             questionnaireResponse={estado.previa ? comoBorrador(estado.previa) : undefined}
             submitButtonText="Guardar"
             onSubmit={enviar}

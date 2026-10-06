@@ -5,7 +5,7 @@
 // El sexo y la fecha de nacimiento habilitan la elegibilidad del Plan Bienestar
 // · 100 días (la PlanDefinition evalúa gender + edad en su useContext); el DNI
 // usa el sistema de identificación de FHIR Argentina (RENAPER).
-import type { Patient } from '@medplum/fhirtypes';
+import type { Patient, PatientContact } from '@medplum/fhirtypes';
 
 /** Sistema de identificación del DNI argentino (RENAPER), según FHIR Argentina. */
 export const DNI_SYSTEM = 'http://www.renaper.gob.ar/dni';
@@ -161,4 +161,17 @@ export function aplicarDemografia(patient: Patient, datos: Demografia): Patient 
     identifier: identifier.length > 0 ? identifier : undefined,
     address,
   };
+}
+
+// Contacto de emergencia: Patient.contact con el código estándar "C" (Emergency Contact,
+// v2-0131), así recepción y el dashboard lo identifican. Se carga en Mi perfil.
+export const V2_0131 = 'http://terminology.hl7.org/CodeSystem/v2-0131';
+
+export function esContactoEmergencia(c: PatientContact): boolean {
+  return Boolean(c.relationship?.some((r) => r.coding?.some((k) => k.system === V2_0131 && k.code === 'C')));
+}
+
+/** ¿El paciente tiene cargado su contacto de emergencia? */
+export function tieneContactoEmergencia(patient: Patient): boolean {
+  return Boolean(patient.contact?.some(esContactoEmergencia));
 }
