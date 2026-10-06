@@ -12,6 +12,7 @@ import { AccionesRapidas } from './AccionesRapidas';
 import { CampanitaNovedades } from './CampanitaNovedades';
 import classes from './Header.module.css';
 import { Logo } from './Logo';
+import { useAnclaViewport } from '../utils/useAnclaViewport';
 
 // Nav de desktop alineada con los 3 ejes (en mobile manda el menú inferior).
 const navigation = [
@@ -30,8 +31,11 @@ export function Header({ soloCerrarSesion = false }: { soloCerrarSesion?: boolea
   // El "+" de web: la misma hoja "¿Qué querés hacer?" que el botón central del menú inferior.
   const [accionesOpened, acciones] = useDisclosure(false);
 
+  // iOS Safari: que el encabezado no desaparezca arriba al hacer scroll (ver useAnclaViewport).
+  const encabezado = useAnclaViewport<HTMLElement>('top');
+
   return (
-    <AppShell.Header className={classes.header} withBorder={false}>
+    <AppShell.Header ref={encabezado} className={classes.header} withBorder={false}>
       <Container size="lg" h="100%">
         <div className={classes.inner}>
           {soloCerrarSesion ? (

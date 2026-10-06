@@ -1,0 +1,9 @@
+/* iOS Safari hace zoom al enfocar un campo con letra menor a 16px y ese zoom desplaza los
+   elementos fijos (encabezado y menú inferior). En mobile, los campos van a 16px. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
