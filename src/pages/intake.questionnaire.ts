@@ -8,6 +8,14 @@
 //
 // Nota: los linkId son descriptivos; el mapeo a códigos del modelo FHIR se puede agregar
 // más adelante.
+//
+// v1.1.0 (06/10/2026, decisión de SOM): sin superposiciones.
+//  - La hipertensión se pregunta una sola vez, en "Antecedentes médicos" (enfermedad
+//    cardiovascular); el detalle lo indaga el profesional. Sale `fr-hipertension`.
+//  - El contacto de emergencia se carga en Mi perfil (Patient.contact). Sale
+//    `contacto-emergencia`.
+//  - La pregunta de embarazo no se muestra a hombres: lo resuelve `ingresoParaPaciente`
+//    (src/fhir/ingreso.ts), que depende del paciente y vale también para la copia del server.
 import type { Questionnaire } from '@medplum/fhirtypes';
 
 /** URL canónica del cuestionario de ingreso (compartida con la app clínica vía Medplum). */
@@ -18,7 +26,7 @@ export const INTAKE_QUESTIONNAIRE_URL = 'https://segundaopinionmedica.org/Questi
 export const intakeQuestionnaire: Questionnaire = {
   resourceType: 'Questionnaire',
   url: INTAKE_QUESTIONNAIRE_URL,
-  version: '1.0.0',
+  version: '1.1.0',
   status: 'active',
   name: 'som-intake-clinico',
   title: 'Cuestionario de ingreso',
@@ -52,7 +60,6 @@ export const intakeQuestionnaire: Questionnaire = {
       text: 'Factores de riesgo cardiovascular',
       type: 'group',
       item: [
-        { linkId: 'fr-hipertension', text: '¿Tenés hipertensión arterial?', type: 'boolean' },
         { linkId: 'fr-diabetes', text: '¿Tenés diabetes?', type: 'boolean' },
         { linkId: 'fr-dislipemia', text: '¿Tenés colesterol alto (dislipemia)?', type: 'boolean' },
         {
@@ -128,11 +135,6 @@ export const intakeQuestionnaire: Questionnaire = {
           text: '¿Estás o podrías estar embarazada?',
           type: 'choice',
           answerOption: [{ valueString: 'Sí' }, { valueString: 'No' }, { valueString: 'No aplica' }],
-        },
-        {
-          linkId: 'contacto-emergencia',
-          text: 'Contacto de emergencia (nombre y teléfono)',
-          type: 'string',
         },
       ],
     },

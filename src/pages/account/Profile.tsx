@@ -13,7 +13,14 @@ import { IconCircleCheck, IconCircleOff } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useState } from 'react';
 import { InfoSection } from '../../components/InfoSection';
-import { celularValido, conCelular, leerCelular, normalizarCelular } from '../../fhir/demografia';
+import {
+  V2_0131,
+  celularValido,
+  conCelular,
+  esContactoEmergencia,
+  leerCelular,
+  normalizarCelular,
+} from '../../fhir/demografia';
 import { CoberturaSection } from './CoberturaSection';
 
 /** Domicilio argentino, apilado (usable en smartphone) y en español. */
@@ -67,15 +74,9 @@ function DomicilioInput({ value, onChange }: { value: Address; onChange: (a: Add
   );
 }
 
-// Contacto de emergencia: se guarda en Patient.contact con el código estándar
-// "C" (Emergency Contact, v2-0131), así recepción y el dashboard lo identifican.
-const V2_0131 = 'http://terminology.hl7.org/CodeSystem/v2-0131';
+// Contacto de emergencia: Patient.contact con el código "C" de v2-0131 (ver demografia.ts).
 
 const RELACIONES = ['', 'Pareja / Cónyuge', 'Madre', 'Padre', 'Hijo/a', 'Hermano/a', 'Familiar', 'Amigo/a', 'Otro'];
-
-function esContactoEmergencia(c: PatientContact): boolean {
-  return Boolean(c.relationship?.some((r) => r.coding?.some((k) => k.system === V2_0131 && k.code === 'C')));
-}
 
 /**
  * Arma la entrada Patient.contact desde el formulario, sin campos vacíos.

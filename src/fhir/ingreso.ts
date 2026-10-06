@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Cuestionario de ingreso: ¿el paciente ya lo respondió? Cada respuesta es un
-// QuestionnaireResponse del paciente con `questionnaire` = la URL canónica del ingreso.
+// Cuestionario de ingreso: ¿el paciente ya lo respondió? (cada respuesta es un
+// QuestionnaireResponse del paciente con `questionnaire` = la URL canónica del ingreso) y
+// qué preguntas le corresponden.
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
-import type { Patient, QuestionnaireResponse } from '@medplum/fhirtypes';
+import type { Patient, Questionnaire, QuestionnaireItem, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { INTAKE_QUESTIONNAIRE_URL } from '../pages/intake.questionnaire';
 
 /** La última respuesta completa del paciente al cuestionario de ingreso, si la hay. */
@@ -18,4 +19,49 @@ export async function buscarUltimoIngreso(medplum: MedplumClient, patient: Patie
   return respuestas
     .filter((r) => r.questionnaire === INTAKE_QUESTIONNAIRE_URL && r.status === 'completed')
     .sort((a, b) => (b.authored ?? '').localeCompare(a.authored ?? ''))[0];
+}
+
+/**
+ * Preguntas que ya no van en el ingreso (v1.1.0), aunque una copia vieja del Questionnaire
+ * en el server todavía las traiga: la hipertensión ya se pregunta en "Antecedentes médicos"
+ * (el detalle lo indaga el profesional) y el contacto de emergencia se carga en Mi perfil.
+ */
+export const PREGUNTAS_RETIRADAS: ReadonlySet<string> = new Set(['fr-hipertension', 'contacto-emergencia']);
+
+/** Preguntas que solo se hacen a quien puede estar embarazada (no a hombres). */
+const SOLO_SI_NO_ES_HOMBRE: ReadonlySet<string> = new Set(['embarazo']);
+
+function filtrar(items: QuestionnaireItem[] | undefined, quitar: (linkId: string) => boolean): QuestionnaireItem[] | undefined {
+  if (!items) {
+    return undefined;
+  }
+  const out: QuestionnaireItem[] = [];
+  for (const item of items) {
+    if (quitar(item.linkId)) {
+      continue;
+    }
+    const hijos = filtrar(item.item, quitar);
+    // Un grupo que se quedó sin preguntas no se muestra.
+    if (item.type === 'group' && item.item?.length && !hijos?.length) {
+      continue;
+    }
+    out.push(hijos ? { ...item, item: hijos } : item);
+  }
+  return out;
+}
+
+/**
+ * El cuestionario de ingreso que ve este paciente: sin las preguntas retiradas y, si es
+ * hombre (`Patient.gender = male`), sin la de embarazo. Con sexo sin cargar, otro o
+ * desconocido, la pregunta de embarazo se mantiene.
+ */
+export function ingresoParaPaciente(questionnaire: Questionnaire, patient: Patient): Questionnaire {
+  const esHombre = patient.gender === 'male';
+  return {
+    ...questionnaire,
+    item: filtrar(
+      questionnaire.item,
+      (linkId) => PREGUNTAS_RETIRADAS.has(linkId) || (esHombre && SOLO_SI_NO_ES_HOMBRE.has(linkId))
+    ),
+  };
 }

@@ -13,9 +13,16 @@ import { CuestionarioIngreso } from './CuestionarioIngreso';
 
 beforeAll(() => indexarDefinicionesFhir());
 
-async function preparar(conRespuesta: boolean): Promise<{ medplum: MockClient; patient: Patient }> {
+async function preparar(
+  conRespuesta: boolean,
+  datos: Partial<Patient> = { gender: 'female' }
+): Promise<{ medplum: MockClient; patient: Patient }> {
   const medplum = new MockClient();
-  const patient = await medplum.createResource<Patient>({ resourceType: 'Patient', name: [{ given: ['Ana'], family: 'García' }] });
+  const patient = await medplum.createResource<Patient>({
+    resourceType: 'Patient',
+    name: [{ given: ['Ana'], family: 'García' }],
+    ...datos,
+  });
   medplum.setProfile(patient);
   if (conRespuesta) {
     await medplum.createResource<QuestionnaireResponse>({
@@ -27,7 +34,7 @@ async function preparar(conRespuesta: boolean): Promise<{ medplum: MockClient; p
       item: [
         {
           linkId: 'factores-riesgo',
-          item: [{ linkId: 'fr-hipertension', answer: [{ valueBoolean: true }] }],
+          item: [{ linkId: 'fr-diabetes', answer: [{ valueBoolean: true }] }],
         },
       ],
     });
@@ -50,11 +57,41 @@ async function mostrar(medplum: MockClient): Promise<void> {
   });
 }
 
-test('sin completar: muestra el formulario', async () => {
+test('sin completar: muestra el formulario, sin superposiciones', async () => {
   const { medplum } = await preparar(false);
   await mostrar(medplum);
-  expect(await screen.findByText('¿Tenés hipertensión arterial?')).toBeInTheDocument();
+  expect(await screen.findByText('¿Tenés diabetes?')).toBeInTheDocument();
   expect(screen.queryByText(/Lo completaste el/)).not.toBeInTheDocument();
+  // La hipertensión va solo en Antecedentes médicos; el contacto de emergencia, en Mi perfil.
+  expect(screen.queryByText('¿Tenés hipertensión arterial?')).not.toBeInTheDocument();
+  expect(screen.queryByText(/Contacto de emergencia \(nombre y teléfono\)/)).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Mi perfil' })).toHaveAttribute('href', '/account/profile');
+  // Mujer: se le pregunta por embarazo.
+  expect(screen.getByText('¿Estás o podrías estar embarazada?')).toBeInTheDocument();
+});
+
+test('a un hombre no se le pregunta por embarazo', async () => {
+  const { medplum } = await preparar(false, { gender: 'male' });
+  await mostrar(medplum);
+  expect(await screen.findByText('¿Tenés diabetes?')).toBeInTheDocument();
+  expect(screen.queryByText('¿Estás o podrías estar embarazada?')).not.toBeInTheDocument();
+  expect(screen.queryByText('Otros datos')).not.toBeInTheDocument();
+});
+
+test('con el contacto de emergencia cargado en Mi perfil, no se sugiere', async () => {
+  const { medplum } = await preparar(false, {
+    gender: 'female',
+    contact: [
+      {
+        relationship: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v2-0131', code: 'C' }] }],
+        name: { given: ['Luis'] },
+        telecom: [{ system: 'phone', value: '+5491155551234' }],
+      },
+    ],
+  });
+  await mostrar(medplum);
+  expect(await screen.findByText('¿Tenés diabetes?')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Mi perfil' })).not.toBeInTheDocument();
 });
 
 test('completado: dice cuándo, deja ver las respuestas y actualizarlas con lo anterior precargado', async () => {
@@ -72,7 +109,7 @@ test('completado: dice cuándo, deja ver las respuestas y actualizarlas con lo a
 
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Actualizar mis respuestas' })));
   expect(await screen.findByText(/Cargamos tus respuestas anteriores/)).toBeInTheDocument();
-  expect(screen.getByRole('checkbox', { name: '¿Tenés hipertensión arterial?' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: '¿Tenés diabetes?' })).toBeChecked();
 });
 
 test('al guardar crea la respuesta del paciente y sigue con Mi salud cardiovascular', async () => {
@@ -80,8 +117,8 @@ test('al guardar crea la respuesta del paciente y sigue con Mi salud cardiovascu
   const crear = vi.spyOn(medplum, 'createResource');
   await mostrar(medplum);
 
-  await screen.findByText('¿Tenés hipertensión arterial?');
-  fireEvent.click(screen.getByRole('checkbox', { name: '¿Tenés hipertensión arterial?' }));
+  await screen.findByText('¿Tenés diabetes?');
+  fireEvent.click(screen.getByRole('checkbox', { name: '¿Tenés diabetes?' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /Declaro que la información provista es completa y veraz/ }));
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Guardar' })));
 
