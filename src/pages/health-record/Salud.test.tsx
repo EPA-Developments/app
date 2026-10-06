@@ -28,6 +28,7 @@ async function renderSalud(ruta: string): Promise<void> {
             <Routes>
               <Route path="/health-record" element={<HealthRecord />}>
                 <Route index element={<SaludInicio />} />
+                <Route path="ingreso" element={<Marca texto="cuestionario de ingreso" />} />
                 <Route path="biomarkers" element={<Marca texto="inicio de biomarcadores" />} />
                 <Route path="biomarkers/:panelId" element={<Marca texto="panel de biomarcadores" />} />
                 <Route path="vitals/:measurementId" element={<Marca texto="medición" />} />
@@ -44,18 +45,20 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('el menú lateral de web no cambia: mismas secciones y sub-opciones', () => {
+test('menú lateral de web: el Cuestionario de ingreso primero y Signos Vitales antes de Biomarcadores', () => {
   expect(MENU_LATERAL_SALUD.title).toBe('Historia Clínica');
   expect(MENU_LATERAL_SALUD.menu.map((m) => m.name)).toEqual([
+    'Cuestionario de ingreso',
     'Mi salud cardiovascular',
-    'Biomarcadores',
     'Signos Vitales',
-    'Cuestionarios',
+    'Biomarcadores',
     'Consentimiento Informado',
   ]);
-  expect(MENU_LATERAL_SALUD.menu[0].subMenu).toHaveLength(LE8_QUESTIONNAIRES.length);
-  expect(MENU_LATERAL_SALUD.menu[1].subMenu).toHaveLength(Object.keys(biomarkerPanels).length);
+  expect(MENU_LATERAL_SALUD.menu[0].href).toBe('/health-record/ingreso');
+  expect(MENU_LATERAL_SALUD.menu[0].subMenu).toBeUndefined();
+  expect(MENU_LATERAL_SALUD.menu[1].subMenu).toHaveLength(LE8_QUESTIONNAIRES.length);
   expect(MENU_LATERAL_SALUD.menu[2].subMenu).toHaveLength(Object.keys(measurementsMeta).length);
+  expect(MENU_LATERAL_SALUD.menu[3].subMenu).toHaveLength(Object.keys(biomarkerPanels).length);
 });
 
 test('smartphone: el inicio de Salud muestra cada sección en tarjetas, sin el menú arriba', async () => {
@@ -69,7 +72,12 @@ test('smartphone: el inicio de Salud muestra cada sección en tarjetas, sin el m
   // En el inicio no hay "volver".
   expect(screen.queryByRole('link', { name: 'Salud' })).not.toBeInTheDocument();
 
-  for (const grupo of ['Mi salud cardiovascular', 'Biomarcadores', 'Signos Vitales', 'Registros']) {
+  // Mismo orden que en web: el Cuestionario de ingreso arriba de todo.
+  const tarjetas = screen.getAllByRole('button').map((b) => b.textContent ?? '');
+  expect(tarjetas[0]).toMatch(/^Cuestionario de ingreso/);
+  const texto = document.body.textContent ?? '';
+  expect(texto.indexOf('Signos Vitales')).toBeLessThan(texto.indexOf('Biomarcadores'));
+  for (const grupo of ['Mi salud cardiovascular', 'Biomarcadores', 'Signos Vitales']) {
     expect(screen.getAllByText(grupo).length).toBeGreaterThan(0);
   }
   for (const q of LE8_QUESTIONNAIRES) {
@@ -90,9 +98,8 @@ test('smartphone: el inicio de Salud muestra cada sección en tarjetas, sin el m
   expect(await screen.findByRole('button', { name: /Presión arterial/ })).toBeInTheDocument();
 });
 
-test('web: el inicio de Salud sigue siendo Biomarcadores', async () => {
+test('web: Salud abre el Cuestionario de ingreso', async () => {
   simularPantalla(true);
   await renderSalud('/health-record');
-  expect(await screen.findByText('inicio de biomarcadores')).toBeInTheDocument();
-  expect(screen.queryByText('Registros')).not.toBeInTheDocument();
+  expect(await screen.findByText('cuestionario de ingreso')).toBeInTheDocument();
 });

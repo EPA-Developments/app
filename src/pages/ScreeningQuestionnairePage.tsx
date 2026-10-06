@@ -7,5 +7,5 @@ import { Navigate } from 'react-router';
 // Segunda Opinión Médica. Mantenemos la ruta antigua como redirección para no
 // romper enlaces existentes.
 export function ScreeningQuestionnairePage(): JSX.Element {
-  return <Navigate replace to="/patient-intake-questionnaire" />;
+  return <Navigate replace to="/health-record/ingreso" />;
 }

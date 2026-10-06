@@ -23,7 +23,7 @@ export function Responses(): JSX.Element {
     <Box p="xl">
       <Group justify="space-between" mb="lg">
         <Title>Cuestionarios</Title>
-        <Button onClick={() => navigate('/patient-intake-questionnaire')?.catch(console.error)}>
+        <Button onClick={() => navigate('/health-record/ingreso')?.catch(console.error)}>
           Completar cuestionario de ingreso
         </Button>
       </Group>
