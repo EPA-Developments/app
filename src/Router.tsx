@@ -92,7 +92,7 @@ export function Router(): JSX.Element {
         <Route index element={<CuidadoInicio />} />
         <Route path="action-items" element={<ActionItems />} />
         <Route path="action-items/:itemId" element={<ActionItem />} />
-        {/* Paso 4 del Plan Bienestar: "Tus datos de salud" (un solo Guardar). Reemplaza al
+        {/* Paso 5 del Plan Bienestar: "Tus datos de salud" (un solo Guardar). Reemplaza al
             "Mis datos" del módulo, en la misma URL. */}
         <Route path="plan-100-dias/mis-datos" element={<DatosDeSalud />} />
         {/* Plan Bienestar · 100 días (módulo drop-in; elegibilidad auto-gestionada por PlanDefinition). */}

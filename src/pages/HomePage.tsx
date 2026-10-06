@@ -36,6 +36,7 @@ import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { RUTA_ENVIAR_ESTUDIOS } from '../components/AccionesRapidas';
 import { AvisoConsentimiento } from '../components/AvisoConsentimiento';
+import { AvisoCuestionarioIngreso } from '../components/AvisoCuestionarioIngreso';
 import { PlanBienestar100 } from '../components/PlanBienestar100';
 import { SeguimientoGlp1Card } from '../components/SeguimientoGlp1Card';
 import { PLAN_BIENESTAR_CKM } from './ckm/ckm.contenido';
@@ -172,6 +173,7 @@ export function HomePage(): JSX.Element {
         </Title>
 
         <AvisoConsentimiento />
+        <AvisoCuestionarioIngreso />
 
         {/* Tarjeta de prioridad */}
         <Card radius="lg" p="lg" mb="lg" style={{ backgroundColor: 'var(--mantine-primary-color-filled)' }}>
@@ -278,6 +280,7 @@ export function HomePage(): JSX.Element {
         {/* Plan Bienestar · 100 días (solo si el paciente está inscripto) */}
         <Container pt={48}>
           <AvisoConsentimiento />
+          <AvisoCuestionarioIngreso />
           <SeguimientoGlp1Card />
           <Box mt="md">
             <PlanBienestar100 />

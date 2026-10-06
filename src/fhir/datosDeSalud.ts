@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Paso 4 del Plan Bienestar · "Tus datos de salud": lo que la paciente mide en casa (peso,
+// Paso 5 del Plan Bienestar · "Tus datos de salud": lo que la paciente mide en casa (peso,
 // altura, cintura y presión) y, si no manda el PDF del laboratorio, sus valores a mano.
 // Un solo Guardar: todo sale de acá como Observation, con los LOINC que leen el tablero de
 // 8 hábitos (Life's Essential 8), PREVENT, el mapa CKM y los paneles de Biomarcadores.
