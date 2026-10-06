@@ -16,6 +16,7 @@ import {
   buscarConsentimiento,
   consentimientoAlDia,
 } from '../../fhir/consentimiento';
+import { buscarUltimoIngreso } from '../../fhir/ingreso';
 import { MARCA } from '../../marca';
 import { showErrorNotification } from '../../utils/notifications';
 import type { ConsentBlock } from './InformedConsent.data';
@@ -30,6 +31,7 @@ import {
 } from './InformedConsent.data';
 
 const RUTA_MI_SALUD_CV = '/health-record/cuestionarios';
+const RUTA_INGRESO = '/health-record/ingreso';
 
 /** Codifica un string UTF-8 a base64 (para el adjunto del DocumentReference). */
 function toBase64Utf8(str: string): string {
@@ -143,6 +145,18 @@ export function InformedConsent(): JSX.Element {
   const [signatureName, setSignatureName] = useState(patientName);
   const [dni, setDni] = useState(getDni(patient));
   const [submitting, setSubmitting] = useState(false);
+  // Camino del Plan Bienestar: después del consentimiento va el Cuestionario de ingreso
+  // (si todavía no lo respondió) y después Mi salud cardiovascular.
+  const [ingresoHecho, setIngresoHecho] = useState(false);
+  const siguiente = ingresoHecho
+    ? { ruta: RUTA_MI_SALUD_CV, nombre: 'Mi salud cardiovascular' }
+    : { ruta: RUTA_INGRESO, nombre: 'tu cuestionario de ingreso' };
+
+  useEffect(() => {
+    buscarUltimoIngreso(medplum, patient)
+      .then((r) => setIngresoHecho(Boolean(r)))
+      .catch(() => undefined);
+  }, [medplum, patient]);
 
   const loadConsent = useCallback(() => {
     setLoading(true);
@@ -200,12 +214,12 @@ export function InformedConsent(): JSX.Element {
           color: 'green',
           title: 'Consentimiento firmado',
           message: primeraFirma
-            ? 'Quedó registrado en tu historia clínica. Seguimos con Mi salud cardiovascular.'
+            ? `Quedó registrado en tu historia clínica. Seguimos con ${siguiente.nombre}.`
             : 'Quedó registrado de forma segura en tu historia clínica.',
         });
         setAccepted(false);
         if (primeraFirma) {
-          navigate(RUTA_MI_SALUD_CV)?.catch(console.error);
+          navigate(siguiente.ruta)?.catch(console.error);
         } else {
           loadConsent();
         }
@@ -231,9 +245,9 @@ export function InformedConsent(): JSX.Element {
             <Button
               size="xs"
               rightSection={<IconArrowRight size={14} />}
-              onClick={() => navigate(RUTA_MI_SALUD_CV)?.catch(console.error)}
+              onClick={() => navigate(siguiente.ruta)?.catch(console.error)}
             >
-              Seguí con Mi salud cardiovascular
+              Seguí con {siguiente.nombre}
             </Button>
           </Group>
         </Alert>

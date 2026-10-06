@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Plan Bienestar · paso 4 de 4: "Tus datos de salud". Dos cosas y un solo Guardar:
+// Plan Bienestar · paso 5 de 5: "Tus datos de salud". Dos cosas y un solo Guardar:
 //  1. Lo que se mide en casa: peso, altura, cintura y presión (el IMC se calcula solo).
 //  2. El último laboratorio: el PDF (lo lee el bot som-procesar-laboratorio) o, si la
 //     paciente prefiere, sus valores a mano (el no-HDL y el eGFR se calculan solos).
@@ -304,7 +304,7 @@ export function DatosDeSalud(): JSX.Element {
     <Box maw={640}>
       <Stack gap={4} mb="md">
         <Text size="xs" fw={700} c="dimmed" tt="uppercase">
-          Plan Bienestar · paso 4 de 4
+          Plan Bienestar · paso 5 de 5
         </Text>
         <Title order={2}>Tus datos de salud</Title>
         <Text c="dimmed">Dos cosas y listo: lo que medís en casa y tu último laboratorio.</Text>

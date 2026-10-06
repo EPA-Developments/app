@@ -64,6 +64,7 @@ async function renderEn(medplum: MockClient, ruta: string): Promise<void> {
             <Routes>
               <Route path="/health-record/consent" element={<InformedConsent />} />
               <Route path="/health-record/cuestionarios" element={<Marca texto="Mi salud cardiovascular" />} />
+              <Route path="/health-record/ingreso" element={<Marca texto="Cuestionario de ingreso" />} />
               <Route path="/inicio" element={<AvisoConsentimiento />} />
             </Routes>
           </MantineProvider>
@@ -86,7 +87,8 @@ test('al firmar se guarda la versión del texto, y el texto firmado dice qué se
   fireEvent.click(screen.getByRole('checkbox'));
   fireEvent.change(screen.getByLabelText(/^DNI/), { target: { value: '12345678' } });
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Firmar y aceptar' })));
-  expect(await screen.findByText('Mi salud cardiovascular')).toBeInTheDocument();
+  // Sin Cuestionario de ingreso respondido, el camino sigue ahí.
+  expect(await screen.findByText('Cuestionario de ingreso')).toBeInTheDocument();
 
   const firmado = (await buscarConsentimiento(medplum, patient)) as DocumentReference;
   expect(versionFirmada(firmado)).toBe(VERSION_CONSENTIMIENTO);

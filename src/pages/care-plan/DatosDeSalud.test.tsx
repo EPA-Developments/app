@@ -83,11 +83,11 @@ function pdf(nombre = 'laboratorio.pdf'): File {
   return new File([contenido], nombre, { type: 'application/pdf' });
 }
 
-test('paso 4 de 4: lo de casa con un solo Guardar, y el cierre del Plan Bienestar', async () => {
+test('paso 5 de 5: lo de casa con un solo Guardar, y el cierre del Plan Bienestar', async () => {
   const { medplum, patient } = await paciente();
   await renderPaso(medplum);
 
-  expect(screen.getByText('Plan Bienestar · paso 4 de 4')).toBeInTheDocument();
+  expect(screen.getByText('Plan Bienestar · paso 5 de 5')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Tus datos de salud' })).toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Guardar' })).toHaveLength(1);
 

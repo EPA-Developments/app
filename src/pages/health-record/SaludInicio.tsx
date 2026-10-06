@@ -1,33 +1,22 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Inicio de "Salud" en smartphone: cada sección de la Historia Clínica con sus opciones
-// (cuestionarios, paneles de biomarcadores, mediciones…), igual que el Resumen de
-// "Mi cuenta". En web manda el menú lateral y el inicio sigue siendo Biomarcadores.
+// Inicio de "Salud" en smartphone: cada sección de la Historia Clínica, en el mismo orden
+// que el menú lateral de web. Las secciones con sub-opciones (cuestionarios, mediciones,
+// paneles) van con su título; las de una sola opción (Cuestionario de ingreso,
+// Consentimiento) van como una tarjeta suelta. En web, Salud abre el Cuestionario de ingreso.
 import type { JSX } from 'react';
 import { InicioDeSeccion } from '../../components/InicioDeSeccion';
 import type { GrupoDeOpciones } from '../../components/InicioDeSeccion';
-import { SECCIONES_SALUD, TITULO_SALUD } from './Salud.data';
+import { RUTA_CUESTIONARIO_INGRESO, SECCIONES_SALUD, TITULO_SALUD } from './Salud.data';
 
-export const INICIO_SALUD_WEB = '/health-record/biomarkers';
+export const INICIO_SALUD_WEB = RUTA_CUESTIONARIO_INGRESO;
 
-// Las secciones con sub-opciones van cada una con su título; las que son una sola opción
-// (Cuestionarios, Consentimiento) se juntan al final.
-const GRUPOS: GrupoDeOpciones[] = [
-  ...SECCIONES_SALUD.filter((s) => s.opciones?.length).map((s) => ({
-    titulo: s.titulo,
-    opciones: (s.opciones ?? []).map((o) => ({ ...o, icon: s.icon })),
-  })),
-  {
-    titulo: 'Registros',
-    opciones: SECCIONES_SALUD.filter((s) => !s.opciones?.length).map((s) => ({
-      icon: s.icon,
-      titulo: s.titulo,
-      descripcion: s.descripcion,
-      href: s.href,
-    })),
-  },
-];
+const GRUPOS: GrupoDeOpciones[] = SECCIONES_SALUD.map((s) =>
+  s.opciones?.length
+    ? { titulo: s.titulo, opciones: s.opciones.map((o) => ({ ...o, icon: s.icon })) }
+    : { opciones: [{ icon: s.icon, titulo: s.titulo, descripcion: s.descripcion, href: s.href }] }
+);
 
 export function SaludInicio(): JSX.Element {
   return <InicioDeSeccion titulo={TITULO_SALUD} grupos={GRUPOS} inicioWeb={INICIO_SALUD_WEB} />;

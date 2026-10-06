@@ -17,6 +17,7 @@ import { EnviarEstudiosPage } from './pages/EnviarEstudiosPage';
 import { GetCare } from './pages/GetCarePage';
 import { HealthRecord } from './pages/health-record';
 import { BiomarkerPanel } from './pages/health-record/BiomarkerPanel';
+import { CuestionarioIngreso } from './pages/health-record/CuestionarioIngreso';
 import { InformedConsent } from './pages/health-record/InformedConsent';
 import { LabResult } from './pages/health-record/LabResult';
 import { LabResults } from './pages/health-record/LabResults';
@@ -36,7 +37,6 @@ import { Conversacion } from './pages/mensajes/Conversacion';
 import { Conversaciones } from './pages/mensajes/Conversaciones';
 import { NuevoMensaje } from './pages/mensajes/NuevoMensaje';
 import { ObservationPage } from './pages/ObservationPage';
-import { PatientIntakeQuestionnairePage } from './pages/PatientIntakeQuestionnairePage';
 import { QuestionnairePage } from './pages/QuestionnairePage';
 import { ScreeningQuestionnairePage } from './pages/ScreeningQuestionnairePage';
 import { MiSegundaOpinion } from './pages/MiSegundaOpinion';
@@ -59,7 +59,8 @@ export function Router(): JSX.Element {
       <Route path="Communication/:messageId" element={<Conversacion />} />
       <Route path="Questionnaire/:questionnaireId" element={<QuestionnairePage />} />
       <Route path="screening-questionnaire" element={<ScreeningQuestionnairePage />} />
-      <Route path="patient-intake-questionnaire" element={<PatientIntakeQuestionnairePage />} />
+      {/* El cuestionario de ingreso vive en Salud (con el menú lateral). */}
+      <Route path="patient-intake-questionnaire" element={<Navigate replace to="/health-record/ingreso" />} />
       <Route path="health-record" element={<HealthRecord />}>
         {/* Inicio: en smartphone, las secciones de Salud en tarjetas; en web va a Biomarcadores.
             Lab-results sigue existiendo pero está oculto del menú. */}
@@ -68,6 +69,7 @@ export function Router(): JSX.Element {
         <Route path="lab-results/:resultId" element={<LabResult />} />
         <Route path="biomarkers" element={<Navigate replace to="/health-record/biomarkers/metabolico" />} />
         <Route path="biomarkers/:panelId" element={<BiomarkerPanel />} />
+        <Route path="ingreso" element={<CuestionarioIngreso />} />
         <Route path="consent" element={<InformedConsent />} />
         <Route path="medications" element={<Medications />} />
         <Route path="medications/:medicationId" element={<Medication />} />
@@ -90,7 +92,7 @@ export function Router(): JSX.Element {
         <Route index element={<CuidadoInicio />} />
         <Route path="action-items" element={<ActionItems />} />
         <Route path="action-items/:itemId" element={<ActionItem />} />
-        {/* Paso 4 del Plan Bienestar: "Tus datos de salud" (un solo Guardar). Reemplaza al
+        {/* Paso 5 del Plan Bienestar: "Tus datos de salud" (un solo Guardar). Reemplaza al
             "Mis datos" del módulo, en la misma URL. */}
         <Route path="plan-100-dias/mis-datos" element={<DatosDeSalud />} />
         {/* Plan Bienestar · 100 días (módulo drop-in; elegibilidad auto-gestionada por PlanDefinition). */}

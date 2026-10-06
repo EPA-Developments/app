@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Patient Journey — pantalla de primera vez. Anuncia los 4 pasos del Plan Bienestar:
-//  1. Tus datos personales (esta pantalla) · 2. Tu consentimiento · 3. Tus hábitos (Mi
-//  salud cardiovascular, LE8) · 4. Tus datos de salud (care-plan/DatosDeSalud.tsx).
+// Patient Journey — pantalla de primera vez. Anuncia los 5 pasos del Plan Bienestar:
+//  1. Tus datos personales (esta pantalla) · 2. Tu consentimiento · 3. Tus antecedentes
+//  (Cuestionario de ingreso) · 4. Tus hábitos (Mi salud cardiovascular, LE8) · 5. Tus datos
+//  de salud (care-plan/DatosDeSalud.tsx).
 // Esta pantalla, en tres partes:
 //  1. Bienvenida según origen: auto-registrado / invitado por Recepción / derivado.
 //  2. Datos personales: sexo y fecha de nacimiento (habilitan la elegibilidad del
@@ -11,7 +12,8 @@
 //  3. Contacto: celular, DNI (FHIR Argentina / RENAPER) y domicilio.
 // Todo se guarda en el Patient en una sola escritura junto con la extensión
 // onboarding-completed, y la pantalla no vuelve a aparecer (OnboardingGate).
-// El camino sigue en el consentimiento, Mi salud cardiovascular y Tus datos de salud.
+// El camino sigue en el consentimiento, el Cuestionario de ingreso, Mi salud cardiovascular y
+// Tus datos de salud.
 import {
   Button,
   Card,
@@ -29,7 +31,14 @@ import {
 import { formatHumanName } from '@medplum/core';
 import type { Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
-import { IconArrowRight, IconFileCheck, IconHeartRateMonitor, IconHeartbeat, IconUserCheck } from '@tabler/icons-react';
+import {
+  IconArrowRight,
+  IconClipboardList,
+  IconFileCheck,
+  IconHeartRateMonitor,
+  IconHeartbeat,
+  IconUserCheck,
+} from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -48,6 +57,12 @@ const PASO_CONSENTIMIENTO: Paso = {
   icon: IconFileCheck,
   title: 'Tu consentimiento',
   description: 'Leé y firmá el consentimiento informado del servicio.',
+};
+
+const PASO_ANTECEDENTES: Paso = {
+  icon: IconClipboardList,
+  title: 'Tus antecedentes',
+  description: 'El cuestionario de ingreso: antecedentes, factores de riesgo, cirugías, medicación y alergias.',
 };
 
 const PASO_HABITOS: Paso = {
@@ -70,6 +85,7 @@ const PASOS_SELF: Paso[] = [
     description: 'Unas preguntas simples para personalizar tu plan.',
   },
   PASO_CONSENTIMIENTO,
+  PASO_ANTECEDENTES,
   PASO_HABITOS,
   PASO_DATOS_DE_SALUD,
 ];
@@ -81,6 +97,7 @@ const PASOS_INVITADO: Paso[] = [
     description: 'Verificá que tu información personal esté correcta.',
   },
   PASO_CONSENTIMIENTO,
+  PASO_ANTECEDENTES,
   PASO_HABITOS,
   PASO_DATOS_DE_SALUD,
 ];

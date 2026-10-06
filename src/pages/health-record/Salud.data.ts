@@ -4,6 +4,12 @@
 // Secciones de "Salud" (Historia Clínica). Un solo catálogo para las dos navegaciones:
 // el menú lateral de web y la pantalla de inicio de smartphone (SaludInicio).
 //
+// Orden (pedido de SOM): primero el Cuestionario de ingreso (lo que el equipo necesita
+// saber antes de la consulta; es el inicio de Salud en web), después Mi salud
+// cardiovascular, Signos Vitales (adelante, para que se carguen seguido), Biomarcadores y
+// el Consentimiento. El historial de cuestionarios sigue en /health-record/questionnaire-
+// responses, enlazado desde el Cuestionario de ingreso.
+//
 // Nota: las rutas y componentes de Resultados de Laboratorio, Medicación y Vacunas
 // se mantienen (no se borran); solo se ocultan del menú.
 //  - Resultados de Laboratorio: oculto por ahora; los informes los crea el bot
@@ -41,7 +47,15 @@ export interface SeccionSalud {
   readonly opciones?: readonly OpcionSalud[];
 }
 
+export const RUTA_CUESTIONARIO_INGRESO = '/health-record/ingreso';
+
 export const SECCIONES_SALUD: readonly SeccionSalud[] = [
+  {
+    titulo: 'Cuestionario de ingreso',
+    href: RUTA_CUESTIONARIO_INGRESO,
+    icon: IconClipboardList,
+    descripcion: 'Tus antecedentes, factores de riesgo, cirugías, medicación y alergias.',
+  },
   {
     titulo: 'Mi salud cardiovascular',
     href: '/health-record/cuestionarios',
@@ -54,6 +68,17 @@ export const SECCIONES_SALUD: readonly SeccionSalud[] = [
     })),
   },
   {
+    titulo: 'Signos Vitales',
+    href: '/health-record/vitals',
+    icon: IconActivityHeartbeat,
+    descripcion: 'Cargalos seguido: presión, frecuencia cardíaca, peso y más.',
+    opciones: Object.values(measurementsMeta).map(({ title, id, description }) => ({
+      titulo: title,
+      descripcion: description,
+      href: `/health-record/vitals/${id}`,
+    })),
+  },
+  {
     titulo: 'Biomarcadores',
     href: '/health-record/biomarkers',
     icon: IconReportMedical,
@@ -63,23 +88,6 @@ export const SECCIONES_SALUD: readonly SeccionSalud[] = [
       descripcion: description,
       href: `/health-record/biomarkers/${id}`,
     })),
-  },
-  {
-    titulo: 'Signos Vitales',
-    href: '/health-record/vitals',
-    icon: IconActivityHeartbeat,
-    descripcion: 'Presión, frecuencia cardíaca, peso y más.',
-    opciones: Object.values(measurementsMeta).map(({ title, id, description }) => ({
-      titulo: title,
-      descripcion: description,
-      href: `/health-record/vitals/${id}`,
-    })),
-  },
-  {
-    titulo: 'Cuestionarios',
-    href: '/health-record/questionnaire-responses',
-    icon: IconClipboardList,
-    descripcion: 'Tus respuestas a los cuestionarios.',
   },
   {
     titulo: 'Consentimiento Informado',
