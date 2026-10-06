@@ -13,6 +13,7 @@ import type { JSX } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { AccionesRapidas, RUTA_ENVIAR_ESTUDIOS } from './AccionesRapidas';
 import classes from './BottomNav.module.css';
+import { useAnclaViewport } from '../utils/useAnclaViewport';
 
 interface Tab {
   readonly icon: Icon;
@@ -60,13 +61,16 @@ export function BottomNav(): JSX.Element {
     navigate(href)?.catch(console.error);
   };
 
+  // iOS Safari: que la barra no quede flotando a mitad de pantalla (ver useAnclaViewport).
+  const barra = useAnclaViewport<HTMLElement>('bottom');
+
   // 2 pestañas · botón central · 2 pestañas.
   const left = tabs.slice(0, 2);
   const right = tabs.slice(2);
 
   return (
     <>
-      <nav className={classes.bar} aria-label="Navegación principal">
+      <nav ref={barra} className={classes.bar} aria-label="Navegación principal">
         {left.map((t) => (
           <TabButton key={t.href} tab={t} active={isActive(pathname, t)} onClick={() => go(t.href)} />
         ))}

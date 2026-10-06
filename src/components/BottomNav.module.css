@@ -10,9 +10,9 @@
   justify-content: space-around;
   height: 64px;
   padding-bottom: env(safe-area-inset-bottom);
-  background-color: rgba(255, 255, 255, 0.92);
-  backdrop-filter: saturate(180%) blur(12px);
-  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  /* Fondo sólido, sin backdrop-filter: en WebKit (iOS) el blur en un elemento fijo se
+     dibuja desfasado al hacer scroll. */
+  background-color: rgba(255, 255, 255, 0.98);
   border-top: 1px solid var(--mantine-color-gray-2);
 
   @mixin larger-than $mantine-breakpoint-sm {
