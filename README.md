@@ -63,8 +63,13 @@ El texto del consentimiento es legal: cambiar la marca cambia el prestador que f
 la que se partió (ni prefijos de sus bots, ni su dominio, ni su servidor). Lo verifica
 `src/sin-marca-anterior.test.ts` en `npm test`, con el mismo patrón que `recepcionistas`.
 
-La landing toma de acá el nombre de la marca y del servicio; el resto de sus textos
-(cardiología, segunda opinión) y la paleta de colores siguen siendo los de la marca por defecto.
+**Regla: la marca sale de la configuración.** Fuera de `src/marca.json` y `src/marca.ts`,
+ningún archivo de `src/` escribe a mano el nombre ni el dominio de la marca actual: se usa
+`MARCA` (`MARCA.nombre`, `MARCA.email`, `MARCA.producto`…). Lo verifica el mismo test, con
+una lista blanca explícita y justificada (vendor, los tests que fijan la marca por defecto,
+las URLs canónicas FHIR y los avisos de copyright). La landing toma de acá el nombre de la
+marca y del servicio; el resto de sus textos (cardiología, segunda opinión) y la paleta de
+colores siguen siendo los de la marca por defecto.
 
 ## Referencias
 

@@ -70,3 +70,142 @@ test('ningún archivo del portal nombra ni apunta a la marca anterior', () => {
     .flatMap(coincidencias);
   expect(encontradas).toEqual([]);
 });
+
+// ───────────────────────── marca actual: solo en la configuración ─────────────────────────
+//
+// Marca blanca (README, "Marca blanca"): el nombre y el dominio de la marca actual salen de
+// `src/marca.json` / `src/marca.ts` (o de las variables MARCA_* del deploy). Ningún otro
+// archivo de `src/` los escribe a mano, así otra marca despliega el portal sin textos de SOM.
+// Se busca el nombre como marca (con mayúsculas, sin tildes o partido en dos líneas de JSX) y
+// el dominio. En minúscula ("tu segunda opinión médica") es la descripción del servicio, no
+// la marca. Para nombrarla en un texto: `MARCA.nombre`, `MARCA.email`, `MARCA.producto`, etc.
+const NOMBRE_MARCA = /Segunda\s+Opini[oó]n\s+M[eé]dica|SEGUNDA\s+OPINI[OÓ]N\s+M[EÉ]DICA/g;
+const DOMINIO_MARCA = /segundaopinionmedica\\?\./gi; // también escapado en una regex
+
+// Lo que puede quedar en cualquier archivo porque no es un texto ni un link de la marca.
+const PERMITIDO_EN_TODOS = [
+  // El aviso de copyright (legal) del código: quién lo escribió, no la marca del deploy.
+  /^\/\/ SPDX-FileCopyrightText: Copyright Segunda Opinión Médica$/gm,
+  // Las URLs canónicas FHIR (CodeSystem, StructureDefinition, Identifier, Questionnaire):
+  // identifican los datos del contrato con Recepción y el servidor
+  // (docs/medplum/bot-som-interface.md); no son links y cambiarlas rompe los datos guardados.
+  /https:\/\/segundaopinionmedica\.org\/(?:fhir|Questionnaire)\b[^\s'"`|,)]*/g,
+  // El ejemplo del link de activación que arma Recepción (otra app, con su propio dominio),
+  // tal como lo documenta el comentario de la página que lo resuelve.
+  /un link mágico https:\/\/app\.segundaopinionmedica\.org\//g,
+];
+
+interface Excepcion {
+  /** Archivo, o carpeta si termina en "/". */
+  readonly ruta: string;
+  readonly motivo: string;
+}
+
+// Lista blanca: los únicos archivos de `src/` que pueden nombrar a la marca, y por qué.
+const EXCEPCIONES: readonly Excepcion[] = [
+  { ruta: 'src/marca.json', motivo: 'la configuración de marca: los valores por defecto del repo' },
+  { ruta: 'src/marca.ts', motivo: 'el módulo de marca: documenta esos valores por defecto' },
+  { ruta: ESTE_ARCHIVO, motivo: 'acá vive la regla: sus patrones y sus ejemplos' },
+  {
+    ruta: 'src/vendor/',
+    motivo: 'copia del monorepo de Plan Bienestar: no se edita a mano, se resincroniza (ver su README)',
+  },
+  { ruta: 'src/marca.test.ts', motivo: 'fija que, con la marca por defecto, todo se vea igual que antes' },
+  { ruta: 'src/pages/MarcaPorDefecto.test.tsx', motivo: 'ídem: landing, CKM, teleconsulta y la solicitud' },
+  { ruta: 'src/components/auth/auth.test.tsx', motivo: 'ídem: el registro con la marca por defecto' },
+  { ruta: 'src/pages/LegalPage.test.tsx', motivo: 'ídem: términos y privacidad con la marca por defecto' },
+  {
+    ruta: 'src/pages/health-record/InformedConsent.test.tsx',
+    motivo: 'ídem: el consentimiento informado (texto legal) con la marca por defecto',
+  },
+  { ruta: 'src/fhir/estudios.test.ts', motivo: 'verifica que los systems que escribe el portal sean los canónicos' },
+  {
+    ruta: 'src/pages/Teleconsulta.test.tsx',
+    motivo: 'dato de prueba: el link de la sala de videollamada lo arma el servidor (recepcionistas)',
+  },
+];
+
+interface Hallazgo {
+  readonly n: number;
+  readonly linea: string;
+}
+
+// Dónde nombra un texto a la marca actual, descontando lo permitido en todos los archivos.
+function marcaEnTexto(contenido: string): Hallazgo[] {
+  const texto = PERMITIDO_EN_TODOS.reduce((t, permitido) => t.replace(permitido, ''), contenido.normalize('NFC'));
+  const lineas = texto.split('\n');
+  return [NOMBRE_MARCA, DOMINIO_MARCA]
+    .flatMap((patron) => [...texto.matchAll(patron)])
+    .map((m) => {
+      const n = texto.slice(0, m.index).split('\n').length;
+      return { n, linea: lineas[n - 1].trim() };
+    });
+}
+
+function marcaEnArchivo(ruta: string): Hallazgo[] {
+  if (statSync(ruta).size > MAX_BYTES) {
+    return [];
+  }
+  const contenido = readFileSync(ruta);
+  return contenido.includes(0) ? [] : marcaEnTexto(contenido.toString('utf8'));
+}
+
+function excepcionDe(rel: string): Excepcion | undefined {
+  return EXCEPCIONES.find((e) => (e.ruta.endsWith('/') ? rel.startsWith(e.ruta) : rel === e.ruta));
+}
+
+test('el patrón de la marca actual: el nombre y el dominio, no el servicio ni los identificadores', () => {
+  const nombra = (s: string): boolean => marcaEnTexto(s).length > 0;
+  for (const s of [
+    'Segunda Opinión Médica',
+    'del equipo de\n                Segunda Opinión\n                Médica.',
+    'SEGUNDA OPINIÓN MÉDICA',
+    'Segunda Opinion Medica',
+    'Segunda Opinio\u0301n Me\u0301dica', // tildes descompuestas (NFD)
+    'info@segundaopinionmedica.org',
+    'https://app.segundaopinionmedica.org/x',
+    'https://segundaopinionmedica.org/terminos',
+    '/escribí a info@segundaopinionmedica\\.org/',
+  ]) {
+    expect(nombra(s), s).toBe(true);
+  }
+  for (const s of [
+    'Tu segunda opinión médica, con los líderes globales en salud',
+    'Mi Segunda Opinión',
+    '// SPDX-FileCopyrightText: Copyright Segunda Opinión Médica',
+    "export const BIOMARKER_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem/biomarker';",
+    "const SOM_FHIR = 'https://segundaopinionmedica.org/fhir';",
+    '"url": "https://segundaopinionmedica.org/Questionnaire/som-intake"',
+    'category=https://segundaopinionmedica.org/fhir/CodeSystem/notificacion|pendiente',
+    '// un link mágico https://app.segundaopinionmedica.org/activar/:id que envía por',
+  ]) {
+    expect(nombra(s), s).toBe(false);
+  }
+  expect(marcaEnTexto('a\nb Segunda Opinión Médica')).toEqual([{ n: 2, linea: 'b Segunda Opinión Médica' }]);
+});
+
+test('cada excepción de la lista blanca existe y sigue haciendo falta', () => {
+  for (const e of EXCEPCIONES) {
+    const ruta = join(RAIZ, e.ruta);
+    expect(statSync(ruta).isDirectory(), e.ruta).toBe(e.ruta.endsWith('/'));
+    if (!e.ruta.endsWith('/')) {
+      expect(marcaEnArchivo(ruta).length, `${e.ruta} ya no nombra a la marca: sacalo`).toBeGreaterThan(0);
+    }
+  }
+  const todo = archivos(join(RAIZ, 'src'))
+    .map((ruta) => readFileSync(ruta))
+    .filter((contenido) => !contenido.includes(0))
+    .map((contenido) => contenido.toString('utf8').normalize('NFC'))
+    .join('\n');
+  for (const permitido of PERMITIDO_EN_TODOS) {
+    expect(todo.search(permitido), `${permitido} ya no aparece en src/: sacalo`).toBeGreaterThan(-1);
+  }
+});
+
+test('fuera de la configuración de marca, ningún archivo de src/ escribe el nombre ni el dominio de la marca', () => {
+  const encontradas = archivos(join(RAIZ, 'src')).flatMap((ruta) => {
+    const rel = relative(RAIZ, ruta);
+    return excepcionDe(rel) ? [] : marcaEnArchivo(ruta).map((h) => `${rel}:${h.n}: ${h.linea}`);
+  });
+  expect(encontradas, 'usá MARCA (src/marca.ts) en lugar del nombre o el dominio escritos a mano').toEqual([]);
+});

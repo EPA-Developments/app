@@ -4,7 +4,7 @@
 // Modelo de Membresía (eje Cliente) — SOLO LECTURA.
 //
 // Espeja el modelo que gestiona Recepción (repo `recepcionistas`): los planes del
-// paciente son recursos `Coverage` con extensiones Segunda Opinión Médica, y los pagos son
+// paciente son recursos `Coverage` con extensiones de SOM, y los pagos son
 // recursos `Invoice`. El portal NO calcula reglas de negocio ni precios: solo lee
 // esos recursos (ya acotados al paciente por la AccessPolicy "Paciente — Portal")
 // y arma el saldo para mostrarlo, igual que el panel de la app de recepción.
@@ -21,7 +21,7 @@ import { esCoberturaDeSalud } from './cobertura';
 
 const BASE = 'https://segundaopinionmedica.org/fhir';
 
-/** Extensiones Segunda Opinión Médica usadas para leer planes y pagos (deben coincidir con recepción). */
+/** Extensiones de SOM usadas para leer planes y pagos (deben coincidir con recepción). */
 const EXT = {
   tipoCobertura: `${BASE}/StructureDefinition/tipo-cobertura`,
   planCodigo: `${BASE}/StructureDefinition/plan-codigo`,

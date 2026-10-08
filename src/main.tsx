@@ -18,7 +18,7 @@ const medplum = new MedplumClient({
   baseUrl: import.meta.env.MEDPLUM_BASE_URL,
 });
 
-// Paleta de marca Segunda Opinión Médica (azul). El tono 6 (#007ce8) es el color principal.
+// Paleta de la marca SOM (azul). El tono 6 (#007ce8) es el color principal.
 const segundaOpinion: MantineColorsTuple = [
   '#e6f3ff',
   '#cce4ff',

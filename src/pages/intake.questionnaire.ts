@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Cuestionario de ingreso de Segunda Opinión Médica (enfoque cardiovascular).
+// Cuestionario de ingreso de SOM (enfoque cardiovascular).
 // Registra antecedentes, factores de riesgo cardiovascular, medicación, cirugías/
 // procedimientos cardíacos y alergias declarados por el paciente. El médico valida y
 // firma; este cuestionario solo registra lo declarado.

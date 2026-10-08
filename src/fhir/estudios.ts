@@ -15,7 +15,7 @@
 //  3. Un `Consent` vinculado al documento (la casilla "Autorizo…" es obligatoria: el
 //     paciente es el dueño de sus datos). Nunca bloquea el envío.
 //
-// REGLA de aislamiento: todo es de SOM (systems `segundaopinionmedica.org`, bots `som-*`).
+// REGLA de aislamiento: todo es de SOM (systems canónicos `…/fhir` de SOM, bots `som-*`).
 import type { MedplumClient, WithId } from '@medplum/core';
 import { createReference, getReferenceString, OperationOutcomeError } from '@medplum/core';
 import type { Attachment, Consent, DocumentReference, Patient } from '@medplum/fhirtypes';

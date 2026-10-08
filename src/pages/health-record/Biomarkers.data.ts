@@ -36,7 +36,7 @@ export interface BiomarkerCoding {
 }
 
 export interface Biomarker {
-  /** Código principal del analito (LOINC, o local de Segunda Opinión Médica). */
+  /** Código principal del analito (LOINC, o local de SOM). */
   readonly code: string;
   /** Sistema del código principal. Omitido = LOINC (`http://loinc.org`). */
   readonly system?: string;

@@ -18,7 +18,7 @@ import type {
 } from '../pages/health-record/Biomarkers.data';
 import { resolveBiomarkerRanges } from '../pages/health-record/Biomarkers.data';
 
-/** CodeSystems canónicos de Segunda Opinión Médica (deben coincidir con el modelo FHIR en Medplum). */
+/** CodeSystems canónicos de SOM (deben coincidir con el modelo FHIR en Medplum). */
 export const PANEL_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem/panel-biomarcador';
 export const TIPO_RANGO_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem/tipo-rango';
 export const BIOMARKER_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem/biomarker';
