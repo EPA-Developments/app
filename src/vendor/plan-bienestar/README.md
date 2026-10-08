@@ -15,6 +15,15 @@ Los imports de la app siguen siendo `@epa/careplan-menopausia` y
 basta con instalarlos, borrar esta carpeta y quitar los alias — ningún archivo
 de la app cambia.
 
+## Versión
+
+`VERSION` anota el commit del monorepo (SHA completo) desde el que se sincronizó
+esta copia. Para ver qué cambió desde la última sincronización:
+
+```bash
+git -C /tmp/pb log --oneline "$(cat src/vendor/plan-bienestar/VERSION)"..HEAD -- packages/careplan-menopausia packages/plan-bienestar-react
+```
+
 ## Cómo actualizar la copia
 
 ```bash
@@ -22,7 +31,11 @@ git clone https://github.com/EPA-Developments/plan-bienestar-100-dias /tmp/pb
 rm -rf src/vendor/plan-bienestar/careplan-menopausia src/vendor/plan-bienestar/plan-bienestar-react
 cp -r /tmp/pb/packages/careplan-menopausia/src src/vendor/plan-bienestar/careplan-menopausia
 cp -r /tmp/pb/packages/plan-bienestar-react/src src/vendor/plan-bienestar/plan-bienestar-react
+git -C /tmp/pb rev-parse HEAD > src/vendor/plan-bienestar/VERSION
 ```
+
+Con un clon del monorepo que ya tengas, usá su ruta en lugar de `/tmp/pb` (con el
+commit que querés traer ya en checkout).
 
 No editar a mano dentro de esta carpeta: los cambios se hacen en el monorepo y
 se re-sincronizan, para que las apps anfitrionas (esta y drdalessandro/app) no

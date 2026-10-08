@@ -53,8 +53,9 @@ export interface Nivel {
  * Los cuatro escalones.
  *
  * Foco en la mujer en toda la escalera. Nivel 1 es el único con biblioteca de
- * acciones publicada (Anexo C); los siguientes se abren a medida que se definen
- * su contenido y, para 3 y 4, sus puertas de seguridad.
+ * acciones publicada (Anexo C y Anexo C bis); los siguientes se abren a medida
+ * que se define su contenido. Las puertas de seguridad de los cuatro niveles
+ * están definidas: las de 3 y 4 se firmaron el 03/10/2026.
  */
 export const NIVELES: readonly Nivel[] = Object.freeze([
   {
@@ -104,10 +105,19 @@ export const NIVELES: readonly Nivel[] = Object.freeze([
     aliasComercial: 'PB100D V3',
     foco: 'Entrenamiento estructurado hacia una meta deportiva concreta y alcanzable.',
     ejemplosDeObjetivo: ['Correr 10 K', 'Bicicleta 40-60 km'],
-    // PENDIENTE DE DEFINICIÓN MÉDICA. Preguntas abiertas:
-    //  - ¿Apto físico vigente, ergometría, o ambos? ¿Con qué vigencia?
-    //  - ¿Regla de piso pélvico antes de habilitar carrera?
-    puertasDeSeguridad: null,
+    // Firmado el 03/10/2026 por los Dres. Barbagelata y D'Alessandro: apto físico
+    // y ergometría (los dos), con vigencia anual, y evaluación de piso pélvico
+    // antes de habilitar la carrera.
+    puertasDeSeguridad: {
+      requisitos: [
+        'Nivel 2 completado y evaluado al día 100',
+        'Apto físico',
+        'Ergometría',
+        'Evaluación de piso pélvico',
+      ],
+      vigenciaAptoDias: 365,
+      firma: "Cardiología (Dres. Barbagelata y D'Alessandro)",
+    },
   },
   {
     id: 4,
@@ -121,11 +131,24 @@ export const NIVELES: readonly Nivel[] = Object.freeze([
       'Natación en aguas abiertas',
       'Bicicleta 100 km',
     ],
-    // PENDIENTE DE DEFINICIÓN MÉDICA. Preguntas abiertas:
-    //  - ¿Qué estudios exige la entrada (ergometría máxima, ecocardiograma, laboratorio)?
-    //  - ¿Cómo se tamiza RED-S (deficiencia energética relativa en el deporte)?
-    //  - Regla de piso pélvico, igual que el nivel 3.
-    puertasDeSeguridad: null,
+    // Firmado el 03/10/2026 por los Dres. Barbagelata y D'Alessandro: apto físico
+    // cardiológico (interrogatorio, Doppler de vasos de cuello, eco estrés y
+    // laboratorio de sangre), tamizaje de RED-S (deficiencia energética relativa
+    // en el deporte) y evaluación de piso pélvico, igual que el nivel 3. Vigencia
+    // anual. Cada parte del apto es un requisito para que se vea cuál falta.
+    puertasDeSeguridad: {
+      requisitos: [
+        'Nivel 3 completado y evaluado al día 100',
+        'Apto físico cardiológico: interrogatorio',
+        'Apto físico cardiológico: Doppler de vasos de cuello',
+        'Apto físico cardiológico: eco estrés',
+        'Apto físico cardiológico: laboratorio de sangre',
+        'Tamizaje de RED-S',
+        'Evaluación de piso pélvico',
+      ],
+      vigenciaAptoDias: 365,
+      firma: "Cardiología (Dres. Barbagelata y D'Alessandro)",
+    },
   },
 ]);
 

@@ -56,16 +56,49 @@ export function nombreDe(patient: Patient | undefined): string {
   return n.text ?? [n.given?.join(' '), n.family].filter(Boolean).join(' ') ?? 'Paciente';
 }
 
+/** Código de país que `telefonoWhatsApp` supone cuando no se le pasa otro: Argentina. */
+export const CODIGO_PAIS_WHATSAPP = '54';
+
+export interface OpcionesTelefonoWhatsApp {
+  /**
+   * Código de país E.164 (sin `+`; se toleran `+` y espacios) que se antepone a un número
+   * que no lo trae. Default `54` (Argentina, `CODIGO_PAIS_WHATSAPP`).
+   */
+  codigoPais?: string;
+}
+
+/** Largo de un número E.164 completo (código de país incluido), en dígitos. */
+const E164_MIN_DIGITOS = 8;
+const E164_MAX_DIGITOS = 15;
+
 /**
- * El teléfono de la persona en formato E.164 sin `+`, para `wa.me`. Con un número
- * argentino sin código de país se antepone `549` (celular). Provisorio: la app
- * anfitriona que tenga el número validado debería pasarlo.
+ * El teléfono de la persona en formato E.164 sin `+`, para `wa.me`. Toma el celular
+ * (`use: mobile`) o, si no hay, el primer teléfono.
+ *
+ * - Con `codigoPais` `54` (el default) el número se lee como argentino: sin código de país
+ *   se le antepone `549` (celular) y se le sacan el 0 de larga distancia y el 15; con `54`
+ *   y sin el 9 del celular, se le agrega.
+ * - Con otro `codigoPais` no se agrega ningún 9: un número escrito con `+` o `00` ya es
+ *   internacional y queda como está (sin el `00`); si ya empieza con el código, también;
+ *   si no, se le saca el 0 inicial de larga distancia y se le antepone el código.
+ *
+ * Es una normalización, no una validación del número: la app anfitriona que tenga el
+ * número validado debería pasarlo así, y la que atiende fuera de Argentina pasa su código
+ * (en el menú del equipo, `integracion.codigoPais`).
  */
-export function telefonoWhatsApp(patient: Patient | undefined): string | undefined {
+export function telefonoWhatsApp(patient: Patient | undefined, opciones: OpcionesTelefonoWhatsApp = {}): string | undefined {
   const telefonos = (patient?.telecom ?? []).filter((t) => t.system === 'phone' && t.value);
   const preferido = telefonos.find((t) => t.use === 'mobile') ?? telefonos[0];
   if (!preferido?.value) return undefined;
-  let digitos = preferido.value.replace(/\D/g, '');
+  const codigoPais = (opciones.codigoPais ?? CODIGO_PAIS_WHATSAPP).replace(/\D/g, '') || CODIGO_PAIS_WHATSAPP;
+  const digitos = preferido.value.replace(/\D/g, '');
+  if (codigoPais === CODIGO_PAIS_WHATSAPP) return telefonoArgentino(digitos);
+  return telefonoConCodigo(digitos, codigoPais, preferido.value.trim().startsWith('+'));
+}
+
+/** Argentina: celular con `549`. */
+function telefonoArgentino(numero: string): string | undefined {
+  let digitos = numero;
   if (digitos.startsWith('00')) digitos = digitos.slice(2);
   if (digitos.startsWith('54')) {
     if (!digitos.startsWith('549') && digitos.length === 12) digitos = `549${digitos.slice(2)}`;
@@ -74,6 +107,18 @@ export function telefonoWhatsApp(patient: Patient | undefined): string | undefin
   if (digitos.startsWith('0')) digitos = digitos.slice(1);
   if (digitos.startsWith('15')) digitos = digitos.slice(2);
   return digitos.length >= 8 ? `549${digitos}` : undefined;
+}
+
+/** Otro país: E.164 con el código de país, sin agregar ningún 9. */
+function telefonoConCodigo(numero: string, codigoPais: string, conMas: boolean): string | undefined {
+  let digitos = numero;
+  const con00 = digitos.startsWith('00');
+  if (con00) digitos = digitos.slice(2);
+  if (!conMas && !con00 && !digitos.startsWith(codigoPais)) {
+    if (digitos.startsWith('0')) digitos = digitos.slice(1);
+    digitos = `${codigoPais}${digitos}`;
+  }
+  return digitos.length >= E164_MIN_DIGITOS && digitos.length <= E164_MAX_DIGITOS ? digitos : undefined;
 }
 
 export function enlaceWhatsApp(telefono: string, texto: string): string {
@@ -173,13 +218,15 @@ export interface ContextoMaterial {
   urlPortal?: string;
   /** Cuántos pasos van en el WhatsApp (default 5). */
   maximoProximos?: number;
+  /** Código de país para el teléfono de WhatsApp (`telefonoWhatsApp`; default `54`, Argentina). */
+  codigoPais?: string;
 }
 
 /** El material de la persona: pasos por momento, metas, controles, aviso por WhatsApp e impresión. */
 export function materialParaLaPersona(ctx: ContextoMaterial): MaterialPersona {
   const hoy = ctx.hoy ?? new Date().toISOString().slice(0, 10);
   const nombre = nombreDe(ctx.patient);
-  const telefono = telefonoWhatsApp(ctx.patient);
+  const telefono = telefonoWhatsApp(ctx.patient, ctx.codigoPais !== undefined ? { codigoPais: ctx.codigoPais } : {});
   const pasos = pasosMaterial(ctx.tasks ?? []);
   const secciones = seccionesMaterial(pasos);
   const metas = metasMaterial(ctx.goals ?? []);

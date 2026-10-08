@@ -171,6 +171,7 @@ export {
   type PlanClinico,
 } from './inscripcion.js';
 export {
+  CODIGO_PAIS_WHATSAPP,
   enlaceWhatsApp,
   materialParaLaPersona,
   metasMaterial,
@@ -182,7 +183,9 @@ export {
   type ContextoMaterial,
   type MaterialPersona,
   type MetaMaterial,
+  type OpcionesTelefonoWhatsApp,
   type PasoMaterial,
   type SeccionMaterial,
   type TextoWhatsAppOpciones,
 } from './material.js';
+export { exportarBiblioteca, type BibliotecaExportada } from './exportar-biblioteca.js';
