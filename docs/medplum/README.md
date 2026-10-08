@@ -46,8 +46,16 @@ Cubre todo lo que el portal lee/escribe:
     desde el módulo 0.7.0) y la anterior de menopausia (`…/menopausia-cardiovascular`,
     planes ya escritos). Al sumar nuevos planes, agregar su canonical acá y en el seed de
     recepción (`recepcionistas/src/fhir/access-policies.ts`).
-  - `Goal`: lectura/escritura de sus propias metas (`Goal?patient=%patient`). Sin esta
-    entrada el portal recibe **404** al leer las metas (Medplum oculta lo no permitido).
+  - `Goal`: lectura general de sus metas (`Goal?subject=%patient`: las del plan y la del
+    seguimiento GLP-1) + **escritura SOLO** de las metas del Plan Bienestar, por su
+    categoría: el core arma toda meta del plan con `Goal.category` en
+    `https://epa-bienestar.ar/fhir/CodeSystem/plan-bienestar-100-dias` y una de sus cinco
+    categorías (`estilo-de-vida`, `metabolico`, `cardiovascular`, `renal`, `bienestar`;
+    `GoalCategoryKey`). La meta del GLP-1 la pone el equipo (bot `som-glp1-plan`, sin esa
+    categoría) y queda de solo lectura, igual que cualquier meta del equipo fuera del
+    plan. Si el core suma una categoría de meta, agregarla acá y en el seed de recepción:
+    sin ella, "Empezar mi plan" falla entero (la transacción es todo o nada). Sin la
+    lectura, el portal recibe **404** al leer las metas (Medplum oculta lo no permitido).
   - `Task`: lectura general + **escritura SOLO** de tareas `intent=plan` (los pasos del
     plan). Las solicitudes de turno (Task del bot) siguen siendo de solo lectura.
   - `CareTeam`: escritura del propio (`CareTeam?patient=%patient`).
