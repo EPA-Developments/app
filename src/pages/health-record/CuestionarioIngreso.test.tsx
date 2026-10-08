@@ -135,3 +135,20 @@ test('al guardar crea la respuesta del paciente y sigue con Mi salud cardiovascu
     '/health-record/cuestionarios'
   );
 });
+
+test('con INGRESO_SALUD_MUJER apagada, una mujer no ve «Salud de la mujer» y al guardar sólo se crea la respuesta', async () => {
+  const { medplum, patient } = await preparar(false);
+  const crear = vi.spyOn(medplum, 'createResource');
+  await mostrar(medplum);
+
+  await screen.findByText('¿Tenés diabetes?');
+  expect(screen.queryByText('Salud de la mujer')).not.toBeInTheDocument();
+  expect(screen.queryByText('¿En qué momento estás con tu menstruación?')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('checkbox', { name: /Declaro que la información provista es completa y veraz/ }));
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Guardar' })));
+
+  expect(await screen.findByText('¡Gracias por completar tu cuestionario!')).toBeInTheDocument();
+  expect(crear.mock.calls.map(([r]) => r.resourceType)).toEqual(['QuestionnaireResponse']);
+  expect(await medplum.searchResources('Condition', { subject: `Patient/${patient.id}` })).toHaveLength(0);
+});
