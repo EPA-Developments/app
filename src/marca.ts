@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Marca blanca: todo lo que identifica a la marca en el portal (logo, pie de página,
-// títulos de ingreso, título de la pestaña y consentimiento informado) sale de acá.
+// títulos de ingreso, título de la pestaña, consentimiento informado, landing y el nombre
+// del servicio que pide la paciente) sale de acá. Fuera de este módulo y de `marca.json`
+// no se escribe el nombre ni el dominio de la marca: lo verifica
+// `src/sin-marca-anterior.test.ts`.
 //
 // Para cambiar la marca hay dos caminos, sin tocar componentes:
 //  1. Editar `src/marca.json` (valores por defecto del repo).
 //  2. Definir variables MARCA_* en el entorno del deploy (p. ej. Vercel), que pisan al
-//     JSON: MARCA_NOMBRE, MARCA_NOMBRE_CONSENTIMIENTO, MARCA_RESPONSABLE,
+//     JSON: MARCA_NOMBRE, MARCA_NOMBRE_CONSENTIMIENTO, MARCA_PRODUCTO, MARCA_RESPONSABLE,
 //     MARCA_DIRIGIDO_POR, MARCA_DIRECCION, MARCA_EMAIL, MARCA_TERMINOS_URL,
 //     MARCA_PRIVACIDAD_URL. Una variable vacía se ignora.
 // `terminosUrl` / `privacidadUrl` vacíos = la página pública /legal del portal (armada con
@@ -24,6 +27,11 @@ export interface Marca {
   readonly logoSecundario: string;
   /** Cómo se nombra al prestador en el consentimiento, p. ej. "SEGUNDA OPINIÓN MÉDICA". */
   readonly nombreConsentimiento: string;
+  /**
+   * El servicio que pide la paciente, p. ej. "Segunda Opinión". Va en «Mi …»,
+   * «Solicitar una … Médica», «informe de …» y «… Cardiológica»: un sustantivo femenino.
+   */
+  readonly producto: string;
   /** Profesional o institución responsable, p. ej. "Dr. Alejandro Barbagelata". */
   readonly responsable: string;
   /** El responsable dentro de una frase del consentimiento ("…dirigido por el Dr. …"). */
@@ -68,6 +76,7 @@ export function armarMarca(env: EnvMarca, porDefecto: MarcaBase = base): Marca {
       'MARCA_NOMBRE_CONSENTIMIENTO',
       env.MARCA_NOMBRE?.trim() ? nombre.toLocaleUpperCase('es-AR') : consentimientoBase
     ),
+    producto: valor(env, 'MARCA_PRODUCTO', porDefecto.producto),
     responsable: valor(env, 'MARCA_RESPONSABLE', porDefecto.responsable),
     dirigidoPor: valor(
       env,

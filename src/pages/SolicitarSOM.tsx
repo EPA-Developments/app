@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Solicitar una Segunda Opinión Médica — modelo de "solicitud". El paciente carga su
+// Solicitar una Segunda Opinión (SOM) — modelo de "solicitud". El paciente carga su
 // motivo, antecedentes, medicación y estudios; el portal escribe su QuestionnaireResponse
 // y sus DocumentReference y ejecuta el bot `som-solicitar` (que crea la orden). El portal
-// NO escribe la orden ni el informe: solo los lee desde "Mi Segunda Opinión".
+// NO escribe la orden ni el informe: solo los lee desde "Mi Segunda Opinión". El nombre del
+// servicio ("Segunda Opinión") sale de la marca (`MARCA.producto`, src/marca.ts).
 import {
   Alert,
   Box,
@@ -31,6 +32,7 @@ import type { JSX } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { buscarConsentimiento } from '../fhir/consentimiento';
 import { MENSAJE_SIN_CONSENTIMIENTO, crearSolicitudSOM, fileToArchivoSOM, type OrigenSOM } from '../fhir/som';
+import { MARCA } from '../marca';
 import { showErrorNotification } from '../utils/notifications';
 import { motivoPorEstadio } from './ckm/ckm.contenido';
 import { ANTECEDENTES_CV, ORIGENES_SOM } from './SolicitarSOM.data';
@@ -119,11 +121,11 @@ export function SolicitarSOM(): JSX.Element {
   return (
     <Document width={800}>
       <Title order={2} mb="xs">
-        Solicitar una Segunda Opinión Médica
+        Solicitar una {MARCA.producto} Médica
       </Title>
       <Text c="dimmed" size="sm" mb="lg">
-        Cargá el motivo de consulta y tus datos clínicos. Nuestro equipo prepara un informe de Segunda Opinión
-        cardiológica y te avisamos cuando esté disponible en "Mi Segunda Opinión".
+        Cargá el motivo de consulta y tus datos clínicos. Nuestro equipo prepara un informe de {MARCA.producto}{' '}
+        cardiológica y te avisamos cuando esté disponible en "Mi {MARCA.producto}".
       </Text>
 
       {consentimiento === 'cargando' && (
@@ -153,14 +155,14 @@ export function SolicitarSOM(): JSX.Element {
               mb="lg"
               title="¡Solicitud enviada!"
             >
-              La recibimos. Vas a poder seguir su estado y descargar el informe desde "Mi Segunda Opinión".
+              La recibimos. Vas a poder seguir su estado y descargar el informe desde "Mi {MARCA.producto}".
               <Group mt="sm">
                 <Button
                   size="xs"
                   variant="white"
                   onClick={() => navigate('/mi-segunda-opinion')?.catch(console.error)}
                 >
-                  Ir a Mi Segunda Opinión
+                  Ir a Mi {MARCA.producto}
                 </Button>
               </Group>
             </Alert>

@@ -39,7 +39,8 @@ al cambiar `package.json`, regenerarlo con npm 11 (`npm install`) y commitearlo 
 ## Marca blanca
 
 Todo lo que identifica a la marca en el portal (logo, pie de página, títulos de ingreso y
-registro, título de la pestaña y consentimiento informado) sale de un solo lugar:
+registro, título de la pestaña, consentimiento informado y de teleconsulta, landing, contenido
+CKM y el nombre del servicio que pide la paciente) sale de un solo lugar:
 
 - **`src/marca.json`**: los valores por defecto del repo (hoy, Segunda Opinión Médica).
 - **Variables `MARCA_*`** en el entorno del deploy (p. ej. Vercel): pisan al JSON sin tocar
@@ -47,8 +48,9 @@ registro, título de la pestaña y consentimiento informado) sale de un solo lug
 
 | Campo | Variable | Dónde se ve |
 |---|---|---|
-| `nombre` | `MARCA_NOMBRE` | Logo (la última palabra va en peso normal), pie, ingreso/registro, título de la pestaña, consentimiento |
+| `nombre` | `MARCA_NOMBRE` | Logo (la última palabra va en peso normal), pie, ingreso/registro, título de la pestaña, consentimiento, teleconsulta, landing, CKM |
 | `nombreConsentimiento` | `MARCA_NOMBRE_CONSENTIMIENTO` | Aceptación y documento firmado del consentimiento (vacío = el nombre en mayúsculas) |
+| `producto` | `MARCA_PRODUCTO` | El servicio que pide la paciente (hoy, «Segunda Opinión»): «Mi …», «Solicitar una … Médica», «informe de …», «… Cardiológica» en la landing. Un sustantivo femenino |
 | `responsable` | `MARCA_RESPONSABLE` | Pie de página y del consentimiento |
 | `dirigidoPor` | `MARCA_DIRIGIDO_POR` | Frase "…dirigido por el Dr. …" del consentimiento |
 | `direccion` | `MARCA_DIRECCION` | Pie de página y del consentimiento |
@@ -59,8 +61,10 @@ El texto del consentimiento es legal: cambiar la marca cambia el prestador que f
 
 **Regla: sin la marca anterior.** Ningún archivo del portal nombra ni apunta a la marca de
 la que se partió (ni prefijos de sus bots, ni su dominio, ni su servidor). Lo verifica
-`src/sin-marca-anterior.test.ts` en `npm test`, con el mismo patrón que `recepcionistas`. La landing pública todavía no
-usa esta configuración.
+`src/sin-marca-anterior.test.ts` en `npm test`, con el mismo patrón que `recepcionistas`.
+
+La landing toma de acá el nombre de la marca y del servicio; el resto de sus textos
+(cardiología, segunda opinión) y la paleta de colores siguen siendo los de la marca por defecto.
 
 ## Referencias
 
