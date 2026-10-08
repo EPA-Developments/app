@@ -46,8 +46,26 @@ Cubre todo lo que el portal lee/escribe:
     desde el módulo 0.7.0) y la anterior de menopausia (`…/menopausia-cardiovascular`,
     planes ya escritos). Al sumar nuevos planes, agregar su canonical acá y en el seed de
     recepción (`recepcionistas/src/fhir/access-policies.ts`).
-  - `Goal`: lectura/escritura de sus propias metas (`Goal?patient=%patient`). Sin esta
-    entrada el portal recibe **404** al leer las metas (Medplum oculta lo no permitido).
+  - `Goal`: lectura general de sus metas (`Goal?subject=%patient`: las del plan y la del
+    seguimiento GLP-1) + **SOLO alta** (`"interaction": ["create"]`) de las metas del Plan
+    Bienestar, por su categoría: el core arma toda meta del plan con `Goal.category` en
+    `https://epa-bienestar.ar/fhir/CodeSystem/plan-bienestar-100-dias` y una de sus cinco
+    categorías (`estilo-de-vida`, `metabolico`, `cardiovascular`, `renal`, `bienestar`;
+    `GoalCategoryKey`). El portal solo crea metas (POST en la transacción de
+    `empezarPlan`); nunca actualiza ni borra un `Goal`. Así ninguna meta ya guardada es
+    editable ni borrable por la paciente: ni la del GLP-1 (la pone el equipo con el bot
+    `som-glp1-plan`, sin esa categoría) ni las del plan que crea el **equipo** (al empezar
+    el plan desde su menú o en el recálculo, `bundleRecalculo`), que llevan las mismas
+    categorías: `Goal` no tiene parámetro de búsqueda por `expressedBy`, así que la
+    categoría sola no las distingue. Lo que sigue abierto: puede **crear** metas nuevas
+    con una categoría del plan (es su flujo), no tocar las que ya existen. Medplum evalúa
+    `interaction` desde la 4.1.10 (el servidor es ≥ 4.2). Si el portal empieza a editar o
+    cerrar metas, sumar `update` acá y en el seed sabiendo que con eso vuelven a quedar
+    editables las metas del equipo con categoría del plan (habría que marcarlas, p. ej. con
+    `meta.tag`, y excluirlas). Si el core suma una categoría de meta, agregarla acá y en el
+    seed de recepción: sin ella, "Empezar mi plan" falla entero (la transacción es todo o
+    nada). Sin la lectura, el portal recibe **404** al leer las metas (Medplum oculta lo no
+    permitido).
   - `Task`: lectura general + **escritura SOLO** de tareas `intent=plan` (los pasos del
     plan). Las solicitudes de turno (Task del bot) siguen siendo de solo lectura.
   - `CareTeam`: escritura del propio (`CareTeam?patient=%patient`).
