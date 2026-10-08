@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Segunda Opinión Médica (SOM) — capa FHIR del portal del paciente.
+// SOM (Segunda Opinión) — capa FHIR del portal del paciente.
 //
 // Mismo modelo de "solicitud" que los turnos (`src/fhir/solicitudes.ts`): el paciente
 // escribe SOLO lo que su AccessPolicy le permite (QuestionnaireResponse con sus
@@ -24,11 +24,12 @@ import type {
   RiskAssessment,
   ServiceRequest,
 } from '@medplum/fhirtypes';
+import { MARCA } from '../marca';
 import { buscarBotSOM } from './bots';
 import { buscarConsentimiento } from './consentimiento';
 
 export const MENSAJE_SIN_CONSENTIMIENTO =
-  'Antes de pedir tu Segunda Opinión necesitamos que firmes el consentimiento informado.';
+  `Antes de pedir tu ${MARCA.producto} necesitamos que firmes el consentimiento informado.`;
 
 /** Sistemas de códigos propios de SOM (deben coincidir con el modelo FHIR en Medplum). */
 export const SOM_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem';
@@ -184,7 +185,7 @@ export async function crearSolicitudSOM(
     return {
       ok: false,
       mensaje:
-        'La solicitud online de Segunda Opinión todavía no está disponible. Escribinos por Mensajes y te ayudamos a iniciarla.',
+        `La solicitud online de ${MARCA.producto} todavía no está disponible. Escribinos por Mensajes y te ayudamos a iniciarla.`,
     };
   }
 

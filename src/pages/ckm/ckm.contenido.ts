@@ -7,7 +7,9 @@
 // (`careplan-menopausia/ckm/staging.ts`).
 //
 // ⚠️ Contenido educativo orientativo: no reemplaza la evaluación médica. Revisar por
-// el equipo médico de Segunda Opinión Médica antes de darlo por definitivo.
+// el equipo médico de SOM antes de darlo por definitivo. El nombre de la marca sale de
+// `src/marca.ts`.
+import { MARCA } from '../../marca';
 
 export interface EstadioInfo {
   /** Estadio CKM (0-4). */
@@ -127,7 +129,7 @@ export const ESTADIOS: EstadioInfo[] = [
 export const PLAN_BIENESTAR_CKM = {
   titulo: 'Plan Bienestar · 100 días: tu estadío no es un destino',
   parrafos: [
-    'Sea cual sea tu fase, la guía AHA muestra que se puede mejorar. El Plan Bienestar de 100 días convierte esa evidencia en pasos concretos: tus datos (presión, cintura, laboratorio), tus hábitos (sueño, alimentación, actividad y tabaco con los cuestionarios LE8) y tus metas, con el acompañamiento de un profesional de la red Segunda Opinión Médica.',
+    `Sea cual sea tu fase, la guía AHA muestra que se puede mejorar. El Plan Bienestar de 100 días convierte esa evidencia en pasos concretos: tus datos (presión, cintura, laboratorio), tus hábitos (sueño, alimentación, actividad y tabaco con los cuestionarios LE8) y tus metas, con el acompañamiento de un profesional de la red ${MARCA.nombre}.`,
   ],
   bullets: [
     'Cargás tus datos y conocés tu estadío CKM y tu riesgo PREVENT.',

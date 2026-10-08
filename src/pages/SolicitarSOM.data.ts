@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Opciones del formulario de solicitud de Segunda Opinión Médica.
+// Opciones del formulario de solicitud de Segunda Opinión (SOM).
 
 /** Antecedentes cardiovasculares frecuentes (checkboxes del formulario). */
 export const ANTECEDENTES_CV: readonly string[] = [

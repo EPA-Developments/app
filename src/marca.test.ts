@@ -9,6 +9,7 @@ test('marca por defecto: Segunda Opinión Médica', () => {
     logoPrincipal: 'Segunda Opinión',
     logoSecundario: 'Médica',
     nombreConsentimiento: 'SEGUNDA OPINIÓN MÉDICA',
+    producto: 'Segunda Opinión',
     responsable: 'Dr. Alejandro Barbagelata',
     dirigidoPor: 'el Dr. Alejandro Barbagelata',
     direccion: 'Húsares 2248 6° E, C1428 CABA (Bajo Belgrano), Argentina',
@@ -51,6 +52,13 @@ test('las variables MARCA_* pisan a marca.json', () => {
   expect(marca.email).toBe('hola@clinicadelsur.com.ar');
   // Vacía = se ignora y queda la de marca.json.
   expect(marca.direccion).toBe(MARCA.direccion);
+});
+
+test('el servicio que pide la paciente se configura aparte del nombre de la marca', () => {
+  // Otra marca que ofrece el mismo servicio conserva «Segunda Opinión».
+  expect(armarMarca({ MARCA_NOMBRE: 'Clínica del Sur' }).producto).toBe('Segunda Opinión');
+  expect(armarMarca({ MARCA_PRODUCTO: ' Revisión Experta ' }).producto).toBe('Revisión Experta');
+  expect(armarMarca({ MARCA_PRODUCTO: '  ' }).producto).toBe('Segunda Opinión');
 });
 
 test('el nombre del consentimiento se puede fijar aparte', () => {

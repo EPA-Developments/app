@@ -4,6 +4,7 @@
 // Mi Segunda Opinión — el paciente ve el estado de sus solicitudes y, cuando están
 // completadas, lee el informe (DiagnosticReport), el score PREVENT (RiskAssessment) y
 // descarga el PDF. Todo es de SOLO LECTURA: lo genera el bot, el portal solo lo muestra.
+// El nombre del servicio ("Segunda Opinión") sale de la marca (`MARCA.producto`).
 import { Alert, Badge, Box, Button, Card, Divider, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { formatDateTime } from '@medplum/core';
 import type { DocumentReference, Patient, ServiceRequest } from '@medplum/fhirtypes';
@@ -21,6 +22,7 @@ import {
   SOM_SECTIONS_EXT,
   type InformeSOM,
 } from '../fhir/som';
+import { MARCA } from '../marca';
 import { showErrorNotification } from '../utils/notifications';
 
 // Secciones del informe (clave en la extensión som-sections → título legible).
@@ -114,7 +116,7 @@ export function MiSegundaOpinion(): JSX.Element {
   return (
     <Document width={800}>
       <Group justify="space-between" align="center" mb="md">
-        <Title order={2}>Mi Segunda Opinión</Title>
+        <Title order={2}>Mi {MARCA.producto}</Title>
         <Button
           leftSection={<IconFilePlus size={16} />}
           variant="light"
@@ -128,10 +130,10 @@ export function MiSegundaOpinion(): JSX.Element {
         <Loader />
       ) : solicitudes.length === 0 ? (
         <Alert color="segundaOpinion" variant="light" icon={<IconInfoCircle />} title="Todavía no tenés solicitudes">
-          Cuando pidas una Segunda Opinión vas a ver acá su estado y, al completarse, el informe y el PDF.
+          Cuando pidas una {MARCA.producto} vas a ver acá su estado y, al completarse, el informe y el PDF.
           <Group mt="sm">
             <Button size="xs" onClick={() => navigate('/solicitar-som')?.catch(console.error)}>
-              Solicitar una Segunda Opinión
+              Solicitar una {MARCA.producto}
             </Button>
           </Group>
         </Alert>
@@ -145,7 +147,7 @@ export function MiSegundaOpinion(): JSX.Element {
               <Card key={sr.id} withBorder radius="md" p="md">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                   <div>
-                    <Text fw={500}>{sr.reasonCode?.[0]?.text ?? 'Segunda Opinión Cardiológica'}</Text>
+                    <Text fw={500}>{sr.reasonCode?.[0]?.text ?? `${MARCA.producto} Cardiológica`}</Text>
                     <Text size="xs" c="dimmed">
                       {sr.authoredOn ? formatDateTime(sr.authoredOn) : ''}
                     </Text>
@@ -177,7 +179,7 @@ export function MiSegundaOpinion(): JSX.Element {
         <>
           <Divider my="xl" />
           <Title order={3} mb="md">
-            Informe de Segunda Opinión
+            Informe de {MARCA.producto}
           </Title>
           {cargandoInforme ? (
             <Loader />

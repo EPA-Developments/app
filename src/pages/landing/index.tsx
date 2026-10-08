@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router';
 import { Footer } from '../../components/Footer';
 import DoctorImage from '../../img/landingPage/doctor.jpg';
 import LabImage from '../../img/landingPage/laboratory.jpg';
+import { MARCA } from '../../marca';
 import { Header } from './Header';
 import classes from './index.module.css';
 
@@ -27,11 +28,11 @@ interface FeatureItem {
   readonly description: string;
 }
 
-// Servicios cardiovasculares de Segunda Opinión Médica (segundaopinionmedica.org).
+// Servicios cardiovasculares de la marca (el nombre y el servicio salen de src/marca.ts).
 const services: FeatureItem[] = [
   {
     icon: IconStethoscope,
-    title: 'Segunda Opinión Cardiológica',
+    title: `${MARCA.producto} Cardiológica`,
     description: 'Una revisión experta de tu caso por cardiólogos de prestigio internacional.',
   },
   {
@@ -151,7 +152,11 @@ export function LandingPage(): JSX.Element {
                 guías internacionales.
               </Text>
             </div>
-            <img src={LabImage} alt="Análisis de datos clínicos en Segunda Opinión Médica" className={classes.editorialImg} />
+            <img
+              src={LabImage}
+              alt={`Análisis de datos clínicos en ${MARCA.nombre}`}
+              className={classes.editorialImg}
+            />
           </SimpleGrid>
         </Container>
 
@@ -191,7 +196,7 @@ export function LandingPage(): JSX.Element {
         <Box className={classes.band}>
           <Container size="lg" py={{ base: 44, md: 64 }}>
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing={48} verticalSpacing="xl" style={{ alignItems: 'center' }}>
-              <img src={DoctorImage} alt="Cardiólogo de Segunda Opinión Médica" className={classes.editorialImg} />
+              <img src={DoctorImage} alt={`Cardiólogo de ${MARCA.nombre}`} className={classes.editorialImg} />
               <div>
                 <Text className={classes.eyebrow}>Por qué una segunda opinión</Text>
                 <Title className={classes.sectionTitle} mt="sm" mb="md">
@@ -291,8 +296,8 @@ export function LandingPage(): JSX.Element {
                 Pedí tu segunda opinión cardiológica
               </Title>
               <Text c="gray.3" ta="center" maw={540}>
-                Creá tu cuenta, cargá tu caso y tus estudios, y recibí un informe de segunda opinión del equipo de
-                Segunda Opinión Médica.
+                Creá tu cuenta, cargá tu caso y tus estudios, y recibí un informe de segunda opinión del equipo de{' '}
+                {MARCA.nombre}.
               </Text>
               <Button size="lg" radius="xl" variant="white" mt="xs" onClick={() => go('/register')}>
                 Crear cuenta
