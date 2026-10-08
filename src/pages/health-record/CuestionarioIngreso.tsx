@@ -10,6 +10,8 @@
 // definición local, y se adapta al paciente (`ingresoParaPaciente`: sin preguntas
 // retiradas y sin la de embarazo para hombres). El contacto de emergencia no va acá: se
 // carga en Mi perfil (si falta, se sugiere). Cada respuesta es un QuestionnaireResponse.
+// Con INGRESO_SALUD_MUJER prendida (hoy apagada, hasta la firma médica), después de guardar
+// la respuesta se registra la etapa de la menopausia declarada (`registrarEtapaDelIngreso`).
 import { Alert, Anchor, Button, Group, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { createReference, formatDateTime } from '@medplum/core';
@@ -21,9 +23,10 @@ import type { JSX } from 'react';
 import { Link } from 'react-router';
 import { tieneContactoEmergencia } from '../../fhir/demografia';
 import { buscarUltimoIngreso, ingresoParaPaciente } from '../../fhir/ingreso';
+import { registrarEtapaDelIngreso } from '../../fhir/ingresoCondiciones';
 import { showErrorNotification } from '../../utils/notifications';
 import { fixQuestionnaireResponseTimes } from '../../utils/questionnaire';
-import { INTAKE_QUESTIONNAIRE_URL, intakeQuestionnaire } from '../intake.questionnaire';
+import { INGRESO_SALUD_MUJER, INTAKE_QUESTIONNAIRE_URL, intakeQuestionnaire } from '../intake.questionnaire';
 
 const RUTA_RESPUESTAS = '/health-record/questionnaire-responses';
 const RUTA_MI_SALUD_CV = '/health-record/cuestionarios';
@@ -65,6 +68,13 @@ export function CuestionarioIngreso(): JSX.Element {
         source: createReference(patient),
         authored: new Date().toISOString(),
       });
+      if (INGRESO_SALUD_MUJER) {
+        // La respuesta ya quedó guardada (es lo que revisa el equipo): si la Condition de la
+        // etapa no se puede escribir, no se le muestra un error a la persona.
+        await registrarEtapaDelIngreso(medplum, patient, respuesta).catch((err: unknown) =>
+          console.warn('No se pudo registrar la etapa declarada en el ingreso', err)
+        );
+      }
       notifications.show({ color: 'green', title: '¡Gracias!', message: 'Tu cuestionario de ingreso se guardó correctamente.' });
       setEstado({ tipo: 'completo', respuesta, recienEnviado: true });
       window.scrollTo(0, 0);

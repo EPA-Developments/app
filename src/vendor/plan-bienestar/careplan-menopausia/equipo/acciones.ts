@@ -55,7 +55,10 @@ export const ANEXOS: Readonly<Record<Anexo, EstadoAnexo>> = Object.freeze({
     nombre: 'Anexo C (nivel 1)',
     estado: 'publicado',
     activable: true,
-    nota: 'Biblioteca publicada del nivel 1, escrita para la mujer en menopausia.',
+    nota:
+      'Biblioteca publicada del nivel 1, escrita originalmente para la menopausia. Las acciones de piso pélvico y ' +
+      'sofocos sólo se ofrecen con la condición menopausia, o a un perfil todavía sin estadío (se trata como el del ' +
+      'Anexo C original).',
   },
   'C-bis': {
     anexo: 'C-bis',

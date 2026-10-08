@@ -16,6 +16,7 @@ import {
   BASELINE_GRUPOS,
   BASELINE_PREGUNTAS,
   BASELINE_QUESTIONNAIRE_URL,
+  BASELINE_QUESTIONNAIRE_VERSION,
   GLP1_CODE_SI,
   GLP1_LINK_ID,
 } from './preguntas.js';
@@ -40,11 +41,12 @@ export function baselineQuestionnaireItems(): QuestionnaireItem[] {
   }));
 }
 
-/** Questionnaire completo, listo para subir al servidor. */
+/** Questionnaire completo, listo para subir al servidor, con la versión del contenido. */
 export function buildBaselineQuestionnaire(): Questionnaire {
   return {
     resourceType: 'Questionnaire',
     url: BASELINE_QUESTIONNAIRE_URL,
+    version: BASELINE_QUESTIONNAIRE_VERSION,
     name: 'PB100DBaseline',
     title: 'Plan Bienestar 100 Días — cuestionario inicial',
     status: 'active',

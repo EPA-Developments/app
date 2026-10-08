@@ -1,4 +1,10 @@
-import { BASELINE_GRUPOS, BASELINE_PREGUNTAS, type PreguntaBaseline } from '@epa/careplan-menopausia';
+import {
+  BASELINE_GRUPOS,
+  BASELINE_PREGUNTAS,
+  opcionesBaselinePara,
+  type OpcionBaseline,
+  type PreguntaBaseline,
+} from '@epa/careplan-menopausia';
 import {
   Alert,
   Badge,
@@ -17,7 +23,7 @@ import {
 import { useState, type ReactElement } from 'react';
 import type { Patient } from '@medplum/fhirtypes';
 import { useNavigate } from 'react-router';
-import { useBasePath } from '../PlanBienestarContext';
+import { useBasePath, usePaciente } from '../PlanBienestarContext';
 import { useBaseline, type SeleccionBaseline } from '../hooks/useBaseline';
 
 export interface CuestionarioBaselineProps {
@@ -44,10 +50,13 @@ function preguntasDe(grupo: string): PreguntaBaseline[] {
 
 function Pregunta({
   pregunta,
+  opciones,
   elegidos,
   onChange,
 }: {
   pregunta: PreguntaBaseline;
+  /** Las que se le muestran a la persona (`opcionesBaselinePara`). */
+  opciones: OpcionBaseline[];
   elegidos: string[];
   onChange: (codigos: string[]) => void;
 }): ReactElement {
@@ -55,7 +64,7 @@ function Pregunta({
     return (
       <Radio.Group value={elegidos[0] ?? ''} onChange={(valor) => onChange([valor])} label={pregunta.text}>
         <Stack gap="xs" mt="sm">
-          {pregunta.opciones.map((opcion) => (
+          {opciones.map((opcion) => (
             <Radio key={opcion.code} value={opcion.code} label={opcion.display} color="teal" size="md" />
           ))}
         </Stack>
@@ -79,7 +88,7 @@ function Pregunta({
         {pregunta.text}
       </Text>
       <Stack gap="xs">
-        {pregunta.opciones.map((opcion) => (
+        {opciones.map((opcion) => (
           <Checkbox
             key={opcion.code}
             checked={elegidos.includes(opcion.code)}
@@ -101,12 +110,17 @@ function Pregunta({
  * completa desde el teléfono y con la lista entera a la vista la gente abandona.
  *
  * Las preguntas y sus opciones salen de `BASELINE_PREGUNTAS`, no están escritas
- * acá: lo que la paciente lee y lo que activa cada respuesta son la misma
+ * acá: lo que la persona lee y lo que activa cada respuesta son la misma
  * declaración, así no pueden separarse.
+ *
+ * A un hombre no se le muestran las opciones `soloSiNoEsHombre` (la de sofocos).
+ * Si las había marcado antes, quedan en lo que guarda (no se le cambia lo que ya
+ * activaba) hasta que marque «Ninguna de estas» en esa pregunta.
  */
 export function CuestionarioBaseline(props: CuestionarioBaselineProps): ReactElement {
   const navigate = useNavigate();
   const basePath = useBasePath(props.basePath);
+  const paciente = usePaciente(props.patient);
   const baseline = useBaseline({ patient: props.patient });
 
   const [paso, setPaso] = useState(0);
@@ -193,6 +207,7 @@ export function CuestionarioBaseline(props: CuestionarioBaselineProps): ReactEle
               <Pregunta
                 key={pregunta.linkId}
                 pregunta={pregunta}
+                opciones={opcionesBaselinePara(pregunta, paciente?.gender)}
                 elegidos={actual[pregunta.linkId] ?? []}
                 onChange={(codigos) => cambiar(pregunta.linkId, codigos)}
               />

@@ -31,11 +31,28 @@ import type { Senal } from '../biblioteca/acciones-nivel1.js';
 /** URL canónica del cuestionario baseline. */
 export const BASELINE_QUESTIONNAIRE_URL = 'https://epa-bienestar.ar/fhir/Questionnaire/pb100d-baseline';
 
+/**
+ * Versión del contenido del cuestionario (grupos, preguntas y opciones): la del core en
+ * que cambió por última vez. Va en `Questionnaire.version`, y `asegurarRecursosDelPlan`
+ * (plan-bienestar-react) actualiza el del servidor cuando tiene otra, para que el recurso
+ * publicado con esta url diga lo mismo que el código. El portal muestra el cuestionario
+ * desde el código, así que esto no cambia lo que ve nadie. Hay que subirla cada vez que
+ * cambie lo que declara este archivo: un test lo vigila.
+ */
+export const BASELINE_QUESTIONNAIRE_VERSION = '0.16.0';
+
 export interface OpcionBaseline {
   code: string;
   display: string;
   /** Señal que activa esta respuesta. Sin señal = no aporta nada al filtro. */
   senal?: Senal;
+  /**
+   * No se le muestra a un hombre (`Patient.gender` = `male`), como las preguntas de
+   * `SOLO_SI_NO_ES_HOMBRE` del ingreso del portal. Con el sexo sin cargar, sí. Filtra
+   * sólo lo que se ve (`opcionesBaselinePara`): la opción sigue en el Questionnaire FHIR
+   * y una respuesta ya guardada con su código sigue dando la misma señal.
+   */
+  soloSiNoEsHombre?: boolean;
 }
 
 export interface PreguntaBaseline {
@@ -105,10 +122,10 @@ export const BASELINE_PREGUNTAS: readonly PreguntaBaseline[] = Object.freeze([
     opciones: [
       {
         code: 'insegura',
-        display: 'Me siento insegura o tengo miedo de lastimarme',
+        display: 'Me da inseguridad o tengo miedo de lastimarme',
         senal: 'autoeficacia:fisica-baja',
       },
-      { code: 'comoda', display: 'Me siento cómoda moviéndome' },
+      { code: 'comoda', display: 'Me muevo con comodidad' },
     ],
   },
   {
@@ -162,7 +179,7 @@ export const BASELINE_PREGUNTAS: readonly PreguntaBaseline[] = Object.freeze([
       },
       { code: 'temor-caidas', display: 'Tengo miedo de caerme', senal: 'barrera:temor-caidas' },
       { code: 'dolor-articular', display: 'Me levanto con las articulaciones rígidas o con dolor', senal: 'barrera:dolor-articular' },
-      { code: 'sedentarismo', display: 'Paso muchas horas sentada', senal: 'barrera:sedentarismo' },
+      { code: 'sedentarismo', display: 'Paso muchas horas sin levantarme de la silla', senal: 'barrera:sedentarismo' },
       { code: 'estres', display: 'Ando con mucha tensión o estrés', senal: 'clinico:estres-elevado' },
       NINGUNA,
     ],
@@ -174,13 +191,25 @@ export const BASELINE_PREGUNTAS: readonly PreguntaBaseline[] = Object.freeze([
     grupo: 'descanso',
     text: '¿Qué te complica el descanso? Marcá todas las que correspondan.',
     multiple: true,
+    // Las dos de sofocos sólo activan acciones que exigen la condición menopausia
+    // (la primera S01 y S07, la segunda S04): a quien no la tiene no le suman nada.
+    // La primera está dicha para cualquiera (calor o transpiración a la noche). La
+    // segunda nombra los sofocos: no se le muestra a un hombre. A una mujer, o a quien
+    // no tiene el sexo cargado, se le muestra aunque el equipo todavía no haya
+    // registrado la menopausia, porque a veces la registra después de que la persona
+    // responde (y el Questionnaire FHIR no tiene enableWhen por opción).
     opciones: [
-      { code: 'sofocos-nocturnos', display: 'Me despierto de calor a la noche', senal: 'barrera:sofocos-nocturnos' },
-      { code: 'sofocos-conciliacion', display: 'Los sofocos no me dejan dormirme', senal: 'barrera:sofocos-conciliacion' },
+      { code: 'sofocos-nocturnos', display: 'Me despierto con calor o transpirando a la noche', senal: 'barrera:sofocos-nocturnos' },
+      {
+        code: 'sofocos-conciliacion',
+        display: 'Los sofocos no me dejan dormirme',
+        senal: 'barrera:sofocos-conciliacion',
+        soloSiNoEsHombre: true,
+      },
       { code: 'despertares-precoces', display: 'Me despierto muy temprano y no puedo volver a dormirme', senal: 'barrera:despertares-precoces' },
       { code: 'pantallas', display: 'Uso pantallas hasta que me duermo', senal: 'barrera:pantallas-nocturnas' },
-      { code: 'fatiga-matutina', display: 'Me levanto cansada aunque haya dormido', senal: 'barrera:fatiga-matutina' },
-      { code: 'ansiedad-nocturna', display: 'Me acuesto ansiosa o con palpitaciones', senal: 'barrera:ansiedad-nocturna' },
+      { code: 'fatiga-matutina', display: 'Me levanto con cansancio aunque haya dormido', senal: 'barrera:fatiga-matutina' },
+      { code: 'ansiedad-nocturna', display: 'Me acuesto con ansiedad o con palpitaciones', senal: 'barrera:ansiedad-nocturna' },
       { code: 'alcohol-picante', display: 'Suelo cenar con alcohol o comida picante', senal: 'barrera:alcohol-picante' },
       { code: 'horarios-irregulares', display: 'Me acuesto y me levanto a horarios muy distintos', senal: 'barrera:horarios-irregulares' },
       NINGUNA,
@@ -213,7 +242,7 @@ export const BASELINE_PREGUNTAS: readonly PreguntaBaseline[] = Object.freeze([
     opciones: [
       { code: 'alta-proteina', display: 'Comidas con buena carga de proteína', senal: 'preferencia:alta-proteina' },
       { code: 'remedios-naturales', display: 'Recursos naturales (infusiones, hierbas)', senal: 'preferencia:remedios-naturales' },
-      { code: 'apoyo-social', display: 'Hacerlo acompañada, contándoselo a alguien', senal: 'preferencia:apoyo-social' },
+      { code: 'apoyo-social', display: 'Hacerlo con compañía, contándoselo a alguien', senal: 'preferencia:apoyo-social' },
       NINGUNA,
     ],
   },
@@ -222,6 +251,14 @@ export const BASELINE_PREGUNTAS: readonly PreguntaBaseline[] = Object.freeze([
 /** `linkId` y código de la respuesta que indica tratamiento con GLP-1 activo. */
 export const GLP1_LINK_ID = 'glp1';
 export const GLP1_CODE_SI = 'si';
+
+/**
+ * Las opciones de una pregunta que se le muestran a la persona: todas, salvo las
+ * `soloSiNoEsHombre` cuando `gender` es `male`. Con el sexo sin cargar se muestran todas.
+ */
+export function opcionesBaselinePara(pregunta: PreguntaBaseline, gender: string | undefined): OpcionBaseline[] {
+  return gender === 'male' ? pregunta.opciones.filter((o) => !o.soloSiNoEsHombre) : [...pregunta.opciones];
+}
 
 /** Todas las señales que este cuestionario puede producir. */
 export function senalesDelBaseline(): Senal[] {

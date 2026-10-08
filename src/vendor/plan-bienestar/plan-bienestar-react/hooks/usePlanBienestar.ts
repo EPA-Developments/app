@@ -7,6 +7,7 @@ import {
   coincide,
   esCarePlanDelPrograma,
   estadioValidado,
+  etapaRegistrada,
   perfilDeLaPersona,
   type PerfilCatalogo,
 } from '@epa/careplan-menopausia';
@@ -278,11 +279,16 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
         return undefined;
       }
       setFaltantesParaEmpezar([]);
+      // La etapa de la menopausia sale de la Condition que ya está en la historia (la
+      // escribe el ingreso del portal): etiqueta el equipo y el plan la referencia, sin
+      // escribir otra Condition. Sin esa Condition, el plan se arma como siempre.
+      const etapa = etapaRegistrada(conditions);
       bundle = buildPb100dCarePlanBundle({
         patient: createReference(paciente),
         perfil: armado.perfil,
         planDefinitionUrl: url,
         ckmObservation: armado.ckmObservation,
+        ...(etapa ? { lifeStage: etapa.stage, crearCondition: false, existingCondition: etapa.condition } : {}),
         now,
       });
     }

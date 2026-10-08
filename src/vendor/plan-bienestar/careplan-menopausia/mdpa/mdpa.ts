@@ -288,12 +288,12 @@ export const MDPA_PASOS_MEDICION: readonly PasoMedicion[] = Object.freeze([
   },
   {
     orden: 3,
-    titulo: 'Sentate y quedate quieta 5 minutos',
+    titulo: 'Sentate y quedate en reposo 5 minutos',
     detalle: 'En silencio, sin el teléfono ni la tele. Recién después empezás.',
   },
   {
     orden: 4,
-    titulo: 'Sentada bien, con la espalda apoyada',
+    titulo: 'Con la espalda bien apoyada en la silla',
     detalle: 'Los pies en el piso, sin cruzar las piernas.',
   },
   {
