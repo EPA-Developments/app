@@ -189,7 +189,7 @@ export const MODULOS_EQUIPO: readonly ModuloEquipo[] = Object.freeze([
   {
     clave: 'acciones',
     titulo: 'Acciones de la biblioteca',
-    descripcion: 'Activar acciones del Anexo C por estadío y condición. Las del Anexo C bis, después de la firma.',
+    descripcion: 'Activar acciones del Anexo C y del Anexo C bis por estadío y condición.',
     roles: ['clinico'],
     slice: 3,
     implementado: true,
