@@ -67,13 +67,13 @@ export const GRUPOS_DE_PASOS: GrupoDePasos[] = [
     tipo: 'educacion',
     emoji: '💡',
     titulo: 'Aprendé y disfrutá',
-    descripcion: 'Talleres y contenidos pensados para esta etapa de tu vida.',
+    descripcion: 'Talleres y contenidos pensados para tu plan.',
   },
   {
     tipo: 'derivacion',
     emoji: '🤝',
     titulo: 'Con tu equipo de salud',
-    descripcion: 'No estás sola: tu equipo te acompaña en el camino.',
+    descripcion: 'Tu equipo te acompaña en todo el camino.',
   },
   {
     tipo: 'evaluacion',
@@ -98,7 +98,7 @@ export const EMOJI_POR_CATEGORIA: Record<string, string> = {
   metabolico: '🍎',
   cardiovascular: '❤️',
   renal: '💧',
-  bienestar: '🧘‍♀️',
+  bienestar: '🧘',
 };
 
 /** True when the step asks the patient to fill the plan questionnaire. */

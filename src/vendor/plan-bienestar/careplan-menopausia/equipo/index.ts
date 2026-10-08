@@ -80,7 +80,16 @@ export {
   type ResultadoInstrumento,
   type UltimoInstrumento,
 } from './instrumentos.js';
-export { condicionesDelPortal, perfilDeLaPersona, type ContextoPerfil, type PerfilPersona } from './perfil.js';
+export {
+  condicionesDelPortal,
+  datosDelIngreso,
+  etapaRegistrada,
+  perfilDeLaPersona,
+  type ContextoPerfil,
+  type DatosDelIngreso,
+  type EtapaRegistrada,
+  type PerfilPersona,
+} from './perfil.js';
 export {
   bundleRecalculo,
   codigoItemDe,

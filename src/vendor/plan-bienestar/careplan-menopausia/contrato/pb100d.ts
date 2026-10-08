@@ -193,6 +193,58 @@ export const COD = {
 } as const;
 
 // ---------------------------------------------------------------------------
+// Cuestionario de ingreso del portal
+// ---------------------------------------------------------------------------
+
+/**
+ * linkId del grupo «Salud de la mujer» del cuestionario de ingreso del portal.
+ *
+ * El portal lo agrega detrás de una constante apagada hasta que lo firmen los
+ * médicos, y no lo muestra a hombres. El core lee esas respuestas por linkId y
+ * no por la URL del cuestionario, que es de SOM y está fuera de los namespaces
+ * del contrato. La respuesta del ingreso se reconoce porque trae el grupo
+ * (`grupoSaludMujer`), y cada linkId se lee sólo dentro de él:
+ * `edad-ultima-menstruacion` también existe en el cuestionario anterior de
+ * menopausia, así que un linkId suelto no alcanza.
+ *
+ * Si el portal cambia un linkId, cambia acá, y las respuestas ya guardadas con
+ * el viejo dejan de leerse.
+ */
+export const INGRESO_LINKIDS = {
+  /** El grupo. Identifica la respuesta del ingreso. */
+  grupoSaludMujer: 'salud-mujer',
+  /** `choice`: en qué momento está con la menstruación. La Condition SNOMED de la etapa la escribe el portal. */
+  etapaMenstrual: 'etapa-menstrual',
+  /** `integer`: edad de la última menstruación, si ya no menstrúa. */
+  edadUltimaMenstruacion: 'edad-ultima-menstruacion',
+  /** `boolean`: preeclampsia o presión alta en algún embarazo. */
+  obstPreeclampsia: 'obst-preeclampsia',
+  /** `boolean`: diabetes gestacional. */
+  obstDmg: 'obst-dmg',
+  /** `boolean`: algún parto prematuro (antes de las 37 semanas). */
+  obstPrematuro: 'obst-prematuro',
+  /**
+   * `choice` con los códigos de `INGRESO_ANCESTRIA`: familia de origen asiático. Hoy va
+   * dentro del grupo de la mujer, así que un varón no la declara; sacarla del grupo y qué
+   * hacer con la que registra el equipo está a firmar (`docs/plan-bienestar-ckm-items.md`,
+   * 8.4, n.º 18). No se cambia antes: movería el estadío de pacientes actuales.
+   */
+  ancestriaAsiatica: 'ancestria-asiatica',
+} as const;
+
+/**
+ * Códigos (`valueCoding.code`) de las opciones de `ancestria-asiatica` en el ingreso.
+ * Si el portal usa `valueString` como el resto del ingreso («Sí», «No», «No sé»), se
+ * leen igual, sin mirar tildes ni mayúsculas. Lo mismo vale para las preguntas de sí o
+ * no, que además aceptan `valueBoolean`.
+ */
+export const INGRESO_ANCESTRIA = {
+  si: 'si',
+  no: 'no',
+  noSe: 'no-se',
+} as const;
+
+// ---------------------------------------------------------------------------
 // Lectura tolerante
 // ---------------------------------------------------------------------------
 

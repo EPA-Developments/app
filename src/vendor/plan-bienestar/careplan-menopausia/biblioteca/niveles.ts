@@ -52,10 +52,11 @@ export interface Nivel {
 /**
  * Los cuatro escalones.
  *
- * Foco en la mujer en toda la escalera. Nivel 1 es el único con biblioteca de
- * acciones publicada (Anexo C y Anexo C bis); los siguientes se abren a medida
- * que se define su contenido. Las puertas de seguridad de los cuatro niveles
- * están definidas: las de 3 y 4 se firmaron el 03/10/2026.
+ * Adultos de 30 a 79 años, de ambos sexos, en toda la escalera (la elegibilidad
+ * firmada). Nivel 1 es el único con biblioteca de acciones publicada (Anexo C y
+ * Anexo C bis); los siguientes se abren a medida que se define su contenido. Las
+ * puertas de seguridad de los cuatro niveles están definidas: las de 3 y 4 se
+ * firmaron el 03/10/2026.
  */
 export const NIVELES: readonly Nivel[] = Object.freeze([
   {
@@ -64,10 +65,11 @@ export const NIVELES: readonly Nivel[] = Object.freeze([
     nombre: 'Metabólico',
     aliasComercial: 'PB100D V1',
     foco:
-      'Mujer en peri/menopausia con resistencia a la insulina. Estabilización metabólica y tolerancia, ' +
-      'con GLP-1 como opción premium acompañada por nutrición.',
+      'Adultos de 30 a 79 años con exceso de adiposidad o resistencia a la insulina. Estabilización metabólica y ' +
+      'tolerancia, con GLP-1 como opción premium acompañada por nutrición; la menopausia entra como una condición ' +
+      'más, con sus acciones propias.',
     ejemplosDeObjetivo: [
-      'Descenso de peso pactado con la paciente',
+      'Descenso de peso pactado con la persona',
       'Reducción de circunferencia abdominal',
       'Mejora de parámetros de resistencia a la insulina',
     ],
@@ -89,7 +91,7 @@ export const NIVELES: readonly Nivel[] = Object.freeze([
       'El fármaco puede haberse suspendido: la conducta es lo que sostiene el resultado.',
     ejemplosDeObjetivo: [
       'Sostener el peso alcanzado sin fármaco',
-      'Descenso adicional pactado con la paciente',
+      'Descenso adicional pactado con la persona',
       'Mejora adicional del perfil de insulinorresistencia',
     ],
     puertasDeSeguridad: {

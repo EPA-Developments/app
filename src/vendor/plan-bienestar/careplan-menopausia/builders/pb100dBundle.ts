@@ -70,6 +70,15 @@ export interface BuildPb100dCarePlanOptions {
   /** Menopause life stage: adds the addressed Condition and activates the menopause module label. */
   lifeStage?: WomanLifeStage;
   /**
+   * With `lifeStage`, whether the bundle creates the stage Condition. Default `true`.
+   * Pass `false` when the stage comes from a Condition already on the server
+   * (`etapaRegistrada`): the CareTeam still carries the stage label and the CarePlan
+   * addresses `existingCondition`, without writing a duplicate.
+   */
+  crearCondition?: boolean;
+  /** The Condition already on the server that the CarePlan addresses when `crearCondition` is `false`. */
+  existingCondition?: Reference<Condition> | Condition | string;
+  /**
    * The validated CKM stage Observation (`buildCkmStageObservation`), referenced
    * from CarePlan.supportingInfo. Accepts a reference or an Observation with id.
    */
@@ -211,6 +220,13 @@ function referenciaObservacion(
   return observation;
 }
 
+function referenciaCondition(condition: Reference<Condition> | Condition | string | undefined): string | undefined {
+  if (!condition) return undefined;
+  if (typeof condition === 'string') return condition;
+  if ('resourceType' in condition) return condition.id ? `Condition/${condition.id}` : undefined;
+  return condition.reference;
+}
+
 function extensionesPerfil(perfil: PerfilCatalogo): Extension[] {
   const condiciones: Condicion[] = [...perfil.condiciones];
   return extensionesDeAplicabilidad({ estadios: [perfil.estadio], condiciones });
@@ -229,10 +245,11 @@ export function buildPb100dCarePlanBundle(options: BuildPb100dCarePlanOptions): 
   const audiencias = options.audiencias ?? ['persona'];
   const incluirEvaluaciones = options.incluirEvaluaciones ?? true;
   const lifeStage = options.lifeStage ? LIFE_STAGES[options.lifeStage] : undefined;
+  const crearCondition = lifeStage !== undefined && (options.crearCondition ?? true);
 
   const carePlanUrn = urn(generateId());
   const careTeamUrn = urn(generateId());
-  const conditionUrn = lifeStage ? urn(generateId()) : undefined;
+  const conditionUrn = crearCondition ? urn(generateId()) : undefined;
 
   const goalEntries = metasAplicables(perfil).map((meta) => ({
     fullUrl: urn(generateId()),
@@ -253,7 +270,8 @@ export function buildPb100dCarePlanBundle(options: BuildPb100dCarePlanOptions): 
     lifeStageLabel: lifeStage?.label,
   });
 
-  const condition = lifeStage ? buildCondition(lifeStage.coding, { patient, now }) : undefined;
+  const condition = crearCondition && lifeStage ? buildCondition(lifeStage.coding, { patient, now }) : undefined;
+  const addressed = conditionUrn ?? (lifeStage ? referenciaCondition(options.existingCondition) : undefined);
 
   const etiqueta = ETIQUETA_ESTADIO[perfil.estadio];
   const carePlan = buildCarePlan({
@@ -263,7 +281,7 @@ export function buildPb100dCarePlanBundle(options: BuildPb100dCarePlanOptions): 
     goals: goalEntries.map((entry) => entry.fullUrl),
     tasks: taskEntries.map((entry) => entry.fullUrl),
     careTeam: careTeamUrn,
-    condition: conditionUrn,
+    condition: addressed,
     instantiatesCanonical: [options.planDefinitionUrl ?? PB100D_PLAN_DEFINITION_URL],
     now,
   });
