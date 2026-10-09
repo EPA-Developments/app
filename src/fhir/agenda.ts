@@ -376,23 +376,47 @@ export const TEXTO_CONSENTIMIENTO_TELECONSULTA =
   'La videollamada se hace en una sala privada de la plataforma. Mis datos de salud se tratan según la Ley N° 25.326 ' +
   'y el consentimiento informado que firmé. Puedo revocar este consentimiento en cualquier momento desde Mensajes.';
 
-/** ¿La paciente ya aceptó el consentimiento de teleconsulta (Consent activo y vigente)? */
-export async function tieneConsentimientoTeleconsulta(
+/**
+ * Página del portal donde la paciente lee y acepta el consentimiento de teleconsulta, fuera de
+ * la reserva. Es la misma ruta que `RUTA_PORTAL_CONSENTIMIENTO_TELECONSULTA` de recepcionistas
+ * (`src/config/urls.ts`), que la manda por WhatsApp; también la usa la Novedad
+ * `consentimiento-teleconsulta` de la campanita. Si cambia acá, cambia allá.
+ */
+export const RUTA_CONSENTIMIENTO_TELECONSULTA = '/health-record/consent/teleconsulta';
+
+const fechaConsent = (c: Consent): number => Date.parse(c.dateTime ?? '') || 0;
+
+/**
+ * El consentimiento de teleconsulta vigente de la paciente (Consent activo, sin vencer), el más
+ * nuevo; undefined si todavía no lo aceptó. Sin caché: se consulta justo antes de aceptar.
+ */
+export async function buscarConsentimientoTeleconsulta(
   medplum: MedplumClient,
   patient: Patient,
   ahora: Date = new Date()
-): Promise<boolean> {
+): Promise<Consent | undefined> {
   const consents = await medplum.searchResources(
     'Consent',
-    `patient=${getReferenceString(patient)}&status=active&_count=50`
+    `patient=${getReferenceString(patient)}&status=active&_count=50`,
+    { cache: 'no-cache' }
   );
-  return consents.some((c) => {
+  const vigentes = consents.filter((c) => {
     const esDeTele = c.policyRule?.coding?.some(
       (k) => k.system === SYSTEM_CONSENTIMIENTO && k.code === CONSENTIMIENTO_TELECONSULTA
     );
     const fin = c.provision?.period?.end;
     return Boolean(esDeTele) && (!fin || Date.parse(fin) >= ahora.getTime());
   });
+  return vigentes.sort((a, b) => fechaConsent(b) - fechaConsent(a))[0];
+}
+
+/** ¿La paciente ya aceptó el consentimiento de teleconsulta (Consent activo y vigente)? */
+export async function tieneConsentimientoTeleconsulta(
+  medplum: MedplumClient,
+  patient: Patient,
+  ahora: Date = new Date()
+): Promise<boolean> {
+  return Boolean(await buscarConsentimientoTeleconsulta(medplum, patient, ahora));
 }
 
 /** El `Consent` de teleconsulta, con el shape del contrato (`construirConsentimientoTeleconsulta` de recepcionistas). */

@@ -4,7 +4,7 @@ import { AppShell, Box } from '@mantine/core';
 import { ErrorBoundary, useMedplum } from '@medplum/react';
 import { Suspense } from 'react';
 import type { JSX } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { Router } from './Router';
 import { BottomNav } from './components/BottomNav';
 import { Footer } from './components/Footer';
@@ -16,6 +16,16 @@ import { RegisterPage } from './pages/RegisterPage';
 import { SetPasswordPage } from './pages/SetPasswordPage';
 import { SignInPage } from './pages/SignInPage';
 import { LandingPage } from './pages/landing';
+import { rutaIngresar } from './utils/destino';
+
+/**
+ * Sin sesión, cualquier otra ruta pasa por el ingreso y vuelve a donde iba (`/signin?next=…`):
+ * así un link del portal (p. ej. el del consentimiento de teleconsulta) abre su página.
+ */
+function IrAIngresar(): JSX.Element {
+  const { pathname, search } = useLocation();
+  return <Navigate replace to={rutaIngresar(pathname + search)} />;
+}
 
 export function App(): JSX.Element | null {
   const medplum = useMedplum();
@@ -34,7 +44,7 @@ export function App(): JSX.Element | null {
         {/* Términos y privacidad: se enlazan desde "Crear cuenta". */}
         <Route path="legal" element={<LegalPage />} />
         <Route path="setpassword/:id/:secret" element={<SetPasswordPage />} />
-        <Route path="*" element={<Navigate replace to="/" />} />
+        <Route path="*" element={<IrAIngresar />} />
       </Routes>
     );
   }

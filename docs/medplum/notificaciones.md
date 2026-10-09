@@ -50,7 +50,7 @@ el contador filtra por nuestra `category`, así que los mensajes del chat (tambi
 
 | Campo | Regla |
 |---|---|
-| `category` | system `…/CodeSystem/notificacion`. Códigos: `reserva-confirmada` · `recordatorio` · `pago-recibido` · `resultados-listos` · `documento-nuevo` · `mensaje-nuevo` · `general`. Un código nuevo se muestra igual, como aviso, con su `display` de título. |
+| `category` | system `…/CodeSystem/notificacion`. Códigos: `reserva-confirmada` · `recordatorio` · `pago-recibido` · `resultados-listos` · `documento-nuevo` · `mensaje-nuevo` · `consentimiento-teleconsulta` · `general`. Un código nuevo se muestra igual, como aviso, con su `display` de título. |
 | `subject` | **Siempre** el Patient: es lo que usa la AccessPolicy para acotar. |
 | `recipient` | El Patient (el portal busca por `recipient`). |
 | `sent` | **Obligatorio**: el panel ordena por `-sent` y muestra "hace 5 minutos". |
@@ -71,6 +71,7 @@ A dónde lleva el toque (`destinoNotificacion`):
 | `Task` | `/get-care` (solicitudes de turno) |
 | `DocumentReference` | `/health-record` |
 | sin `about` | según el código: turnos/recordatorios/pagos → `/membership`; `resultados-listos` → `/health-record/biomarkers`; `general` no navega |
+| `consentimiento-teleconsulta` (sin `about`) | `/health-record/consent/teleconsulta`; la página la marca leída cuando ya hay Consent |
 
 ### Momentos que disparan una novedad (bots)
 
@@ -83,7 +84,14 @@ A dónde lleva el toque (`destinoNotificacion`):
    `documento-nuevo` + `about` = `DocumentReference` / `ServiceRequest` / `MedicationRequest`.
 6. **Mensaje nuevo**: Recepción respondió en Mensajes → `mensaje-nuevo` + `about: Communication/<conversación>`
    (lo crea la bandeja de Recepción, `recepcionistas/src/lib/mensajes.ts`: uno por tanda de respuestas).
-7. **Avisos generales**: `general` (cambios de horario, novedades).
+7. **Consentimiento de teleconsulta**: Recepción se lo pide (R-21, bot `som-consentimiento-teleconsulta`
+   de recepcionistas) → `consentimiento-teleconsulta`, sin `about`; una sola sin leer por paciente.
+   La paciente lo acepta en `/health-record/consent/teleconsulta` (el mismo link que le llega por
+   WhatsApp; sin sesión pasa por `/signin?next=…` y vuelve ahí). Si todavía no completó la
+   Bienvenida, el gate la desvía; con esta novedad sin leer, la primera firma del consentimiento
+   informado la lleva a esa página en lugar del Cuestionario de ingreso. Al haber Consent, la
+   página marca leídas todas las de este código.
+8. **Avisos generales**: `general` (cambios de horario, novedades).
 
 ### Probar hoy sin bots
 

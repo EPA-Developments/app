@@ -37,6 +37,7 @@ import {
   IconPaperclip,
   IconReceipt,
   IconReportMedical,
+  IconVideo,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -70,6 +71,7 @@ const ICONOS: Record<TipoNotificacion, { icon: Icon; color: string }> = {
   'resultados-listos': { icon: IconReportMedical, color: 'grape' },
   'documento-nuevo': { icon: IconFileText, color: 'indigo' },
   'mensaje-nuevo': { icon: IconMessage, color: 'blue' },
+  'consentimiento-teleconsulta': { icon: IconVideo, color: 'grape' },
   general: { icon: IconInfoCircle, color: 'gray' },
 };
 

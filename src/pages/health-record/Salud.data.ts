@@ -6,8 +6,10 @@
 //
 // Orden (pedido de SOM): primero el Cuestionario de ingreso (lo que el equipo necesita
 // saber antes de la consulta; es el inicio de Salud en web), después Mi salud
-// cardiovascular, Signos Vitales (adelante, para que se carguen seguido), Biomarcadores y
-// el Consentimiento. El historial de cuestionarios sigue en /health-record/questionnaire-
+// cardiovascular, Signos Vitales (adelante, para que se carguen seguido), Biomarcadores, el
+// Consentimiento informado y el de teleconsulta (R-21; para quien se atiende por
+// videollamada, una sola vez: sin sub-opciones, así "Consentimiento Informado" no se marca
+// activo en su ruta). El historial de cuestionarios sigue en /health-record/questionnaire-
 // responses, enlazado desde el Cuestionario de ingreso.
 //
 // Nota: las rutas y componentes de Resultados de Laboratorio, Medicación y Vacunas
@@ -22,9 +24,11 @@ import {
   IconFileCheck,
   IconHeartbeat,
   IconReportMedical,
+  IconVideo,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import type { SideMenuProps } from '../../components/SideMenu';
+import { RUTA_CONSENTIMIENTO_TELECONSULTA } from '../../fhir/agenda';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { biomarkerPanels } from './Biomarkers.data';
 import { measurementsMeta } from './Measurement.data';
@@ -94,6 +98,12 @@ export const SECCIONES_SALUD: readonly SeccionSalud[] = [
     href: '/health-record/consent',
     icon: IconFileCheck,
     descripcion: 'Leé y firmá tu consentimiento.',
+  },
+  {
+    titulo: 'Consentimiento de teleconsulta',
+    href: RUTA_CONSENTIMIENTO_TELECONSULTA,
+    icon: IconVideo,
+    descripcion: 'Para atenderte por videollamada.',
   },
 ];
 
