@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { MantineProvider } from '@mantine/core';
 import { Notifications, notifications } from '@mantine/notifications';
-import type { DocumentReference, Patient } from '@medplum/fhirtypes';
+import type { Communication, DocumentReference, Patient } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
@@ -10,6 +10,8 @@ import type { JSX } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { AvisoConsentimiento } from '../../components/AvisoConsentimiento';
 import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
+import { RUTA_CONSENTIMIENTO_TELECONSULTA, construirConsentimientoTeleconsulta } from '../../fhir/agenda';
+import { NOTIFICACION_SYSTEM } from '../../fhir/notificaciones';
 import {
   CONSENT_TYPE_CODE,
   CONSENT_TYPE_SYSTEM,
@@ -24,6 +26,7 @@ import { NOVEDADES_VERSION, VERSION_CONSENTIMIENTO } from './InformedConsent.dat
 // Las notificaciones de Mantine viven en un store global: no pasan de un test a otro.
 afterEach(() => {
   notifications.clean();
+  vi.useRealTimers();
 });
 
 function Marca({ texto }: { texto: string }): JSX.Element {
@@ -66,6 +69,10 @@ async function renderEn(medplum: MockClient, ruta: string): Promise<void> {
               <Route path="/health-record/cuestionarios" element={<Marca texto="Mi salud cardiovascular" />} />
               <Route path="/health-record/ingreso" element={<Marca texto="Cuestionario de ingreso" />} />
               <Route path="/inicio" element={<AvisoConsentimiento />} />
+              <Route
+                path={RUTA_CONSENTIMIENTO_TELECONSULTA}
+                element={<Marca texto="Página del consentimiento de teleconsulta" />}
+              />
             </Routes>
           </MantineProvider>
         </MedplumProvider>
@@ -128,6 +135,87 @@ test('con la versión vigente firmada, el aviso verde (con el email bien separad
   expect(await screen.findByText(/Firmaste este consentimiento el/)).toBeInTheDocument();
   expect(screen.getByText(/escribí a info@segundaopinionmedica\.org\./)).toBeInTheDocument();
   expect(screen.queryByText('Actualizamos el consentimiento informado')).not.toBeInTheDocument();
+});
+
+describe('consentimiento de teleconsulta (R-21): se ofrece, una sola vez, a quien no lo aceptó', () => {
+  const LEER = 'Leer el consentimiento de teleconsulta';
+
+  /** Deja correr las búsquedas pendientes (el MockClient resuelve en el próximo tick). */
+  async function esperar(): Promise<void> {
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+  }
+
+  test('con la versión vigente firmada y sin el de teleconsulta, lo ofrece en el aviso verde', async () => {
+    const { medplum } = await paciente({ version: VERSION_CONSENTIMIENTO });
+    await renderEn(medplum, '/health-record/consent');
+    expect(await screen.findByRole('button', { name: LEER })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Antes de tu primera teleconsulta, leé y aceptá el consentimiento de teleconsulta/)
+    ).toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: LEER })));
+    expect(await screen.findByText('Página del consentimiento de teleconsulta')).toBeInTheDocument();
+  });
+
+  test('a quien ya lo aceptó no se lo ofrece', async () => {
+    const { medplum, patient } = await paciente({ version: VERSION_CONSENTIMIENTO });
+    await medplum.createResource(construirConsentimientoTeleconsulta(patient));
+    await renderEn(medplum, '/health-record/consent');
+    expect(await screen.findByText(/Firmaste este consentimiento el/)).toBeInTheDocument();
+    await esperar();
+    expect(screen.queryByRole('button', { name: LEER })).not.toBeInTheDocument();
+  });
+
+  async function firmar(): Promise<void> {
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.change(screen.getByLabelText(/^DNI/), { target: { value: '12345678' } });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Firmar y aceptar' })));
+  }
+
+  test('en la primera firma el camino sigue igual, y el aviso lo ofrece sin cerrarse solo', async () => {
+    // Relojes falsos que igual avanzan: las búsquedas del MockClient resuelven solas.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { medplum } = await paciente();
+    await renderEn(medplum, '/health-record/consent');
+    await esperar();
+    await firmar();
+    // El camino no cambia: sigue en el Cuestionario de ingreso.
+    expect(await screen.findByText('Cuestionario de ingreso')).toBeInTheDocument();
+    expect(screen.getByText('Consentimiento firmado')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: LEER })).toBeInTheDocument();
+    // Quien lee despacio (o en el celular, sin mouse que lo pause) no pierde el botón. Dos tandas
+    // de reloj: si el aviso se cerrara, la segunda termina su transición de salida.
+    for (let i = 0; i < 2; i++) {
+      act(() => {
+        vi.advanceTimersByTime(30_000);
+      });
+    }
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: LEER })));
+    expect(await screen.findByText('Página del consentimiento de teleconsulta')).toBeInTheDocument();
+  });
+
+  test('si Recepción se lo pidió (Novedad sin leer), la primera firma sigue en ese consentimiento', async () => {
+    // Abrió el link de WhatsApp con la Bienvenida pendiente: el gate la llevó a la Bienvenida y
+    // de ahí acá. El destino del link no se pierde.
+    const { medplum, patient } = await paciente();
+    await medplum.createResource<Communication>({
+      resourceType: 'Communication',
+      status: 'in-progress',
+      subject: { reference: `Patient/${patient.id}` },
+      recipient: [{ reference: `Patient/${patient.id}` }],
+      sent: '2026-10-01T10:00:00.000Z',
+      category: [{ coding: [{ system: NOTIFICACION_SYSTEM, code: 'consentimiento-teleconsulta' }] }],
+      payload: [{ contentString: 'Te pedimos el consentimiento de teleconsulta.' }],
+    });
+    await renderEn(medplum, '/health-record/consent');
+    await esperar();
+    await firmar();
+    expect(await screen.findByText('Página del consentimiento de teleconsulta')).toBeInTheDocument();
+    expect(screen.queryByText('Cuestionario de ingreso')).not.toBeInTheDocument();
+  });
 });
 
 describe('aviso en el inicio', () => {

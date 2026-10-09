@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Alert, Box, Button, Checkbox, Divider, Group, List, Stack, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { createReference, formatDateTime, formatHumanName } from '@medplum/core';
+import { createReference, formatDateTime, formatHumanName, getReferenceString } from '@medplum/core';
+import type { WithId } from '@medplum/core';
 import type { DocumentReference, Patient } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
-import { IconArrowRight, IconCircleCheck, IconRefresh, IconWriting } from '@tabler/icons-react';
+import { IconArrowRight, IconCircleCheck, IconRefresh, IconVideo, IconWriting } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
+import { RUTA_CONSENTIMIENTO_TELECONSULTA, buscarConsentimientoTeleconsulta } from '../../fhir/agenda';
 import {
   CONSENT_TYPE_CODE,
   CONSENT_TYPE_SYSTEM,
@@ -17,6 +19,7 @@ import {
   consentimientoAlDia,
 } from '../../fhir/consentimiento';
 import { buscarUltimoIngreso } from '../../fhir/ingreso';
+import { hayNovedadSinLeer } from '../../fhir/notificaciones';
 import { MARCA } from '../../marca';
 import { showErrorNotification } from '../../utils/notifications';
 import type { ConsentBlock } from './InformedConsent.data';
@@ -32,6 +35,8 @@ import {
 
 const RUTA_MI_SALUD_CV = '/health-record/cuestionarios';
 const RUTA_INGRESO = '/health-record/ingreso';
+/** Id del aviso de la primera firma (su botón lo cierra al ir al consentimiento de teleconsulta). */
+const AVISO_FIRMADO = 'consentimiento-firmado';
 
 /** Codifica un string UTF-8 a base64 (para el adjunto del DocumentReference). */
 function toBase64Utf8(str: string): string {
@@ -133,7 +138,7 @@ export function ConsentBody({ block }: { block: ConsentBlock }): JSX.Element {
 export function InformedConsent(): JSX.Element {
   const medplum = useMedplum();
   const navigate = useNavigate();
-  const patient = medplum.getProfile() as Patient;
+  const patient = medplum.getProfile() as WithId<Patient>;
   const patientName = patient.name?.[0] ? formatHumanName(patient.name[0]) : '';
   const birthDate = fechaLegible(patient.birthDate);
   const email = getEmail(patient);
@@ -155,6 +160,25 @@ export function InformedConsent(): JSX.Element {
   useEffect(() => {
     buscarUltimoIngreso(medplum, patient)
       .then((r) => setIngresoHecho(Boolean(r)))
+      .catch(() => undefined);
+  }, [medplum, patient]);
+
+  // ¿Ya aceptó el consentimiento de teleconsulta (R-21)? Si no, se lo ofrecemos al firmar este
+  // (este texto lo anuncia: «antes de tu primera teleconsulta…»). undefined = no se sabe: no se ofrece.
+  const [teleconsulta, setTeleconsulta] = useState<boolean | undefined>(undefined);
+  // ¿Recepción se lo pidió (Novedad sin leer del bot `som-consentimiento-teleconsulta`)? Entonces la
+  // primera firma sigue ahí: es a donde iba su link de WhatsApp, que la Bienvenida pendiente desvía.
+  const [pedidoTeleconsulta, setPedidoTeleconsulta] = useState(false);
+  useEffect(() => {
+    buscarConsentimientoTeleconsulta(medplum, patient)
+      .then(async (c) => {
+        setTeleconsulta(Boolean(c));
+        if (!c) {
+          setPedidoTeleconsulta(
+            await hayNovedadSinLeer(medplum, getReferenceString(patient), 'consentimiento-teleconsulta')
+          );
+        }
+      })
       .catch(() => undefined);
   }, [medplum, patient]);
 
@@ -205,21 +229,60 @@ export function InformedConsent(): JSX.Element {
       ],
     };
 
-    // Primera firma = viene del camino de Bienvenida: sigue en Mi salud cardiovascular.
+    // Primera firma = viene del camino de Bienvenida: sigue en el Cuestionario de ingreso o en Mi
+    // salud cardiovascular; si Recepción le pidió el de teleconsulta, sigue en ese (el Cuestionario
+    // de ingreso pendiente lo recuerda el aviso del inicio).
     const primeraFirma = !loading && !signed;
+    const irATeleconsulta = primeraFirma && teleconsulta === false && pedidoTeleconsulta;
+    const destino = irATeleconsulta
+      ? { ruta: RUTA_CONSENTIMIENTO_TELECONSULTA, nombre: 'el consentimiento de teleconsulta que te pedimos' }
+      : siguiente;
+    // Si no, la página se va igual (sigue el camino): la oferta del consentimiento de teleconsulta
+    // viaja en el aviso, que no se cierra solo (el botón tiene que poder leerse y tocarse sin apuro).
+    const ofrecerTeleconsulta = primeraFirma && teleconsulta === false && !irATeleconsulta;
     medplum
       .createResource(doc)
       .then(() => {
-        notifications.show({
-          color: 'green',
-          title: 'Consentimiento firmado',
-          message: primeraFirma
-            ? `Quedó registrado en tu historia clínica. Seguimos con ${siguiente.nombre}.`
-            : 'Quedó registrado de forma segura en tu historia clínica.',
-        });
+        if (ofrecerTeleconsulta) {
+          notifications.show({
+            id: AVISO_FIRMADO,
+            color: 'green',
+            title: 'Consentimiento firmado',
+            autoClose: false,
+            message: (
+              <>
+                Quedó registrado en tu historia clínica. Seguimos con {destino.nombre}.
+                <Text size="sm" mt={4}>
+                  ¿Vas a atenderte por videollamada? Antes de tu primera teleconsulta aceptá el consentimiento de
+                  teleconsulta. Es una sola vez.
+                </Text>
+                <Button
+                  size="xs"
+                  variant="light"
+                  mt={4}
+                  leftSection={<IconVideo size={14} />}
+                  onClick={() => {
+                    notifications.hide(AVISO_FIRMADO);
+                    navigate(RUTA_CONSENTIMIENTO_TELECONSULTA)?.catch(console.error);
+                  }}
+                >
+                  Leer el consentimiento de teleconsulta
+                </Button>
+              </>
+            ),
+          });
+        } else {
+          notifications.show({
+            color: 'green',
+            title: 'Consentimiento firmado',
+            message: primeraFirma
+              ? `Quedó registrado en tu historia clínica. Seguimos con ${destino.nombre}.`
+              : 'Quedó registrado de forma segura en tu historia clínica.',
+          });
+        }
         setAccepted(false);
         if (primeraFirma) {
-          navigate(siguiente.ruta)?.catch(console.error);
+          navigate(destino.ruta)?.catch(console.error);
         } else {
           loadConsent();
         }
@@ -250,6 +313,24 @@ export function InformedConsent(): JSX.Element {
               Seguí con {siguiente.nombre}
             </Button>
           </Group>
+          {teleconsulta === false && (
+            <>
+              <Text size="sm" mt="sm">
+                ¿Vas a atenderte por videollamada? Antes de tu primera teleconsulta, leé y aceptá el consentimiento de
+                teleconsulta. Es una sola vez.
+              </Text>
+              <Group mt="xs">
+                <Button
+                  size="xs"
+                  variant="light"
+                  leftSection={<IconVideo size={14} />}
+                  onClick={() => navigate(RUTA_CONSENTIMIENTO_TELECONSULTA)?.catch(console.error)}
+                >
+                  Leer el consentimiento de teleconsulta
+                </Button>
+              </Group>
+            </>
+          )}
         </Alert>
       )}
 

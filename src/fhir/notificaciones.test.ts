@@ -11,7 +11,9 @@ import {
   destinoNotificacion,
   esNoLeida,
   haceCuanto,
+  hayNovedadSinLeer,
   marcarLeida,
+  marcarLeidasDeTipo,
   marcarTodasLeidas,
   NOTIFICACION_SYSTEM,
   textoNotificacion,
@@ -134,6 +136,39 @@ test('Mensaje nuevo (Recepción respondió) abre la conversación', () => {
   const c = novedad('mensaje-nuevo', { about: [{ reference: 'Communication/conv1' }] });
   expect(tipoNotificacion(c)).toEqual({ tipo: 'mensaje-nuevo', titulo: 'Mensaje nuevo' });
   expect(destinoNotificacion(c)).toBe('/Communication/conv1');
+});
+
+test('Recepción pide el consentimiento de teleconsulta: sin `about`, lleva a su página', () => {
+  const c = novedad('consentimiento-teleconsulta');
+  expect(tipoNotificacion(c)).toEqual({
+    tipo: 'consentimiento-teleconsulta',
+    titulo: 'Consentimiento de teleconsulta',
+  });
+  expect(destinoNotificacion(c)).toBe('/health-record/consent/teleconsulta');
+});
+
+test('marcar leídas las de un tipo: solo las sin leer de ese código y de ese paciente', async () => {
+  const medplum = await servidor();
+  const pedido = await medplum.createResource(novedad('consentimiento-teleconsulta'));
+  const otra = await medplum.createResource(novedad('recordatorio'));
+  const deOtro = await medplum.createResource(
+    novedad('consentimiento-teleconsulta', {
+      subject: { reference: 'Patient/p2' },
+      recipient: [{ reference: 'Patient/p2' }],
+    })
+  );
+
+  expect(await hayNovedadSinLeer(medplum, P1, 'consentimiento-teleconsulta')).toBe(true);
+  expect(await hayNovedadSinLeer(medplum, P1, 'pago-recibido')).toBe(false);
+
+  await marcarLeidasDeTipo(medplum, P1, 'consentimiento-teleconsulta');
+  expect(await hayNovedadSinLeer(medplum, P1, 'consentimiento-teleconsulta')).toBe(false);
+  expect(await hayNovedadSinLeer(medplum, 'Patient/p2', 'consentimiento-teleconsulta')).toBe(true);
+  const leida = await medplum.readResource('Communication', pedido.id as string);
+  expect(leida.status).toBe('completed');
+  expect(leida.received).toBeDefined();
+  expect((await medplum.readResource('Communication', otra.id as string)).status).toBe('in-progress');
+  expect((await medplum.readResource('Communication', deOtro.id as string)).status).toBe('in-progress');
 });
 
 test('sin `about`, el destino sale del tipo; un aviso general no navega', () => {

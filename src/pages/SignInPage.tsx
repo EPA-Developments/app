@@ -2,15 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 import { BackgroundImage, Box, SimpleGrid } from '@mantine/core';
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { IngresoForm } from '../components/auth/IngresoForm';
 import { MARCA } from '../marca';
+import { destinoSeguro } from '../utils/destino';
 
 const HERO_IMG =
   'https://images.unsplash.com/photo-1556761175-4b46a572b786?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1567&q=80';
 
 export function SignInPage(): JSX.Element {
   const navigate = useNavigate();
+  // Llegó desde un link del portal (`/signin?next=…`): después del ingreso vuelve ahí.
+  const [params] = useSearchParams();
+  const destino = destinoSeguro(params.get('next')) ?? '/';
   return (
     <>
       {/* Mobile: imagen arriba como banner; el formulario va debajo, a lo ancho. */}
@@ -21,7 +25,7 @@ export function SignInPage(): JSX.Element {
             projectId={import.meta.env.MEDPLUM_PROJECT_ID}
             googleClientId={import.meta.env.GOOGLE_CLIENT_ID}
             clientId={import.meta.env.MEDPLUM_CLIENT_ID}
-            onSuccess={() => navigate('/')?.catch(console.error)}
+            onSuccess={() => navigate(destino, { replace: true })?.catch(console.error)}
             onRegister={() => navigate('/register')?.catch(console.error)}
           >
             <h2>Iniciar sesión en {MARCA.nombre}</h2>

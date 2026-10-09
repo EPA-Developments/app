@@ -12,9 +12,13 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './App';
+import { rutaIngresar } from './utils/destino';
 
 const medplum = new MedplumClient({
-  onUnauthenticated: () => (window.location.href = '/'),
+  // Sesión vencida: al ingreso, y de ahí de vuelta a la página donde estaba (o al inicio).
+  onUnauthenticated: () => {
+    window.location.href = rutaIngresar(window.location.pathname + window.location.search);
+  },
   baseUrl: import.meta.env.MEDPLUM_BASE_URL,
 });
 

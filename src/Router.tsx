@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { PlanBienestarRoutes } from '@epa/plan-bienestar-react';
 import type { JSX } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes, useSearchParams } from 'react-router';
 import { AccountPage } from './pages/account';
 import { Profile } from './pages/account/Profile';
 import { MiEquipoDeSalud } from './pages/account/MiEquipoDeSalud';
@@ -17,6 +17,7 @@ import { EnviarEstudiosPage } from './pages/EnviarEstudiosPage';
 import { GetCare } from './pages/GetCarePage';
 import { HealthRecord } from './pages/health-record';
 import { BiomarkerPanel } from './pages/health-record/BiomarkerPanel';
+import { ConsentimientoTeleconsulta } from './pages/health-record/ConsentimientoTeleconsulta';
 import { CuestionarioIngreso } from './pages/health-record/CuestionarioIngreso';
 import { InformedConsent } from './pages/health-record/InformedConsent';
 import { LabResult } from './pages/health-record/LabResult';
@@ -46,6 +47,16 @@ import { LegalPage } from './pages/LegalPage';
 import { SolicitarSOM } from './pages/SolicitarSOM';
 import { TeleconsultaPage } from './pages/TeleconsultaPage';
 import { Welcome } from './pages/Welcome';
+import { destinoSeguro } from './utils/destino';
+
+/**
+ * Ya autenticado en `/signin?next=…` (recién ingresó, o abrió un link de ingreso con la sesión
+ * activa): sigue al destino del link, si es una ruta segura del portal; si no, a Inicio.
+ */
+function VolverTrasIngresar(): JSX.Element {
+  const [params] = useSearchParams();
+  return <Navigate replace to={destinoSeguro(params.get('next')) ?? '/'} />;
+}
 
 export function Router(): JSX.Element {
   return (
@@ -71,6 +82,9 @@ export function Router(): JSX.Element {
         <Route path="biomarkers/:panelId" element={<BiomarkerPanel />} />
         <Route path="ingreso" element={<CuestionarioIngreso />} />
         <Route path="consent" element={<InformedConsent />} />
+        {/* Consentimiento de teleconsulta (R-21) fuera de la reserva: lo abre el link que manda
+            Recepción por WhatsApp, la Novedad de la campanita y el menú de Salud. */}
+        <Route path="consent/teleconsulta" element={<ConsentimientoTeleconsulta />} />
         <Route path="medications" element={<Medications />} />
         <Route path="medications/:medicationId" element={<Medication />} />
         <Route path="questionnaire-responses" element={<Responses />} />
@@ -124,7 +138,9 @@ export function Router(): JSX.Element {
       </Route>
       <Route path="legal" element={<LegalPage />} />
       <Route path="signout" element={<SignOutPage />} />
-      {/* Ya autenticado: cualquier ruta pública (signin/register/...) redirige a Inicio. */}
+      <Route path="signin" element={<VolverTrasIngresar />} />
+      {/* Ya autenticado: cualquier otra ruta pública (register/...) o desconocida redirige a
+          Inicio; `signin` sigue al destino de `?next=` (arriba). */}
       <Route path="*" element={<Navigate replace to="/" />} />
     </Routes>
   );

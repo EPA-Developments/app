@@ -14,6 +14,7 @@
 // la pasa a `completed` + `received`.
 import type { MedplumClient, WithId } from '@medplum/core';
 import type { Attachment, Communication } from '@medplum/fhirtypes';
+import { RUTA_CONSENTIMIENTO_TELECONSULTA } from './agenda';
 import { SOM_SYSTEM } from './som';
 
 /** CodeSystem propio de SOM para clasificar las notificaciones. */
@@ -28,6 +29,11 @@ export const TIPOS_NOTIFICACION = {
   'documento-nuevo': 'Documento nuevo',
   /** Recepción respondió en Mensajes (`about` = la conversación). */
   'mensaje-nuevo': 'Mensaje nuevo',
+  /**
+   * Recepción le pide el consentimiento de teleconsulta (bot `som-consentimiento-teleconsulta`
+   * de recepcionistas, R-21). Sin `about`: lleva a la página del consentimiento.
+   */
+  'consentimiento-teleconsulta': 'Consentimiento de teleconsulta',
   general: 'Aviso',
 } as const;
 
@@ -86,6 +92,45 @@ export async function marcarLeida(medplum: MedplumClient, c: WithId<Communicatio
     { op: 'replace', path: '/status', value: 'completed' },
     { op: 'add', path: '/received', value: new Date().toISOString() },
   ]);
+}
+
+/** Las novedades sin leer de un tipo. */
+async function noLeidasDeTipo(
+  medplum: MedplumClient,
+  recipient: string,
+  tipo: TipoNotificacion
+): Promise<WithId<Communication>[]> {
+  const lista = await medplum.searchResources(
+    'Communication',
+    { recipient, category: `${NOTIFICACION_SYSTEM}|${tipo}`, status: 'in-progress', 'part-of:missing': 'true' },
+    { cache: 'no-cache' }
+  );
+  return lista.filter((c) => !c.partOf?.length);
+}
+
+/**
+ * ¿Tiene una novedad sin leer de este tipo? (p. ej. Recepción le pidió el consentimiento de
+ * teleconsulta y todavía no lo vio).
+ */
+export async function hayNovedadSinLeer(
+  medplum: MedplumClient,
+  recipient: string,
+  tipo: TipoNotificacion
+): Promise<boolean> {
+  return (await noLeidasDeTipo(medplum, recipient, tipo)).length > 0;
+}
+
+/**
+ * Marca leídas todas las novedades sin leer de un tipo (p. ej. el pedido del consentimiento de
+ * teleconsulta, cuando la paciente ya lo aceptó).
+ */
+export async function marcarLeidasDeTipo(
+  medplum: MedplumClient,
+  recipient: string,
+  tipo: TipoNotificacion
+): Promise<void> {
+  const lista = await noLeidasDeTipo(medplum, recipient, tipo);
+  await Promise.all(lista.map((c) => marcarLeida(medplum, c)));
 }
 
 export async function marcarTodasLeidas(
@@ -172,6 +217,8 @@ export function destinoNotificacion(c: Communication): string | undefined {
       return '/membership';
     case 'resultados-listos':
       return '/health-record/biomarkers';
+    case 'consentimiento-teleconsulta':
+      return RUTA_CONSENTIMIENTO_TELECONSULTA;
     default:
       return undefined;
   }

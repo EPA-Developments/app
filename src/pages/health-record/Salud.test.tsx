@@ -53,8 +53,12 @@ test('menú lateral de web: el Cuestionario de ingreso primero y Signos Vitales 
     'Signos Vitales',
     'Biomarcadores',
     'Consentimiento Informado',
+    'Consentimiento de teleconsulta',
   ]);
   expect(MENU_LATERAL_SALUD.menu[0].href).toBe('/health-record/ingreso');
+  // El de teleconsulta, suelto (sin sub-opciones): el link de WhatsApp de Recepción abre esta ruta.
+  expect(MENU_LATERAL_SALUD.menu[5].href).toBe('/health-record/consent/teleconsulta');
+  expect(MENU_LATERAL_SALUD.menu[5].subMenu).toBeUndefined();
   expect(MENU_LATERAL_SALUD.menu[0].subMenu).toBeUndefined();
   expect(MENU_LATERAL_SALUD.menu[1].subMenu).toHaveLength(LE8_QUESTIONNAIRES.length);
   expect(MENU_LATERAL_SALUD.menu[2].subMenu).toHaveLength(Object.keys(measurementsMeta).length);
