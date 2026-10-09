@@ -16,7 +16,7 @@ import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { Footer } from '../../components/Footer';
-import DoctorImage from '../../img/landingPage/prevencion_cardiovascular_v6';
+import DoctorImage from '../../img/landingPage/prevencion_cardiovascular_v6.png';
 import LabImage from '../../img/landingPage/medicos_evaluando_dashboard_mujer.png';
 import { MARCA } from '../../marca';
 import { Header } from './Header';
