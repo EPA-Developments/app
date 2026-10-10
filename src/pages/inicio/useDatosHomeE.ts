@@ -173,7 +173,11 @@ export function proximoTurnoDe(turnos: readonly Appointment[], ahora: Date = new
 }
 
 /** Los turnos de la paciente desde ayer (los de hoy pueden estar en curso). */
-async function cargarProximoTurno(medplum: MedplumClient, patient: Patient, hoy: string): Promise<ProximoTurno | undefined> {
+async function cargarProximoTurno(
+  medplum: MedplumClient,
+  patient: Patient,
+  hoy: string
+): Promise<ProximoTurno | undefined> {
   const desde = new Date(Date.parse(`${hoy}T00:00:00Z`) - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const turnos = await medplum.searchResources(
     'Appointment',

@@ -341,8 +341,7 @@ function descripcion(props: RosaLe8Props): string {
     ...(anillos.iaEnProceso ? ['está trabajando con tus datos'] : []),
   ];
   const ia =
-    'el anillo punteado de nuestros agentes de IA' +
-    (queHaceLaIa.length > 0 ? `, que ${enumerar(queHaceLaIa)}` : '');
+    'el anillo punteado de nuestros agentes de IA' + (queHaceLaIa.length > 0 ? `, que ${enumerar(queHaceLaIa)}` : '');
   const nodos = NODOS.filter((nodo) => anillos.equipo.includes(nodo));
   const nombres = nodos.map((nodo) => (nodo === 'segunda-opinion' ? nombreSegundaOpinion : TEXTO_NODO[nodo]));
   const estado =

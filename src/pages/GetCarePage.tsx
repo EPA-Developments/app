@@ -6,6 +6,8 @@
 // Plan Bienestar queda confirmada; las demás, tentativas hasta la seña del 50 % por
 // Mercado Pago (horario retenido 30 minutos). El portal NO escribe la agenda. Queda, como
 // alternativa, pedir que Recepción coordine (bot `som-solicitar-turno`).
+// Con `?modalidad=teleconsulta` (el «Reservar mi teleconsulta» de la Home), la reserva
+// arranca con la videollamada elegida.
 import {
   Alert,
   Badge,
@@ -28,6 +30,7 @@ import { Document, useMedplum } from '@medplum/react';
 import { IconCircleCheck, IconInfoCircle, IconMessage2 } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { useSearchParams } from 'react-router';
 import { ReservaTurno } from '../components/reserva/ReservaTurno';
 import type { Modalidad } from '../fhir/agenda';
 import {
@@ -175,9 +178,19 @@ function PedirCoordinacion({ patient, onEnviada }: { patient: Patient; onEnviada
   );
 }
 
+/**
+ * La modalidad con la que arranca la reserva, según la URL: solo `?modalidad=teleconsulta`;
+ * cualquier otro valor (o ninguno), la paciente la elige en el primer paso.
+ */
+function modalidadDeLaUrl(valor: string | null): Modalidad | undefined {
+  return valor === 'teleconsulta' ? 'teleconsulta' : undefined;
+}
+
 export function GetCare(): JSX.Element {
   const medplum = useMedplum();
   const patient = medplum.getProfile() as Patient;
+  const [params] = useSearchParams();
+  const modalidadInicial = modalidadDeLaUrl(params.get('modalidad'));
   const [version, setVersion] = useState(0);
   const [solicitudes, setSolicitudes] = useState<Task[]>();
 
@@ -203,7 +216,14 @@ export function GetCare(): JSX.Element {
         Elegí cómo querés atenderte, la consulta, el profesional y el horario. Las consultas del Plan Bienestar 100
         Días® están incluidas; las demás se confirman con la seña del 50 %.
       </Text>
-      <ReservaTurno patient={patient} onReservado={() => setVersion((v) => v + 1)} onSolicitado={recargar} />
+      {/* La key reinicia el asistente si cambia la modalidad de la URL (p. ej. «Reservar» en el menú). */}
+      <ReservaTurno
+        key={modalidadInicial ?? 'a-elegir'}
+        patient={patient}
+        modalidadInicial={modalidadInicial}
+        onReservado={() => setVersion((v) => v + 1)}
+        onSolicitado={recargar}
+      />
 
       <Divider my="xl" />
 

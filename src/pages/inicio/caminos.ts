@@ -9,6 +9,7 @@
 // si ya cargó algo (laboratorio o hábitos) y no tiene un turno reservado, la teleconsulta va
 // como «Recomendado para vos». Si no, se recomienda sumarse al plan; si ya está en el plan, pedir
 // la Segunda Opinión. Funciones puras: el nombre del servicio entra por parámetro (MARCA.producto).
+import { fmtDiaArg, fmtHoraArg } from '../../fhir/agenda';
 import {
   RUTA_MI_SEGUNDA_OPINION,
   RUTA_MIS_TURNOS,
@@ -60,20 +61,13 @@ export function caminoRecomendado(datos: DatosHomeE): ClaveCamino | undefined {
   return undefined;
 }
 
-/** Fecha y hora en Argentina, para el estado de un camino («sábado 17 de octubre, 10:30»). */
+/** Día y hora en Argentina, con el reloj de 24 horas del resto del portal («sábado, 17 de octubre, 10:30»). */
 export function fechaHoraTurno(iso: string): string {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) {
     return '';
   }
-  return new Intl.DateTimeFormat('es-AR', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(fecha);
+  return `${fmtDiaArg.format(fecha)}, ${fmtHoraArg.format(fecha)}`;
 }
 
 function fechaCorta(iso: string | undefined): string | undefined {

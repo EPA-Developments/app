@@ -4,7 +4,15 @@ import { LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
 import type { HitoBienestar, PlanBienestar } from '../../fhir/bienestar';
 import { DIAS_INFORME_RECIENTE, paraHoy } from './paraHoy';
-import type { DatosHomeE, Le8Domain, ResultadoLe8, SegundaOpinionHome } from './tipos';
+import type {
+  DatosHomeE,
+  LaboratorioHome,
+  Le8Domain,
+  PreventEstimado,
+  ProximoTurno,
+  ResultadoLe8,
+  SegundaOpinionHome,
+} from './tipos';
 
 const HOY = '2026-10-10';
 // Un nombre cualquiera: el del servicio entra por parámetro (en la Home, MARCA.producto).
@@ -45,6 +53,19 @@ function plan(hitos: HitoBienestar[]): PlanBienestar {
 function som(estado: SegundaOpinionHome['estado'], actualizada?: string): SegundaOpinionHome {
   return { id: 'som-1', estado, etiqueta: 'Etiqueta', pedida: '2026-09-01', actualizada };
 }
+
+/** Un laboratorio que leyó un agente de IA y que ningún médico revisó todavía. */
+const LAB_SIN_REVISAR: LaboratorioHome = {
+  estado: 'procesado',
+  fecha: '2026-10-03T12:00:00.000Z',
+  valores: 12,
+  informeId: 'dr1',
+  revisionMedica: false,
+};
+
+const PREVENT_ESTIMADO: PreventEstimado = { ascvd10: 0.052, hf10: 0.031, total30: 0.18, faltantes: [] };
+
+const TURNO: ProximoTurno = { id: 'appt-1', inicio: '2026-10-17T13:30:00.000Z', teleconsulta: true };
 
 /** Una paciente al día: todo firmado y respondido, con los 8 pétalos completos. */
 function alDia(cambios: Partial<DatosHomeE> = {}): DatosHomeE {
@@ -102,7 +123,18 @@ describe('paraHoy: una sola acción, elegida por una regla fija', () => {
     });
   });
 
-  test('5. con un hito del plan pendiente, el primero que falta', () => {
+  test('5. con resultados que nadie revisó todavía, reservar la teleconsulta para revisarlos juntos', () => {
+    expect(paraHoy(alDia({ laboratorio: LAB_SIN_REVISAR }), OPCIONES)).toEqual({
+      clave: 'teleconsulta',
+      titulo: 'Revisemos juntos tus resultados',
+      detalle:
+        'Ya tenemos tus datos. En una teleconsulta, tu equipo médico te los explica y te propone los próximos pasos.',
+      cta: 'Reservar mi teleconsulta',
+      href: '/get-care?modalidad=teleconsulta',
+    });
+  });
+
+  test('6. con un hito del plan pendiente, el primero que falta', () => {
     const datos = alDia({ plan: plan([hito('consentimiento', true), hito('vitales', false), hito('le8', false)]) });
     expect(paraHoy(datos, OPCIONES)).toEqual({
       clave: 'hito-vitales',
@@ -113,7 +145,7 @@ describe('paraHoy: una sola acción, elegida por una regla fija', () => {
     });
   });
 
-  test('6. con un pétalo sin dato, completarlo', () => {
+  test('7. con un pétalo sin dato, completarlo', () => {
     expect(paraHoy(alDia({ le8: le8(['sueno']) }), OPCIONES)).toEqual({
       clave: 'le8-sueno',
       titulo: 'Respondé tu cuestionario de sueño',
@@ -123,7 +155,7 @@ describe('paraHoy: una sola acción, elegida por una regla fija', () => {
     });
   });
 
-  test('7. con todo al día, ver los 8 hábitos', () => {
+  test('8. con todo al día, ver los 8 hábitos', () => {
     expect(paraHoy(alDia(), OPCIONES)).toEqual({
       clave: 'al-dia',
       titulo: 'Hoy estás al día',
@@ -184,6 +216,67 @@ describe('paraHoy: el orden de prioridad', () => {
       novedadesSinLeer: 0,
     };
     expect(paraHoy(profesional, OPCIONES).clave).toBe('al-dia');
+  });
+});
+
+describe('paraHoy: la teleconsulta (5) cuando hay resultados sin devolución', () => {
+  // Resultados sin revisar, un hito del plan y un pétalo pendientes.
+  const conResultados: Partial<DatosHomeE> = {
+    laboratorio: LAB_SIN_REVISAR,
+    preventEstimado: PREVENT_ESTIMADO,
+    plan: plan([hito('biomarcadores', false)]),
+    le8: le8(['dieta']),
+  };
+
+  test('gana a los hitos del plan y a los pétalos sin dato', () => {
+    expect(paraHoy(alDia(conResultados), OPCIONES).clave).toBe('teleconsulta');
+  });
+
+  test('alcanza con el PREVENT estimado con sus datos', () => {
+    expect(paraHoy(alDia({ preventEstimado: PREVENT_ESTIMADO }), OPCIONES).clave).toBe('teleconsulta');
+  });
+
+  test.each([
+    ['sin consentimiento', { consentimiento: 'falta' }, 'consentimiento'],
+    ['con el consentimiento desactualizado', { consentimiento: 'desactualizado' }, 'consentimiento-actualizado'],
+    ['sin el cuestionario de ingreso', { ingresoPendiente: true }, 'ingreso'],
+    ['con el informe recién firmado', { segundaOpinion: som('completada', '2026-10-08T15:00:00.000Z') }, 'informe'],
+  ] as const)('pierde %s → %s', (_caso, cambios, clave) => {
+    expect(paraHoy(alDia({ ...conResultados, ...cambios }), OPCIONES).clave).toBe(clave);
+  });
+
+  test('con un informe firmado hace más de 14 días, vuelve a ofrecer revisar los resultados nuevos', () => {
+    const datos = alDia({ ...conResultados, segundaOpinion: som('completada', '2026-09-01T12:00:00.000Z') });
+    expect(paraHoy(datos, OPCIONES).clave).toBe('teleconsulta');
+  });
+
+  test('con un turno reservado no aparece: siguen el hito, el pétalo o «al día»', () => {
+    expect(paraHoy(alDia({ ...conResultados, proximoTurno: TURNO }), OPCIONES).clave).toBe('hito-biomarcadores');
+    const { plan: _plan, ...sinPlan } = conResultados;
+    expect(paraHoy(alDia({ ...sinPlan, proximoTurno: TURNO }), OPCIONES).clave).toBe('le8-dieta');
+    const soloResultados = { laboratorio: LAB_SIN_REVISAR, preventEstimado: PREVENT_ESTIMADO, proximoTurno: TURNO };
+    expect(paraHoy(alDia(soloResultados), OPCIONES).clave).toBe('al-dia');
+  });
+
+  test('con la Segunda Opinión en análisis no aparece: la devolución llega con su informe', () => {
+    const datos = alDia({ ...conResultados, segundaOpinion: som('en-analisis', '2026-10-09T12:00:00.000Z') });
+    expect(paraHoy(datos, OPCIONES).clave).toBe('hito-biomarcadores');
+  });
+
+  test('un laboratorio en proceso o ya revisado por el equipo no la pide', () => {
+    const enProceso: LaboratorioHome = {
+      estado: 'en-proceso',
+      fecha: '2026-10-09T12:00:00.000Z',
+      revisionMedica: false,
+    };
+    expect(paraHoy(alDia({ laboratorio: enProceso }), OPCIONES).clave).toBe('al-dia');
+    expect(paraHoy(alDia({ laboratorio: { ...LAB_SIN_REVISAR, revisionMedica: true } }), OPCIONES).clave).toBe(
+      'al-dia'
+    );
+  });
+
+  test('solo con hábitos respondidos (sin laboratorio ni PREVENT) no la pide', () => {
+    expect(paraHoy(alDia(), OPCIONES).clave).toBe('al-dia');
   });
 });
 
@@ -254,7 +347,10 @@ describe('paraHoy: cómo se completa cada pétalo', () => {
   });
 
   test('un hábito que ni figura en el puntaje cuenta como sin dato', () => {
-    const sinGlucemia = le8([], LE8_DOMINIOS.filter((d) => d !== 'glucemia'));
+    const sinGlucemia = le8(
+      [],
+      LE8_DOMINIOS.filter((d) => d !== 'glucemia')
+    );
     expect(paraHoy(alDia({ le8: sinGlucemia }), OPCIONES).clave).toBe('le8-glucemia');
   });
 

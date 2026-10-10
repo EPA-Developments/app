@@ -1,0 +1,2215 @@
+/* Home estilo E («Vos en el centro»): el escenario oscuro con la rosa y la zona clara de abajo.
+   Un solo árbol: la base es el celular y desde 62em (md) el escenario pasa a 3 columnas.
+   Los valores salen del mockup aprobado (E-escritorio y E-celular). El header (60px) y el
+   menú inferior del celular los pone el AppShell: acá no se dibujan. */
+
+.home {
+  /* Escenario */
+  --e-escenario: #003a6e;
+  --e-tarjeta-oscura: #004d92;
+  --e-texto-oscuro: #ffffff;
+  --e-secundario-oscuro: #cce4ff;
+  --e-link-oscuro: #99c8ff;
+  --e-divisor-oscuro: #1d5a96;
+  /* Zona clara */
+  --e-claro: #f4f8fd;
+  --e-tarjeta: #ffffff;
+  --e-borde: #d6e6f8;
+  --e-borde-fila: #eef2f7;
+  --e-texto: #141517;
+  --e-secundario: #4a5361;
+  --e-primario: #0061b8;
+  --e-primario-hover: #004d92;
+  --e-celeste: #e6f3ff;
+  --e-gris: #6f87a3;
+  /* Bandas sobre claro */
+  --e-alta: #0e7c70;
+  --e-moderada: #8a5a00;
+  --e-baja: #c0362c;
+  /* Tipografías: las carga useFuentesHomeE() */
+  --e-fuente-titulos: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --e-fuente-texto: 'Figtree', 'Segoe UI', system-ui, sans-serif;
+
+  background: var(--e-claro);
+  color: var(--e-texto);
+  font-family: var(--e-fuente-texto);
+  font-size: 17px;
+  line-height: 26px;
+  -webkit-font-smoothing: antialiased;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 18px;
+    line-height: 28px;
+  }
+
+  & p,
+  & h1,
+  & h2,
+  & h3,
+  & ol,
+  & ul,
+  & figure {
+    margin: 0;
+  }
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ─── Foco visible: blanco sobre el escenario, azul sobre claro ─── */
+
+.escenario :is(a, button, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--e-texto-oscuro);
+  outline-offset: 3px;
+}
+
+.zonaClara :is(a, button, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--e-primario);
+  outline-offset: 2px;
+}
+
+.zonaClara summary:focus-visible {
+  outline-offset: -3px;
+}
+
+/* ─── Escenario ─── */
+
+.escenario {
+  background: var(--e-escenario);
+  color: var(--e-texto-oscuro);
+}
+
+.escenarioGrilla {
+  max-width: 1264px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 32px 32px 48px;
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    display: grid;
+    /* 320 / 520 / 320 en el contenedor de 1200 */
+    grid-template-columns: minmax(0, 8fr) minmax(0, 13fr) minmax(0, 8fr);
+    align-items: start;
+    gap: 48px 20px;
+    min-height: 640px;
+    padding: 44px 32px 72px;
+  }
+}
+
+.columnaSaludo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 24px;
+  }
+}
+
+.saludo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 12px;
+  }
+}
+
+.overlineOscuro {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--e-secundario-oscuro);
+}
+
+.hola {
+  font-size: 17px;
+  line-height: 26px;
+  font-weight: 500;
+  color: var(--e-secundario-oscuro);
+}
+
+.titulo {
+  font-family: var(--e-fuente-titulos);
+  font-size: 36px;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--e-texto-oscuro);
+  text-wrap: balance;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: clamp(40px, 4.4vw, 60px);
+    line-height: 1.07;
+  }
+}
+
+.bajadaOscura {
+  font-size: 17px;
+  line-height: 26px;
+  color: var(--e-secundario-oscuro);
+  text-wrap: pretty;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 18px;
+    line-height: 28px;
+  }
+}
+
+.chipEtapa {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 1px solid var(--e-link-oscuro);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--e-texto-oscuro);
+
+  & svg {
+    flex: none;
+    color: var(--e-link-oscuro);
+  }
+}
+
+/* «Para hoy» */
+.paraHoy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--e-tarjeta-oscura);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 16px;
+    padding: 24px;
+  }
+}
+
+.paraHoyCabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.paraHoyIcono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--e-escenario);
+  color: var(--e-texto-oscuro);
+}
+
+.paraHoyTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.paraHoyTitulo {
+  font-family: var(--e-fuente-titulos);
+  font-size: 21px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--e-texto-oscuro);
+  text-wrap: pretty;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 22px;
+    line-height: 28px;
+  }
+}
+
+.detalleOscuro {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--e-secundario-oscuro);
+  text-wrap: pretty;
+}
+
+/* Botón blanco del escenario (link real). */
+.escenario .botonBlanco {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  background: var(--e-texto-oscuro);
+  color: var(--e-escenario);
+  text-decoration: none;
+  font-family: var(--e-fuente-texto);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: var(--e-celeste);
+    color: var(--e-escenario);
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    margin-top: 0;
+    min-height: 52px;
+  }
+}
+
+/* Botón contorno blanco del escenario. */
+.escenario .botonContorno {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1.5px solid var(--e-texto-oscuro);
+  background: transparent;
+  color: var(--e-texto-oscuro);
+  text-decoration: none;
+  font-family: var(--e-fuente-texto);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: var(--e-tarjeta-oscura);
+    color: var(--e-texto-oscuro);
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    min-height: 52px;
+  }
+}
+
+/* Link celeste subrayado del escenario. */
+.escenario .linkOscuro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border-radius: 6px;
+  color: var(--e-link-oscuro);
+  font-family: var(--e-fuente-texto);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+
+  &:hover {
+    color: var(--e-texto-oscuro);
+  }
+}
+
+/* La rosa */
+.figura {
+  min-width: 0;
+  width: 100%;
+  max-width: 520px;
+  align-self: center;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.figcaption {
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 17px;
+  line-height: 26px;
+  color: var(--e-texto-oscuro);
+  text-wrap: balance;
+}
+
+.rosaCargando {
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 1 / 1;
+}
+
+/* Skeleton sobre el escenario: en los azules del escenario, no en gris claro. */
+.escenario .skeletonOscuro::before {
+  background-color: var(--e-escenario);
+}
+
+.escenario .skeletonOscuro::after {
+  background-color: var(--e-tarjeta-oscura);
+}
+
+/* …y sobre las tarjetas #004d92 («Para hoy», «Lo que cambió»). */
+.escenario .skeletonEnTarjeta::before {
+  background-color: var(--e-tarjeta-oscura);
+}
+
+.escenario .skeletonEnTarjeta::after {
+  background-color: var(--e-divisor-oscuro);
+}
+
+/* «Lo que cambió»: una tarjeta en el celular; tarjetas sueltas en escritorio. */
+.cambios {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--e-tarjeta-oscura);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+}
+
+.tituloOscuro {
+  font-family: var(--e-fuente-titulos);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--e-texto-oscuro);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 28px;
+    line-height: 34px;
+  }
+}
+
+.novedad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 10px;
+    padding: 20px;
+    border-radius: 18px;
+    background: var(--e-tarjeta-oscura);
+  }
+}
+
+.novedadCabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.novedadTitulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  & svg {
+    flex: none;
+  }
+
+  & h3 {
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 600;
+    color: var(--e-texto-oscuro);
+  }
+}
+
+/* Chip y link del laboratorio: en una fila en el celular, apilados en escritorio. */
+.novedadPie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+.textoOscuro {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--e-texto-oscuro);
+}
+
+/* La devolución del laboratorio leído por IA: la frase y el botón blanco a la teleconsulta. */
+.devolucionOscura {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--e-divisor-oscuro);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    border-top-color: var(--e-escenario);
+  }
+}
+
+.escenario .devolucionOscura .botonBlanco {
+  margin-top: 0;
+}
+
+/* «Los revisan en tu turno del…», sobre el escenario. */
+.turnoOscuro {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--e-texto-oscuro);
+
+  & svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--e-link-oscuro);
+  }
+}
+
+/* Los links del estado vacío de «Lo que cambió», uno debajo del otro. */
+.enlacesOscuros {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.notaOscura {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--e-secundario-oscuro);
+  text-wrap: pretty;
+}
+
+.chipPunteado,
+.chipSolido,
+.chipBlanco {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.chipPunteado {
+  border: 1.5px dotted var(--e-link-oscuro);
+  color: var(--e-secundario-oscuro);
+}
+
+.chipSolido {
+  border: 1.5px solid var(--e-texto-oscuro);
+  color: var(--e-texto-oscuro);
+}
+
+.chipBlanco {
+  background: var(--e-texto-oscuro);
+  color: var(--e-escenario);
+}
+
+/* Chip de la zona clara para lo calculado sin revisión médica: punteado, como el anillo de IA. */
+.chipEstimado {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 1.5px dotted #0061b8;
+  color: #0061b8;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.divisorOscuro {
+  height: 1px;
+  background: var(--e-divisor-oscuro);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    display: none;
+  }
+}
+
+.comoSeLee {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--e-divisor-oscuro);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 12px;
+    padding-top: 20px;
+  }
+}
+
+.comoSeLeeFila {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--e-secundario-oscuro);
+
+  & svg {
+    flex: none;
+  }
+
+  & strong {
+    font-weight: 600;
+    color: var(--e-texto-oscuro);
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}
+
+/* ─── Zona clara ─── */
+
+.zonaClara {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 28px 0 32px;
+  background: var(--e-claro);
+  color: var(--e-texto);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 0;
+    padding: 0;
+  }
+}
+
+.banda {
+  background: var(--e-claro);
+}
+
+.contenedor {
+  max-width: 1264px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 88px 32px;
+    gap: 36px;
+  }
+}
+
+.bandaLecturas .contenedor {
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 88px 32px 96px;
+    gap: 40px;
+  }
+}
+
+/* El plan: una tarjeta blanca en el celular; una franja blanca en escritorio. */
+.bandaPlan .contenedor {
+  margin: 0 16px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid var(--e-borde);
+  background: var(--e-tarjeta);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    margin: 0 auto;
+    padding: 88px 32px;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+/* Sin plan, la tarjeta es breve: en escritorio, menos aire. */
+.planBreve .contenedor {
+  gap: 12px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 56px 32px;
+    gap: 16px;
+  }
+}
+
+.bandaBlanca,
+.bandaPlan {
+  @mixin larger-than $mantine-breakpoint-sm {
+    background: var(--e-tarjeta);
+  }
+}
+
+.bandaAccesos .contenedor {
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 80px 32px 56px;
+    gap: 32px;
+  }
+}
+
+.encabezado {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 12px;
+  }
+}
+
+.overline {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--e-primario);
+}
+
+.tituloSeccion {
+  font-family: var(--e-fuente-titulos);
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--e-texto);
+  text-wrap: balance;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+}
+
+.tituloAccesos {
+  font-family: var(--e-fuente-titulos);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--e-texto);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 28px;
+    line-height: 34px;
+  }
+}
+
+.bajada {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--e-secundario);
+  text-wrap: pretty;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 18px;
+    line-height: 28px;
+  }
+}
+
+/* ─── Los tres caminos: lo que le ofrecemos a la paciente ───
+   En el celular, apilados; de 48em a 62em, cada camino es una fila (número, texto y botón);
+   desde 62em, tres columnas. La recomendada lleva borde de 2px, sombra y una cinta que asoma
+   sobre el borde de arriba (por eso la lista deja 14px de aire arriba). */
+
+.bandaCaminos .contenedor {
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 80px 32px 88px;
+    gap: 40px;
+  }
+}
+
+.caminos {
+  list-style: none;
+  padding: 14px 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+.caminoItem {
+  min-width: 0;
+  display: flex;
+}
+
+.camino {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 20px 20px;
+  box-sizing: border-box;
+  border-radius: 20px;
+  border: 1px solid var(--e-borde);
+  background: var(--e-tarjeta);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) minmax(220px, auto);
+    grid-template-areas: 'cabecera cuerpo accion';
+    align-items: center;
+    column-gap: 28px;
+    padding: 32px 28px 28px;
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 36px 28px 28px;
+  }
+}
+
+/* 2px de borde sin correr el contenido: el segundo pixel es una sombra. */
+.caminoRecomendado {
+  border-color: var(--e-primario);
+  box-shadow:
+    0 0 0 1px var(--e-primario),
+    0 20px 44px -18px rgba(0, 58, 110, 0.4);
+}
+
+.cinta {
+  position: absolute;
+  top: 0;
+  left: 20px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 14px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--e-escenario);
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  & svg {
+    flex: none;
+    color: #ffd27a;
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    left: 28px;
+    font-size: 15px;
+  }
+}
+
+.caminoCabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    grid-area: cabecera;
+    align-self: start;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.caminoNumero {
+  font-family: var(--e-fuente-titulos);
+  font-size: 52px;
+  line-height: 52px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--e-primario);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 64px;
+    line-height: 64px;
+  }
+}
+
+.caminoIcono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--e-celeste);
+  color: var(--e-primario);
+
+  .caminoRecomendado & {
+    background: var(--e-primario);
+    color: #ffffff;
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+.caminoCuerpo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    grid-area: cuerpo;
+  }
+}
+
+/* Dónde está la paciente en ese camino («Día 63 de 100», «En análisis desde…»). */
+.caminoEstado {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  margin-top: 2px;
+  padding: 6px 14px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--e-celeste);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--e-texto);
+}
+
+.caminoPunto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--e-primario);
+  box-shadow: 0 0 0 3px #99c8ff;
+}
+
+.caminoAccion {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  & > a {
+    width: 100%;
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    grid-area: accion;
+    margin-top: 0;
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    margin-top: auto;
+  }
+}
+
+/* Tarjetas de «Tus tres lecturas» */
+.lecturas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 16px;
+  align-items: stretch;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 24px;
+  }
+}
+
+.tarjeta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--e-tarjeta);
+  border: 1px solid var(--e-borde);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 20px;
+    padding: 28px;
+  }
+}
+
+.tarjetaCabecera {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 4px;
+  }
+}
+
+.etiquetaTarjeta {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--e-secundario);
+}
+
+.tituloTarjeta {
+  font-family: var(--e-fuente-titulos);
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--e-texto);
+  text-wrap: balance;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 24px;
+    line-height: 30px;
+  }
+}
+
+.texto {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--e-secundario);
+  text-wrap: pretty;
+
+  & strong {
+    font-weight: 600;
+    color: var(--e-texto);
+  }
+}
+
+.nota {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--e-secundario);
+  text-wrap: pretty;
+}
+
+/* Link azul de la zona clara (al pie de cada tarjeta). */
+.zonaClara .link {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border-radius: 6px;
+  color: var(--e-primario);
+  font-family: var(--e-fuente-texto);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+
+  &:hover {
+    color: var(--e-primario-hover);
+  }
+}
+
+/* Botón azul de la zona clara. */
+.zonaClara .boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  background: var(--e-primario);
+  color: #ffffff;
+  text-decoration: none;
+  font-family: var(--e-fuente-texto);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: var(--e-primario-hover);
+    color: #ffffff;
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    min-height: 52px;
+    padding: 0 24px;
+  }
+}
+
+/* Botón contorno azul de la zona clara (los caminos que no son el recomendado). */
+.zonaClara .botonContornoClaro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1.5px solid var(--e-primario);
+  background: var(--e-tarjeta);
+  color: var(--e-primario);
+  text-decoration: none;
+  font-family: var(--e-fuente-texto);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: var(--e-celeste);
+    color: var(--e-primario-hover);
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    min-height: 52px;
+    padding: 0 24px;
+  }
+}
+
+/* Bandas sobre claro (LE8 y PREVENT), por atributo. */
+.zonaClara :is([data-banda='alta'], [data-banda='bajo']) {
+  color: var(--e-alta);
+}
+
+.zonaClara :is([data-banda='moderada'], [data-banda='limite'], [data-banda='intermedio']) {
+  color: var(--e-moderada);
+}
+
+.zonaClara :is([data-banda='baja'], [data-banda='alto']) {
+  color: var(--e-baja);
+}
+
+/* LE8: total y barras día 0 / hoy */
+.total {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.totalNumero {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+
+  & span:first-child {
+    font-family: var(--e-fuente-titulos);
+    font-size: 44px;
+    line-height: 44px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--e-texto);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      font-size: 48px;
+      line-height: 48px;
+    }
+  }
+
+  & span:last-child {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--e-secundario);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      font-size: 16px;
+      line-height: 24px;
+    }
+  }
+}
+
+.totalBanda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 2px;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--e-secundario);
+
+  & span:first-child {
+    font-weight: 600;
+  }
+}
+
+.leyendaBarras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--e-secundario);
+
+  & > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 6px 18px;
+  }
+}
+
+.muestraDia0,
+.muestraHoy {
+  display: inline-block;
+  width: 18px;
+}
+
+.muestraDia0 {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--e-gris);
+}
+
+.muestraHoy {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--e-primario);
+}
+
+.barras {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 8px;
+  }
+}
+
+.barra {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) 72px;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 34px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    grid-template-columns: 112px minmax(0, 1fr) 76px;
+    column-gap: 12px;
+  }
+}
+
+.barraMargen {
+  margin: 0 -8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--e-celeste);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    margin: 0 -10px;
+    padding: 6px 10px;
+  }
+}
+
+.barraNombre {
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 500;
+
+  .barraMargen & {
+    font-weight: 600;
+  }
+}
+
+.masMargen {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--e-primario);
+}
+
+.barraPistas {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.barraDia0,
+.barraHoy {
+  display: block;
+  max-width: 100%;
+}
+
+.barraDia0 {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--e-gris);
+}
+
+.barraHoy {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--e-primario);
+}
+
+.barraValores {
+  white-space: nowrap;
+  text-align: right;
+  font-size: 15px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--e-secundario);
+
+  & strong {
+    font-weight: 600;
+    color: var(--e-texto);
+  }
+}
+
+/* CKM: escala 0-4 */
+.escala {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.escalon {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 48px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--e-secundario);
+
+  &[aria-current='step'] {
+    min-height: 56px;
+    padding: 6px 12px;
+    background: var(--e-celeste);
+  }
+}
+
+.escalonNumero {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid var(--e-gris);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--e-secundario);
+
+  [aria-current='step'] > & {
+    border: 0;
+    background: var(--e-primario);
+    color: #ffffff;
+  }
+}
+
+.escalonTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  [aria-current='step'] > & {
+    font-weight: 600;
+    color: var(--e-texto);
+  }
+}
+
+.tuEtapa {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--e-primario);
+}
+
+/* PREVENT */
+.riesgos {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 10px;
+  }
+}
+
+.riesgo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1.5px dashed var(--e-gris);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    min-height: 72px;
+    padding: 12px 16px;
+  }
+}
+
+.riesgoFirmado {
+  border: 1px solid var(--e-borde);
+  background: var(--e-claro);
+}
+
+.riesgoNombre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  & span:first-child {
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
+    color: var(--e-texto);
+  }
+
+  & span:last-child {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--e-secundario);
+  }
+}
+
+.riesgoPendiente {
+  flex: none;
+  max-width: 120px;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--e-secundario);
+  text-align: right;
+}
+
+.riesgoValor {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.riesgoPorcentaje {
+  font-family: var(--e-fuente-titulos);
+  font-size: 26px;
+  line-height: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--e-texto);
+}
+
+.riesgoBanda {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+/* Lo que se hace con el PREVENT: al pie de la tarjeta, alineado con los links de las otras. */
+.preventPie {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+
+  & .boton {
+    align-self: stretch;
+  }
+}
+
+/* PREVENT estimado: es un cálculo automático; revisalo con un médico. */
+.revisalo {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid #99c8ff;
+  background: var(--e-celeste);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 20px;
+  }
+
+  & .boton {
+    align-self: stretch;
+  }
+
+  & .nota {
+    margin-bottom: -10px;
+  }
+}
+
+.revisaloTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.revisaloTitulo {
+  font-family: var(--e-fuente-titulos);
+  font-size: 19px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--e-texto);
+}
+
+/* «Lo revisan en tu turno del…», sobre claro. */
+.turnoClaro {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--e-texto);
+
+  & svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--e-primario);
+  }
+}
+
+/* Tabla equivalente, plegable */
+.tabla {
+  border-radius: 18px;
+  background: var(--e-tarjeta);
+  border: 1px solid var(--e-borde);
+  overflow: hidden;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    border-radius: 20px;
+  }
+}
+
+.tablaResumen {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 18px;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--e-texto);
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  & svg {
+    flex: none;
+    color: var(--e-primario);
+    transition: transform 150ms ease;
+  }
+
+  .tabla[open] & svg {
+    transform: rotate(180deg);
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    min-height: 72px;
+    padding: 16px 28px;
+    font-family: var(--e-fuente-titulos);
+    font-size: 24px;
+    line-height: 30px;
+  }
+}
+
+.tablaCuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 8px 16px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 16px;
+    padding: 0 28px 28px;
+  }
+
+  & > p {
+    padding: 0 10px;
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      padding: 0;
+    }
+  }
+}
+
+.scrollTabla {
+  overflow-x: auto;
+  border-radius: 8px;
+
+  & table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 15px;
+    line-height: 22px;
+    font-variant-numeric: tabular-nums;
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      min-width: 720px;
+      font-size: 16px;
+      line-height: 24px;
+    }
+  }
+
+  & th,
+  & td {
+    padding: 10px;
+    border-bottom: 1px solid var(--e-borde-fila);
+    text-align: left;
+    vertical-align: top;
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      padding: 12px 16px;
+    }
+  }
+
+  & thead th {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--e-borde);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--e-secundario);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      padding: 10px 16px;
+    }
+  }
+
+  & tbody th {
+    font-weight: 600;
+  }
+}
+
+.scrollTabla .filaTotal :is(th, td) {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 0;
+}
+
+.scrollTabla .filaTotal :is(th, .celdaHoy) {
+  font-weight: 700;
+}
+
+.celdaHoy {
+  font-weight: 600;
+}
+
+.scrollTabla .numero {
+  text-align: right;
+}
+
+.secundaria {
+  color: var(--e-secundario);
+}
+
+.celdaBanda {
+  font-weight: 600;
+}
+
+/* Plan Bienestar · 100 días */
+.planCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+}
+
+.planTitulo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 10px;
+  }
+
+  & h2 {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    font-family: var(--e-fuente-titulos);
+    font-size: 30px;
+    line-height: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--e-texto);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      gap: 4px 14px;
+      font-size: clamp(32px, 3.4vw, 48px);
+      line-height: 1.08;
+    }
+  }
+}
+
+.planFaltan {
+  font-family: var(--e-fuente-texto);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--e-secundario);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 20px;
+    line-height: 28px;
+  }
+}
+
+.planAcciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.chipRacha {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--e-celeste);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--e-escenario);
+}
+
+.tira {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.puntos {
+  display: grid;
+  grid-template-columns: repeat(25, 8px);
+  justify-content: space-between;
+  row-gap: 8px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  & > span {
+    width: 8px;
+    height: 8px;
+    box-sizing: border-box;
+    border-radius: 50%;
+  }
+}
+
+.puntoRecorrido {
+  background: var(--e-primario);
+}
+
+.puntoHoy {
+  background: var(--e-escenario);
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px var(--e-primario);
+}
+
+.puntoPendiente {
+  border: 1.5px solid var(--e-gris);
+}
+
+.leyendaTira {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--e-secundario);
+
+  & > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  & > span > span {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    box-sizing: border-box;
+    border-radius: 50%;
+  }
+}
+
+.hitos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--e-borde-fila);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 16px;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  & h3 {
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
+    color: var(--e-texto);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      font-size: 18px;
+      line-height: 24px;
+    }
+  }
+}
+
+.listaHitos {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+    gap: 16px;
+  }
+}
+
+.hito {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: 40px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--e-claro);
+  }
+}
+
+.hitoPendiente {
+  min-height: 44px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    background: var(--e-tarjeta);
+    border: 1.5px dashed var(--e-primario);
+  }
+}
+
+.hitoIcono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--e-primario);
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 600;
+
+  .hitoPendiente & {
+    border: 2px solid var(--e-primario);
+    background: transparent;
+    color: var(--e-primario);
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    line-height: 20px;
+  }
+}
+
+.hitoTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--e-secundario);
+
+  & strong {
+    font-weight: 600;
+    color: var(--e-texto);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      font-size: 16px;
+      line-height: 22px;
+    }
+  }
+}
+
+.zonaClara .hito .link {
+  margin-top: 0;
+}
+
+/* Tu equipo */
+.miembros {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 12px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 20px;
+  }
+}
+
+.miembro {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--e-tarjeta);
+  border: 1px solid var(--e-borde);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 24px;
+  }
+}
+
+.iconoCentro {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--e-primario);
+  color: var(--e-primario);
+}
+
+.miembroTexto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.miembroRol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 19px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--e-texto);
+}
+
+.chipEstado {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--e-celeste);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--e-escenario);
+}
+
+.miembroNombre {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--e-texto);
+}
+
+.equipoPie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--e-borde);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding-top: 28px;
+  }
+
+  & p {
+    font-size: 17px;
+    line-height: 26px;
+    color: var(--e-texto);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      font-size: 18px;
+      line-height: 28px;
+    }
+  }
+
+  & strong {
+    font-weight: 600;
+  }
+}
+
+/* Tus accesos: links reales en grilla. */
+.accesos {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+    gap: 16px;
+  }
+
+  & > li {
+    display: flex;
+  }
+}
+
+.zonaClara .acceso {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 116px;
+  padding: 14px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid var(--e-borde);
+  background: var(--e-tarjeta);
+  color: var(--e-texto);
+  text-decoration: none;
+  transition: border-color 120ms ease;
+
+  &:hover {
+    border-color: var(--e-primario);
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 14px;
+    min-height: 132px;
+    padding: 20px;
+    border-radius: 18px;
+  }
+}
+
+.accesoIcono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--e-celeste);
+  color: var(--e-primario);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.accesoTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & span:first-child {
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      font-size: 17px;
+      line-height: 24px;
+    }
+  }
+
+  & span:last-child {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--e-secundario);
+
+    @mixin larger-than $mantine-breakpoint-sm {
+      font-size: 15px;
+      line-height: 22px;
+    }
+  }
+}
+
+/* Pie de seguridad */
+.seguridad {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px 16px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--e-tarjeta);
+  border: 1px solid var(--e-borde);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 20px 24px;
+    border-radius: 16px;
+    background: var(--e-claro);
+  }
+
+  & > span {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--e-celeste);
+    color: var(--e-primario);
+  }
+}
+
+.seguridadTextos {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--e-texto);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  & p:last-child {
+    color: var(--e-secundario);
+  }
+}
+
+/* ─── Movimiento ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .home *,
+  .home *::before,
+  .home *::after {
+    transition: none !important;
+  }
+
+  .home :global(.mantine-Skeleton-root)::after {
+    animation: none;
+  }
+}

@@ -33,14 +33,17 @@ import {
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { RUTA_ENVIAR_ESTUDIOS } from '../components/AccionesRapidas';
 import { AvisoConsentimiento } from '../components/AvisoConsentimiento';
 import { AvisoCuestionarioIngreso } from '../components/AvisoCuestionarioIngreso';
 import { PlanBienestar100 } from '../components/PlanBienestar100';
 import { SeguimientoGlp1Card } from '../components/SeguimientoGlp1Card';
+import { hoyArgentina } from '../fhir/glp1';
 import { PLAN_BIENESTAR_CKM } from './ckm/ckm.contenido';
 import classes from './HomePage.module.css';
+import { estiloDeHome, estiloForzado } from './inicio/estilo';
+import { HomeEstiloE } from './inicio/HomeEstiloE';
 import { EstadioCkmCard, PlanBienestarCard, RiesgoPreventCard, TableroLe8 } from '@epa/plan-bienestar-react';
 
 const RUTA_PLAN = '/care-plan/plan-100-dias';
@@ -152,7 +155,24 @@ const quickActions: CardItem[] = [
 // "Cómo funciona" — el Plan Bienestar · 100 días en 3 pasos (mismo contenido que /ckm).
 const steps = PLAN_BIENESTAR_CKM.bullets.map((description, i) => ({ n: i + 1, description }));
 
+/**
+ * El Inicio: cada paciente ve el estilo de Home que le toca (src/pages/inicio/estilo.ts):
+ * las mujeres de 45 a 55 años, el E («Vos en el centro»); el resto, el D. `?estilo=e` o
+ * `?estilo=d` en la URL fuerza uno, para que el equipo pueda ver los dos con cualquier perfil.
+ */
 export function HomePage(): JSX.Element {
+  const [searchParams] = useSearchParams();
+  const perfil = useMedplumProfile();
+  const estilo = estiloForzado(searchParams.get('estilo')) ?? estiloDeHome(perfil, hoyArgentina());
+  if (estilo === 'E') {
+    return <HomeEstiloE />;
+  }
+  // El estilo D reemplaza a la clásica en la etapa 2.
+  return <HomeClasica />;
+}
+
+/** La Home clásica (la de antes de los estilos): hoy la ve todo el que no ve el estilo E. */
+function HomeClasica(): JSX.Element {
   const navigate = useNavigate();
   const theme = useMantineTheme();
   const profile = useMedplumProfile() as Patient | Practitioner;

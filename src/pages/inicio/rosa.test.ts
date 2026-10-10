@@ -73,7 +73,13 @@ interface Segmento {
 function segmentos(d: string): Segmento[] {
   return [...d.matchAll(/([A-Za-z])([^A-Za-z]*)/g)].map((m) => ({
     comando: m[1],
-    numeros: m[2].trim() === '' ? [] : m[2].trim().split(/[\s,]+/).map(Number),
+    numeros:
+      m[2].trim() === ''
+        ? []
+        : m[2]
+            .trim()
+            .split(/[\s,]+/)
+            .map(Number),
   }));
 }
 

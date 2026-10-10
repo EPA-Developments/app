@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 import type {
+  Appointment,
   DiagnosticReport,
   DocumentReference,
+  Extension,
   Patient,
   QuestionnaireResponse,
   ServiceRequest,
@@ -12,12 +14,13 @@ import { MedplumProvider } from '@medplum/react';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { JSX, ReactNode } from 'react';
 import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
+import { EXT_AGENDA, V3_ACT_CODE } from '../../fhir/agenda';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM, CONSENT_VERSION_SYSTEM } from '../../fhir/consentimiento';
 import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM } from '../../fhir/som';
 import { VERSION_CONSENTIMIENTO } from '../health-record/InformedConsent.data';
 import { INTAKE_QUESTIONNAIRE_URL } from '../intake.questionnaire';
-import type { DatosHomeE } from './tipos';
+import type { DatosHomeE, ProximoTurno } from './tipos';
 import type { CargasHomeE, EntradaHomeE, ResultadosHomeE } from './useDatosHomeE';
 import {
   armarDatosHomeE,
@@ -25,7 +28,9 @@ import {
   estadioCkmHome,
   estadoConsentimiento,
   laboratorioHome,
+  preventEstimado,
   preventFirmado,
+  proximoTurnoDe,
   segundaOpinionHome,
   useDatosHomeE,
 } from './useDatosHomeE';
@@ -65,6 +70,22 @@ function consentimiento(patient: Patient, version?: string): DocumentReference {
     date: '2026-09-20T12:00:00.000Z',
     ...(version ? { identifier: [{ system: CONSENT_VERSION_SYSTEM, value: version }] } : {}),
     content: [{ attachment: { contentType: 'text/plain', data: 'ZmlybWFkbw==' } }],
+  };
+}
+
+/** La modalidad del turno, como la marca Recepción (v3-ActCode `VR` / `AMB`). */
+const POR_VIDEOLLAMADA: Extension = { url: EXT_AGENDA.modalidad, valueCoding: { system: V3_ACT_CODE, code: 'VR' } };
+const EN_EL_CENTRO: Extension = { url: EXT_AGENDA.modalidad, valueCoding: { system: V3_ACT_CODE, code: 'AMB' } };
+
+/** Un turno de 30 minutos de la paciente, reservado. */
+function turno(patient: Patient, start: string, cambios: Partial<Appointment> = {}): Appointment {
+  return {
+    resourceType: 'Appointment',
+    status: 'booked',
+    start,
+    end: new Date(Date.parse(start) + 30 * 60_000).toISOString(),
+    participant: [{ actor: { reference: `Patient/${patient.id}` }, status: 'accepted' }],
+    ...cambios,
   };
 }
 
@@ -116,6 +137,7 @@ describe('useDatosHomeE con el MockClient', () => {
     expect(datos.segundaOpinion).toBeUndefined();
     expect(datos.laboratorio).toBeUndefined();
     expect(datos.prevent).toBeUndefined();
+    expect(datos.proximoTurno).toBeUndefined();
     // La rosa tiene sus 8 pétalos, todos sin dato.
     expect(datos.le8?.dominios).toHaveLength(8);
     expect(datos.le8?.total).toBeUndefined();
@@ -143,6 +165,20 @@ describe('useDatosHomeE con el MockClient', () => {
       pedida: '2026-10-01T13:00:00.000Z',
     });
     expect(datos.prevent).toBeUndefined();
+  });
+
+  test('con una teleconsulta reservada en unos días: es su próximo turno (el cancelado no cuenta)', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const enDosDias = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    enDosDias.setUTCMinutes(0, 0, 0);
+    const enTresDias = new Date(enDosDias.getTime() + 24 * 60 * 60 * 1000);
+    await medplum.createResource(turno(patient, enDosDias.toISOString(), { status: 'cancelled' }));
+    const reservado = await medplum.createResource(
+      turno(patient, enTresDias.toISOString(), { extension: [POR_VIDEOLLAMADA] })
+    );
+    const datos = await datosDe(medplum);
+    expect(datos.proximoTurno).toEqual({ id: reservado.id, inicio: enTresDias.toISOString(), teleconsulta: true });
   });
 
   test('con el consentimiento de una versión anterior: desactualizado', async () => {
@@ -188,6 +224,29 @@ describe('armarDatosHomeE', () => {
     expect(armarDatosHomeE(entrada({ cargas: undefined })).cargando).toBe(true);
     expect(armarDatosHomeE(entrada({ tablero: { cargando: true } })).cargando).toBe(true);
     expect(armarDatosHomeE(entrada({ ckm: { cargando: true } })).cargando).toBe(true);
+  });
+
+  test('también espera al PREVENT estimado', () => {
+    const prevent = { cargando: true, faltantes: [] };
+    expect(armarDatosHomeE(entrada({ prevent })).cargando).toBe(true);
+  });
+
+  test('el PREVENT estimado pasa a la escala 0-1; sin resultado, quedan los faltantes', () => {
+    const resultado = {
+      diezAnios: { totalCvd: 9.4, ascvd: 8.1, heartFailure: 5.2 },
+      treintaAnios: { totalCvd: 24, ascvd: 18, heartFailure: 11 },
+      faltantes: [],
+    };
+    const con = armarDatosHomeE(entrada({ prevent: { cargando: false, resultado, faltantes: ['presión arterial'] } }));
+    expect(con.preventEstimado?.ascvd10).toBeCloseTo(0.081);
+    expect(con.preventEstimado?.hf10).toBeCloseTo(0.052);
+    expect(con.preventEstimado?.total30).toBeCloseTo(0.24);
+    expect(con.preventEstimado?.faltantes).toEqual(['presión arterial']);
+    expect(con.preventFaltantes).toBeUndefined();
+    const sin = armarDatosHomeE(entrada({ prevent: { cargando: false, faltantes: ['colesterol total y HDL'] } }));
+    expect(sin.preventEstimado).toBeUndefined();
+    expect(sin.preventFaltantes).toEqual(['colesterol total y HDL']);
+    expect(preventEstimado(undefined, [])).toBeUndefined();
   });
 
   test('mientras el efecto carga, no pide firmas ni ingreso', () => {
@@ -254,6 +313,25 @@ describe('cargasHomeE: cada fallo, sin ese dato', () => {
       fechaConsentimiento: '2026-09-20T12:00:00.000Z',
       ingresoPendiente: false,
     });
+  });
+
+  test('el próximo turno, cuando la consulta salió bien', () => {
+    const proximo: ProximoTurno = { id: 'appt-1', inicio: '2026-10-17T13:30:00.000Z', teleconsulta: true };
+    expect(cargasHomeE(resultados({ turno: ok(proximo) }))).toMatchObject({ plan: PLAN, proximoTurno: proximo });
+    expect(cargasHomeE(resultados({ turno: ok(undefined) })).proximoTurno).toBeUndefined();
+  });
+
+  test('si la consulta de turnos falla, sin turno (y el resto sigue)', () => {
+    const cargas = cargasHomeE(resultados({ turno: falla }));
+    expect(cargas.proximoTurno).toBeUndefined();
+    expect(cargas).toMatchObject({ plan: PLAN, novedadesSinLeer: 2, consentimiento: 'firmado' });
+  });
+
+  test('sin la consulta de turnos (es opcional), sin turno', () => {
+    const cargas = cargasHomeE(resultados());
+    expect('turno' in resultados()).toBe(false);
+    expect(cargas.proximoTurno).toBeUndefined();
+    expect(cargas).toMatchObject({ plan: PLAN, consentimiento: 'firmado' });
   });
 
   test('sin consentimiento ni ingreso: falta firmar y completar', () => {
@@ -369,5 +447,87 @@ describe('traducciones para la Home', () => {
     test('si no se pudo leer el informe, procesado sin cantidad de valores', () => {
       expect(laboratorioHome(procesado)).toMatchObject({ estado: 'procesado', informeId: 'dr1', valores: undefined });
     });
+  });
+});
+
+describe('proximoTurnoDe: el turno que viene, como en «Mis turnos»', () => {
+  // Sábado 10 de octubre, 12:00 de Argentina.
+  const AHORA = new Date('2026-10-10T15:00:00.000Z');
+  const conId = (id: string, a: Appointment): Appointment => ({ ...a, id });
+
+  test('sin turnos, ninguno', () => {
+    expect(proximoTurnoDe([], AHORA)).toBeUndefined();
+  });
+
+  test('elige el más cercano, aunque lleguen desordenados', () => {
+    const turnos = [
+      conId('lejos', turno(PACIENTE, '2026-10-20T13:00:00.000Z')),
+      conId('cerca', turno(PACIENTE, '2026-10-12T13:00:00.000Z')),
+      conId('medio', turno(PACIENTE, '2026-10-15T13:00:00.000Z')),
+    ];
+    expect(proximoTurnoDe(turnos, AHORA)).toEqual({
+      id: 'cerca',
+      inicio: '2026-10-12T13:00:00.000Z',
+      teleconsulta: false,
+    });
+  });
+
+  test('marca si es una teleconsulta (por videollamada) o no', () => {
+    const video = conId('v', turno(PACIENTE, '2026-10-12T13:00:00.000Z', { extension: [POR_VIDEOLLAMADA] }));
+    const centro = conId('c', turno(PACIENTE, '2026-10-12T13:00:00.000Z', { extension: [EN_EL_CENTRO] }));
+    expect(proximoTurnoDe([video], AHORA)?.teleconsulta).toBe(true);
+    expect(proximoTurnoDe([centro], AHORA)?.teleconsulta).toBe(false);
+    // Sin marca de modalidad (anterior a la regla), no se afirma que sea por videollamada.
+    expect(proximoTurnoDe([conId('s', turno(PACIENTE, '2026-10-12T13:00:00.000Z'))], AHORA)?.teleconsulta).toBe(false);
+  });
+
+  test.each(['cancelled', 'noshow', 'fulfilled', 'entered-in-error'] as const)(
+    'ignora un turno %s, aunque sea el más cercano',
+    (status) => {
+      const turnos = [
+        conId('terminado', turno(PACIENTE, '2026-10-11T13:00:00.000Z', { status })),
+        conId('vigente', turno(PACIENTE, '2026-10-13T13:00:00.000Z')),
+      ];
+      expect(proximoTurnoDe(turnos, AHORA)?.id).toBe('vigente');
+      expect(proximoTurnoDe([turnos[0] as Appointment], AHORA)).toBeUndefined();
+    }
+  );
+
+  test.each(['proposed', 'pending', 'booked', 'arrived', 'checked-in'] as const)('cuenta un turno %s', (status) => {
+    const turnos = [conId('t', turno(PACIENTE, '2026-10-12T13:00:00.000Z', { status }))];
+    expect(proximoTurnoDe(turnos, AHORA)?.id).toBe('t');
+  });
+
+  test('ignora los que ya pasaron', () => {
+    const turnos = [
+      conId('ayer', turno(PACIENTE, '2026-10-09T13:00:00.000Z')),
+      conId('esta-manana', turno(PACIENTE, '2026-10-10T12:00:00.000Z')),
+    ];
+    expect(proximoTurnoDe(turnos, AHORA)).toBeUndefined();
+  });
+
+  test('uno en curso (empezó y todavía no terminó) sigue contando', () => {
+    const enCurso = conId('en-curso', turno(PACIENTE, '2026-10-10T14:45:00.000Z'));
+    const despues = conId('despues', turno(PACIENTE, '2026-10-12T13:00:00.000Z'));
+    expect(proximoTurnoDe([despues, enCurso], AHORA)?.id).toBe('en-curso');
+  });
+
+  test('sin hora de fin, cuenta su inicio', () => {
+    const sinFin = (id: string, start: string): Appointment => ({
+      ...conId(id, turno(PACIENTE, start)),
+      end: undefined,
+    });
+    expect(proximoTurnoDe([sinFin('antes', '2026-10-10T14:45:00.000Z')], AHORA)).toBeUndefined();
+    expect(proximoTurnoDe([sinFin('despues', '2026-10-10T15:30:00.000Z')], AHORA)?.id).toBe('despues');
+  });
+
+  test('ignora los que no tienen id o inicio', () => {
+    const sinId = turno(PACIENTE, '2026-10-11T13:00:00.000Z');
+    const sinInicio: Appointment = {
+      ...conId('sin-inicio', turno(PACIENTE, '2026-10-11T13:00:00.000Z')),
+      start: undefined,
+    };
+    const vigente = conId('vigente', turno(PACIENTE, '2026-10-14T13:00:00.000Z'));
+    expect(proximoTurnoDe([sinId, sinInicio, vigente], AHORA)?.id).toBe('vigente');
   });
 });
