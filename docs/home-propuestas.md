@@ -2,7 +2,10 @@
 
 Propuestas para rediseñar la Home del portal del paciente (`src/pages/HomePage.tsx`, ruta `/`, ya logueado).
 Los mockups de alta fidelidad (escritorio y celular de cada una) están en el lienzo de diseño
-**«Home SOM · 5 propuestas»** (Artifact privado; pedile acceso a quien lo compartió).
+[**«Home SOM · 5 propuestas»**](https://claude.ai/artifact/2GUtBXCe9in1ihKvww8ZCj) (privado: pedile acceso a
+quien lo compartió). Cada propuesta es una columna: escritorio a la izquierda y celular a la derecha, con las
+primeras pantallas alineadas arriba para comparar la sensación de entrada. Con **Play** se prueban los celulares de
+A, B, C y E y el escritorio de A.
 
 > Estado: **propuesta para elegir**. Nada de esto está implementado todavía.
 
@@ -140,6 +143,24 @@ Es la que mejor dice «no estás sola: del otro lado hay un equipo con nombre tr
 diferencial en la primera pantalla sin abandonar patrones de app conocidos, y se construye con Mantine estándar.
 Si se busca impacto de marca para EE. UU., **E** es la apuesta (su rosa puede convivir con B como pieza del
 informe y de la comunicación).
+
+## Lecciones de la revisión de los mockups
+
+Cada mockup pasó una revisión adversarial (contraste medido par por par, honestidad clínica, voseo, coherencia de
+datos entre escritorio y celular, y comportamiento a 390px de ancho). Lo que encontró vale como regla para la
+implementación, elijan la propuesta que elijan:
+
+- **Ningún título puede sugerir revisión médica que no hubo.** «Lo que volvió de tu equipo» o «lo que te devolvió
+  tu equipo» son falsos si lo que hay son valores que un agente leyó de un PDF o una Segunda Opinión en análisis:
+  va «Lo que vuelve a vos» y cada ítem dice si tiene revisión médica o no.
+- **No afirmar garantías que la propia pantalla contradice** (p. ej. «no te mostramos números sin revisión médica»
+  al lado del LE8 o de los biomarcadores, que no la tienen).
+- **No inventar historia ni fechas**: nada de «antes estabas en el estadio 1» ni fechas de procesamiento que el
+  recurso FHIR no registra.
+- **Mismos datos en escritorio y en celular** (día del plan, racha, hitos, puntajes).
+- **Tooltips y gráficos a 390px**: los rótulos absolutos sobre SVG y los tooltips `nowrap` generan scroll
+  horizontal; hay que anclarlos o sacarlos del overlay.
+- **Promesas de resultado**: evitar frases como «cada mejora suma mucho»; el plan acompaña, no promete.
 
 ## Próximos pasos
 
