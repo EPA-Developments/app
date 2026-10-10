@@ -49,11 +49,49 @@ export interface LaboratorioHome {
   readonly revisionMedica: boolean;
 }
 
-/** PREVENT del informe firmado de la Segunda Opinión (probabilidades 0-1). Nunca el estimado. */
+/** PREVENT del informe firmado de la Segunda Opinión (probabilidades 0-1). */
 export interface PreventFirmado {
   readonly ascvd10?: number;
   readonly hf10?: number;
   readonly total30?: number;
+}
+
+/**
+ * PREVENT estimado en el portal con los datos de la paciente (la fórmula de la AHA, sin
+ * revisión médica): lo que muestra hoy la Home clásica. Probabilidades 0-1, como el firmado.
+ */
+export interface PreventEstimado extends PreventFirmado {
+  /** Datos que faltan o que limitan la estimación (en español, del vendor). */
+  readonly faltantes: readonly string[];
+}
+
+/** El próximo turno de la paciente (Appointment futuro, no cancelado ni realizado). */
+export interface ProximoTurno {
+  readonly id: string;
+  /** Appointment.start (ISO). */
+  readonly inicio: string;
+  readonly teleconsulta: boolean;
+}
+
+/**
+ * Los tres caminos que la Home le ofrece a la paciente, en este orden: 1) el Plan Bienestar ·
+ * 100 días, 2) la Segunda Opinión y 3) la teleconsulta para revisar sus resultados con el
+ * equipo médico (quien sube datos tiene que saber que le vamos a dar una devolución).
+ */
+export type ClaveCamino = 'plan' | 'segunda-opinion' | 'teleconsulta';
+
+export interface Camino {
+  readonly clave: ClaveCamino;
+  /** 1, 2 o 3. */
+  readonly numero: number;
+  readonly titulo: string;
+  readonly descripcion: string;
+  /** Dónde está la paciente en ese camino («Día 63 de 100», «En análisis»…), si ya entró. */
+  readonly estado?: string;
+  readonly cta: string;
+  readonly href: string;
+  /** Uno solo (o ninguno) va como «Recomendado para vos». */
+  readonly recomendado: boolean;
 }
 
 /** Todo lo que muestra la Home E, cargado una sola vez y pasado por props. */
@@ -83,6 +121,12 @@ export interface DatosHomeE {
   readonly novedadesSinLeer: number;
   /** Solo si la Segunda Opinión está completada y su informe trae el RiskAssessment. */
   readonly prevent?: PreventFirmado;
+  /** La estimación con sus datos (sin revisión médica); undefined si no alcanzan los datos. */
+  readonly preventEstimado?: PreventEstimado;
+  /** Qué falta para estimar PREVENT cuando no hay estimación. */
+  readonly preventFaltantes?: readonly string[];
+  /** El próximo turno, si tiene uno reservado. */
+  readonly proximoTurno?: ProximoTurno;
 }
 
 /** «Lo de hoy»: una sola acción, elegida por una regla fija (no la elige la IA). */

@@ -7,9 +7,12 @@
 //  2. el consentimiento, si firmó una versión anterior del texto;
 //  3. el cuestionario de ingreso, si no lo respondió;
 //  4. el informe de la Segunda Opinión, si se completó hace 14 días o menos;
-//  5. el primer hito pendiente del Plan Bienestar · 100 días;
-//  6. el primer pétalo de la rosa sin dato (en el orden de LE8_DOMINIOS);
-//  7. si no, «Hoy estás al día».
+//  5. la teleconsulta para revisar sus resultados, si subió datos que nadie revisó todavía
+//     (laboratorio leído por IA o PREVENT estimado) y no tiene turno: quien sube datos tiene
+//     que recibir una devolución (ver caminos.ts);
+//  6. el primer hito pendiente del Plan Bienestar · 100 días;
+//  7. el primer pétalo de la rosa sin dato (en el orden de LE8_DOMINIOS);
+//  8. si no, «Hoy estás al día».
 // El nombre del servicio («Segunda Opinión») no se escribe acá: entra por parámetro desde
 // MARCA.producto (`paraHoy(datos, { producto: MARCA.producto })`).
 import { LE8_DOMINIOS } from '@epa/careplan-menopausia';
@@ -19,10 +22,11 @@ import { RUTA_DATOS_DE_SALUD } from '../../fhir/datosDeSalud';
 import { diasEntre, hoyArgentina } from '../../fhir/glp1';
 import type { LE8QuestionnaireSlug } from '../../le8';
 import { RUTA_CUESTIONARIO_INGRESO } from '../health-record/Salud.data';
+import { devolucionPendiente } from './caminos';
+import { RUTA_MI_SEGUNDA_OPINION, RUTA_RESERVAR_TELECONSULTA, RUTA_TABLERO_LE8 } from './rutas';
 import type { DatosHomeE, Le8Domain, ParaHoy } from './tipos';
 
-export const RUTA_MI_SEGUNDA_OPINION = '/mi-segunda-opinion';
-export const RUTA_TABLERO_LE8 = '/care-plan/plan-100-dias/tablero';
+export { RUTA_MI_SEGUNDA_OPINION, RUTA_TABLERO_LE8 } from './rutas';
 const RUTA_CUESTIONARIOS = '/health-record/cuestionarios';
 
 /** Hasta cuántos días después de completada la Segunda Opinión su informe va en «Para hoy». */
@@ -145,6 +149,16 @@ export function paraHoy(datos: DatosHomeE, opciones: OpcionesParaHoy): ParaHoy {
       detalle: 'Lo firmó tu equipo médico.',
       cta: 'Ver mi informe',
       href: RUTA_MI_SEGUNDA_OPINION,
+    };
+  }
+  if (devolucionPendiente(datos)) {
+    return {
+      clave: 'teleconsulta',
+      titulo: 'Revisemos juntos tus resultados',
+      detalle:
+        'Ya tenemos tus datos. En una teleconsulta, tu equipo médico te los explica y te propone los próximos pasos.',
+      cta: 'Reservar mi teleconsulta',
+      href: RUTA_RESERVAR_TELECONSULTA,
     };
   }
   const hito = datos.plan?.hitos.find((h) => !h.cumplido);

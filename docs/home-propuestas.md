@@ -7,7 +7,29 @@ quien lo compartió). Cada propuesta es una columna: escritorio a la izquierda y
 primeras pantallas alineadas arriba para comparar la sensación de entrada. Con **Play** se prueban los celulares de
 A, B, C y E y el escritorio de A.
 
-> Estado: **propuesta para elegir**. Nada de esto está implementado todavía.
+> Estado: **elegida**. La dirección médica eligió **E** para las mujeres de 45 a 55 años y **D** para el resto.
+> El estilo E está implementado (`src/pages/inicio/`); el D es la etapa 2 (mientras tanto, el resto ve la Home
+> clásica). Ver [La decisión](#la-decisión).
+
+## La decisión
+
+- **Quién ve qué** (`src/pages/inicio/estilo.ts`): las pacientes con `Patient.gender = female` y de 45 a 55 años
+  cumplidos, ambos extremos incluidos (la misma semántica que la elegibilidad del plan), ven el estilo **E**. El
+  resto, el **D**. Sin sexo o sin fecha de nacimiento, D. La fecha de hoy es la de Argentina.
+- **Para probar**: `/?estilo=e` o `/?estilo=d` fuerzan un estilo con cualquier usuario; `/?petalos=tinta`,
+  `dominio` o `banda` cambian cómo se pintan los pétalos de la rosa (`COLORES_PETALOS` en
+  `src/pages/inicio/rosa.ts`; hoy, `tinta`).
+- **Los tres caminos** (decisión del negocio, `src/pages/inicio/caminos.ts`). La Home ofrece, en este orden:
+  1. **Plan Bienestar · 100 días**: sumarse o seguirlo.
+  2. **Segunda Opinión**: pedirla, o seguir la que ya pidió.
+  3. **Teleconsulta**: quien sube datos tiene que recibir una devolución. Si cargó algo (laboratorio o hábitos) y
+     no tiene turno, la teleconsulta va como «Recomendado para vos», «Para hoy» propone «Revisemos juntos tus
+     resultados» y el laboratorio leído por IA y el PREVENT estimado llevan su botón para reservarla. La reserva
+     arranca en «videollamada» (`/get-care?modalidad=teleconsulta`).
+- **PREVENT**: el del informe firmado si lo hay; si no, la estimación con sus datos (la misma que muestra la Home
+  clásica) rotulada «Estimado con tus datos · sin revisión médica», con la teleconsulta y la Segunda Opinión como
+  próximos pasos.
+- **La Home clásica no cambia** (y su test «ninguna opción ofrece la Segunda Opinión» sigue): la reemplaza el D.
 
 ## El objetivo
 
