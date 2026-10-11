@@ -7,9 +7,9 @@ quien lo compartió). Cada propuesta es una columna: escritorio a la izquierda y
 primeras pantallas alineadas arriba para comparar la sensación de entrada. Con **Play** se prueban los celulares de
 A, B, C y E y el escritorio de A.
 
-> Estado: **elegida**. La dirección médica eligió **E** para las mujeres de 45 a 55 años y **D** para el resto.
-> El estilo E está implementado (`src/pages/inicio/`); el D es la etapa 2 (mientras tanto, el resto ve la Home
-> clásica). Ver [La decisión](#la-decisión).
+> Estado: **implementada**. La dirección médica eligió **E** para las mujeres de 45 a 55 años y **D** para el
+> resto. Los dos estilos están implementados (`src/pages/inicio/`) y el D reemplazó a la Home clásica, que ya no
+> está. Ver [La decisión](#la-decisión).
 
 ## La decisión
 
@@ -18,7 +18,8 @@ A, B, C y E y el escritorio de A.
   resto, el **D**. Sin sexo o sin fecha de nacimiento, D. La fecha de hoy es la de Argentina.
 - **Para probar**: `/?estilo=e` o `/?estilo=d` fuerzan un estilo con cualquier usuario; `/?petalos=tinta`,
   `dominio` o `banda` cambian cómo se pintan los pétalos de la rosa (`COLORES_PETALOS` en
-  `src/pages/inicio/rosa.ts`; hoy, `tinta`).
+  `src/pages/inicio/rosa.ts`; hoy, `tinta`); `/?tema=claro` o `/?tema=oscuro` fuerzan el tema de la D sin
+  guardarlo.
 - **Los tres caminos** (decisión del negocio, `src/pages/inicio/caminos.ts`). La Home ofrece, en este orden:
   1. **Plan Bienestar · 100 días**: sumarse o seguirlo.
   2. **Segunda Opinión**: pedirla, o seguir la que ya pidió.
@@ -26,10 +27,27 @@ A, B, C y E y el escritorio de A.
      no tiene turno, la teleconsulta va como «Recomendado para vos», «Para hoy» propone «Revisemos juntos tus
      resultados» y el laboratorio leído por IA y el PREVENT estimado llevan su botón para reservarla. La reserva
      arranca en «videollamada» (`/get-care?modalidad=teleconsulta`).
-- **PREVENT**: el del informe firmado si lo hay; si no, la estimación con sus datos (la misma que muestra la Home
-  clásica) rotulada «Estimado con tus datos · sin revisión médica», con la teleconsulta y la Segunda Opinión como
-  próximos pasos.
-- **La Home clásica no cambia** (y su test «ninguna opción ofrece la Segunda Opinión» sigue): la reemplaza el D.
+- **PREVENT**: el del informe firmado si lo hay; si no, la estimación con sus datos (la misma que mostraba la
+  Home clásica) rotulada «Estimado con tus datos · sin revisión médica», con la teleconsulta y la Segunda Opinión
+  como próximos pasos. Las reglas viven en un modelo que comparten E y D (`src/pages/inicio/prevent.ts`).
+- **La Home clásica ya no está**: la reemplazó el D. Su test «ninguna opción ofrece la Segunda Opinión» ya no mira
+  el Inicio (el camino 2 es pedirla); sigue para el menú inferior y la guía CKM.
+- **El estilo D** («Salidas y llegadas», `src/pages/inicio/HomeEstiloD.tsx`), en este orden: la puerta (un solo
+  próximo paso, la tira de pase del Plan Bienestar y la ruta de ida y vuelta de sus datos, con el consentimiento
+  como control), el tablero «Salidas y llegadas de tus datos», los tres caminos, sus tres instrumentos (LE8, CKM y
+  PREVENT), el seguimiento GLP-1 si corresponde, sus servicios y un cierre con quién acompaña a la persona. Textos
+  neutros (lo ven hombres y mujeres). Oscuro por defecto, con un modo claro equivalente: los tokens `--d-*` se
+  definen una sola vez en `HomeEstiloD.module.css` y el botón «Modo claro» guarda la elección en este dispositivo
+  (`localStorage['home-d-tema']`).
+- **El tablero y sus fuentes FHIR** (`tablero.ts`, `useTableroHomeD.ts`): cada fila es un recurso real con su
+  estado real. Salidas: los PDFs de laboratorio (`DocumentReference`: en proceso, demorado o procesado), los
+  pedidos de Segunda Opinión (`ServiceRequest`), los cuestionarios de hábitos y el de ingreso
+  (`QuestionnaireResponse`) y las mediciones de la casa (`Observation`, una fila por día). Llegadas: los
+  resultados de cada PDF (`DiagnosticReport`, con su aviso si no tienen revisión médica), el informe de la
+  Segunda Opinión («Firmado» solo con la firma médica registrada) y las Novedades (`Communication`). Son cinco
+  consultas en paralelo: si una falla, el tablero lo dice y muestra el resto. «Nuevo» quiere decir que cambió
+  desde la última visita en este dispositivo; lo que llega en tiempo real usa la misma suscripción que la
+  campanita.
 - **Honestidad (de la revisión del código)**: la Home dice «firmado» solo si el informe trae la firma de un médico
   (`DiagnosticReport` `final` con un `resultsInterpreter` Practitioner). Hoy `bot-som-report` completa la orden y
   arma el informe con IA sin ese paso, así que se ve «Tu informe está listo». La teleconsulta se ofrece con «un

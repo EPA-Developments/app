@@ -1,6 +1,19 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
-import { aInstante, conSigno, fechaConDia, fechaCorta, mayuscula, minuscula, plural, porcentaje } from './formato';
+import {
+  aInstante,
+  conSigno,
+  diaArgentinaDe,
+  fechaAbreviada,
+  fechaConDia,
+  fechaCorta,
+  mayuscula,
+  MESES_ABREVIADOS,
+  minuscula,
+  minusculaNatural,
+  plural,
+  porcentaje,
+} from './formato';
 
 const HOY = '2026-10-10'; // un sábado
 
@@ -54,6 +67,41 @@ describe('fechaConDia: «sábado 10 de octubre»', () => {
   });
 });
 
+describe('diaArgentinaDe: el día del calendario de Argentina', () => {
+  test('una fecha sola es ese día; un instante, el día de allá', () => {
+    expect(diaArgentinaDe('2026-10-03')).toBe('2026-10-03');
+    // 01:30 UTC del 4 de octubre son las 22:30 del 3 en Argentina.
+    expect(diaArgentinaDe('2026-10-04T01:30:00.000Z')).toBe('2026-10-03');
+  });
+
+  test('sin fecha o con una que no se entiende, undefined', () => {
+    expect(diaArgentinaDe(undefined)).toBeUndefined();
+    expect(diaArgentinaDe('no-es-fecha')).toBeUndefined();
+  });
+});
+
+describe('fechaAbreviada: «sáb 10 oct», con abreviaturas fijas', () => {
+  test('el día de la semana, el día y el mes, sin puntos', () => {
+    expect(fechaAbreviada(HOY)).toBe('sáb 10 oct');
+    expect(fechaAbreviada('2026-10-12')).toBe('lun 12 oct');
+    expect(fechaAbreviada('2026-11-04')).toBe('mié 4 nov');
+  });
+
+  test('septiembre es «sep» siempre (Intl dice «sep» o «sept» según la versión de ICU)', () => {
+    expect(fechaAbreviada('2026-09-28')).toBe('lun 28 sep');
+    expect(MESES_ABREVIADOS).toHaveLength(12);
+    expect(MESES_ABREVIADOS[8]).toBe('sep');
+  });
+
+  test('un instante de la noche argentina cae en su día de allá', () => {
+    expect(fechaAbreviada('2026-10-11T01:30:00.000Z')).toBe('sáb 10 oct');
+  });
+
+  test('una fecha que no se entiende da un texto vacío', () => {
+    expect(fechaAbreviada('no-es-fecha')).toBe('');
+  });
+});
+
 describe('porcentaje: una probabilidad 0-1 con un decimal y coma', () => {
   test('como lo lee la persona', () => {
     expect(porcentaje(0.042)).toBe('4,2%');
@@ -90,5 +138,15 @@ describe('mayuscula y minuscula: solo la primera letra', () => {
   test('un texto vacío sigue vacío', () => {
     expect(mayuscula('')).toBe('');
     expect(minuscula('')).toBe('');
+  });
+});
+
+describe('minusculaNatural: la primera letra en minúscula, salvo en una sigla', () => {
+  test('solo la primera letra, y las siglas quedan', () => {
+    expect(minusculaNatural('Calidad del sueño')).toBe('calidad del sueño');
+    expect(minusculaNatural('Actividad física')).toBe('actividad física');
+    expect(minusculaNatural('Peso (IMC)')).toBe('peso (IMC)');
+    expect(minusculaNatural('LE8')).toBe('LE8');
+    expect(minusculaNatural('')).toBe('');
   });
 });

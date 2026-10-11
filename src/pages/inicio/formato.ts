@@ -49,6 +49,45 @@ export function fechaCorta(valor: string | undefined, hoy: string): string | und
   return (mismoAnio ? FORMATO_DIA : FORMATO_DIA_Y_ANIO).format(instante);
 }
 
+/** El día de Argentina (AAAA-MM-DD) de una fecha FHIR; undefined sin fecha o si no se entiende. */
+export function diaArgentinaDe(valor: string | undefined): string | undefined {
+  const instante = valor ? aInstante(valor) : undefined;
+  return instante ? hoyArgentina(instante) : undefined;
+}
+
+/**
+ * Abreviaturas fijas de los meses y de los días de la semana, en minúscula (la pantalla las
+ * pasa a mayúsculas si hace falta). Fijas porque Intl cambia «sep» / «sept» según la versión de
+ * ICU y les pone punto.
+ */
+export const MESES_ABREVIADOS = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+] as const;
+const DIAS_ABREVIADOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'] as const;
+
+/** «sáb 10 oct», en hora de Argentina (para overlines en mono). Vacío si no se entiende. */
+export function fechaAbreviada(valor: string): string {
+  const dia = diaArgentinaDe(valor);
+  if (!dia) {
+    return '';
+  }
+  const [anio, mes, diaDelMes] = dia.split('-').map(Number);
+  // El día de la semana de esa fecha del calendario (en UTC no se corre de día).
+  const semana = new Date(Date.UTC(anio, mes - 1, diaDelMes)).getUTCDay();
+  return `${DIAS_ABREVIADOS[semana]} ${diaDelMes} ${MESES_ABREVIADOS[mes - 1]}`;
+}
+
 /** «sábado 10 de octubre» (Intl pone una coma después del día de la semana: acá no va). */
 export function fechaConDia(hoy: string): string {
   const instante = aInstante(hoy);
@@ -86,4 +125,11 @@ export function mayuscula(texto: string): string {
 /** La primera letra en minúscula («Factores de riesgo activos» → «factores de riesgo activos»). */
 export function minuscula(texto: string): string {
   return texto.charAt(0).toLocaleLowerCase('es-AR') + texto.slice(1);
+}
+
+/** Minúscula natural: «Calidad del sueño» → «calidad del sueño»; una sigla («LE8», «IMC») queda igual. */
+export function minusculaNatural(texto: string): string {
+  const segunda = texto.charAt(1);
+  const esSigla = segunda !== segunda.toLocaleLowerCase('es-AR');
+  return esSigla ? texto : minuscula(texto);
 }
