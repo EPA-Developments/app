@@ -6,7 +6,8 @@
 // hace el bot `som-reservar-portal` de recepcionistas, que aplica las reglas del lado del
 // servidor. Con cargo, el turno queda tentativo con el link de MercadoPago de la seña
 // (horario retenido 30 minutos); la consulta del Plan Bienestar 100 Días® queda confirmada
-// sin seña. Reemplaza a la "preferencia de horario" en texto libre.
+// sin seña. Reemplaza a la "preferencia de horario" en texto libre. Con `modalidadInicial`
+// (p. ej. `/get-care?modalidad=teleconsulta`), arranca en la consulta con esa modalidad elegida.
 import { Alert, Badge, Button, Card, Checkbox, Group, Loader, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import type { Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
@@ -109,17 +110,24 @@ type PedidoCoordinacion = { estado: 'enviando' } | { estado: 'ok' } | { estado: 
 
 export function ReservaTurno({
   patient,
+  modalidadInicial,
   onReservado,
   onSolicitado,
 }: {
   patient: Patient;
+  /**
+   * Si viene (el «Reservar mi teleconsulta» de la Home), el asistente arranca en la elección de
+   * la consulta con esa modalidad ya elegida. «Volver» igual lleva a la modalidad, y «Reservar
+   * otro turno» empieza de cero, sin preselección.
+   */
+  modalidadInicial?: Modalidad;
   onReservado?: () => void;
   /** Se pidió a Recepción que coordine el turno (para recargar "Mis solicitudes"). */
   onSolicitado?: () => void;
 }): JSX.Element {
   const medplum = useMedplum();
-  const [paso, setPaso] = useState<Paso>('modalidad');
-  const [sel, setSel] = useState<Seleccion>({});
+  const [paso, setPaso] = useState<Paso>(modalidadInicial ? 'consulta' : 'modalidad');
+  const [sel, setSel] = useState<Seleccion>(modalidadInicial ? { modalidad: modalidadInicial } : {});
   const [catalogo, setCatalogo] = useState<ConsultaCatalogo[]>();
   const [consultasPlan, setConsultasPlan] = useState<ConsultaPlan[]>([]);
   const [tieneConsent, setTieneConsent] = useState<boolean>();

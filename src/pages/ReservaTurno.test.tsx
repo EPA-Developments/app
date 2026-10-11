@@ -3,7 +3,8 @@
 //
 // Reservar un turno desde el portal: Modalidad → Consulta → Profesional → Horario →
 // Confirmar, y la respuesta del bot (tentativo con link de la seña). El bot se simula: el
-// portal solo lo ejecuta.
+// portal solo lo ejecuta. Desde la Home («Reservar mi teleconsulta»,
+// `/get-care?modalidad=teleconsulta`), el asistente arranca con la videollamada elegida.
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import type { ActivityDefinition, Patient, PractitionerRole, Schedule, Slot } from '@medplum/fhirtypes';
@@ -82,10 +83,10 @@ async function escenario(): Promise<{ medplum: MockClient; patient: Patient; slo
   return { medplum, patient, slotId: slot.id! };
 }
 
-async function renderGetCare(medplum: MockClient): Promise<void> {
+async function renderGetCare(medplum: MockClient, ruta = '/get-care'): Promise<void> {
   await act(async () => {
     render(
-      <MemoryRouter initialEntries={['/get-care']}>
+      <MemoryRouter initialEntries={[ruta]}>
         <MedplumProvider medplum={medplum}>
           <MantineProvider>
             <Notifications />
@@ -202,6 +203,76 @@ test('si la reserva online no está disponible, se le pide a Recepción la telec
   });
   expect(await screen.findByText('¡Pedido enviado!')).toBeInTheDocument();
 });
+
+test('desde la Home (?modalidad=teleconsulta) arranca en la consulta, con la videollamada elegida', async () => {
+  const { medplum, patient, slotId } = await escenario();
+  const ejecutar = vi.spyOn(medplum, 'executeBot').mockResolvedValue({
+    ok: true,
+    appointmentId: 'appt-2',
+    estado: 'tentativo',
+    descripcion: 'Teleconsulta de Cardiología',
+    inicio: INICIO,
+    fin: FIN,
+    modalidad: 'teleconsulta',
+    medicoCodigo: 'MED_TEST',
+    incluida: false,
+    senaARS: 75000,
+    linkPago: LINK,
+  });
+  await renderGetCare(medplum, '/get-care?modalidad=teleconsulta');
+
+  // Sin el paso de la modalidad: directo a «¿Qué consulta?», con la videollamada en el resumen.
+  expect(await screen.findByRole('heading', { name: '¿Qué consulta?' })).toBeInTheDocument();
+  expect(screen.getByText(/^Paso 2 de 5 · Por videollamada$/)).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: '¿Cómo querés atenderte?' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Consulta por videollamada' })).not.toBeInTheDocument();
+
+  // Las consultas se ofrecen por videollamada, y la reserva viaja con esa modalidad.
+  await click(screen.getByRole('button', { name: 'Teleconsulta de Cardiología' }));
+  await click(await screen.findByRole('button', { name: 'Dra. Prueba' }));
+  await click(await screen.findByRole('button', { name: '18:00' }));
+  await click(screen.getByRole('checkbox', { name: 'Leí y acepto el consentimiento de teleconsulta' }));
+  await click(screen.getByRole('button', { name: 'Reservar' }));
+  expect(ejecutar).toHaveBeenCalledWith('bot-som-reservar-portal', {
+    pacienteRef: `Patient/${patient.id}`,
+    servicioCodigo: 'CARDIOLOGIA',
+    slotId,
+    modalidad: 'teleconsulta',
+  });
+  expect(await screen.findByText('Reservado: falta la seña para confirmarlo')).toBeInTheDocument();
+
+  // «Reservar otro turno» empieza de cero: vuelve a preguntar la modalidad, sin preselección.
+  await click(screen.getByRole('button', { name: 'Reservar otro turno' }));
+  expect(await screen.findByRole('heading', { name: '¿Cómo querés atenderte?' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Consulta por videollamada' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Consulta en el centro' })).toBeInTheDocument();
+});
+
+test('con la videollamada preelegida, «Volver» lleva a la modalidad y se puede cambiar por el centro', async () => {
+  const { medplum } = await escenario();
+  await renderGetCare(medplum, '/get-care?modalidad=teleconsulta');
+
+  await screen.findByRole('heading', { name: '¿Qué consulta?' });
+  await click(screen.getByRole('button', { name: 'Volver' }));
+  expect(await screen.findByRole('heading', { name: '¿Cómo querés atenderte?' })).toBeInTheDocument();
+  await click(screen.getByRole('button', { name: 'Consulta en el centro' }));
+  expect(await screen.findByRole('button', { name: 'Consulta de Cardiología' })).toBeInTheDocument();
+  expect(screen.getByText(/^Paso 2 de 5 · En el centro$/)).toBeInTheDocument();
+});
+
+test.each(['/get-care', '/get-care?modalidad=presencial', '/get-care?modalidad=video'])(
+  'en %s arranca eligiendo la modalidad (solo la teleconsulta se preelige)',
+  async (ruta) => {
+    const { medplum } = await escenario();
+    await renderGetCare(medplum, ruta);
+
+    expect(await screen.findByRole('heading', { name: '¿Cómo querés atenderte?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Consulta por videollamada' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Consulta en el centro' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '¿Qué consulta?' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Paso \d de 5/)).not.toBeInTheDocument();
+  }
+);
 
 test('"¿No encontrás horario?": la teleconsulta pide el consentimiento y viaja con su modalidad', async () => {
   const { medplum, patient } = await escenario();

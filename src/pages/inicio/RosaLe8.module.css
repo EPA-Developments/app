@@ -1,0 +1,74 @@
+/* La rosa de los 8 hábitos (RosaLe8.tsx). La geometría vive en rosa.ts. */
+
+.rosa {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+  font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El total del núcleo. */
+.total {
+  font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Los pétalos crecen desde el centro (CENTRO de rosa.ts) una sola vez; el retraso de cada
+   uno va en línea, escalonado de a 40ms. */
+.brota {
+  transform-box: view-box;
+  transform-origin: 260px 260px;
+  animation: brota 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes brota {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Al pasar el mouse, el pétalo se corre 4px hacia afuera (--dx y --dy van en línea). */
+.petalo {
+  transition: transform 200ms ease;
+}
+
+.petalo:hover {
+  transform: translate(var(--dx), var(--dy));
+}
+
+/* El anillo de IA gira despacio (una vuelta por minuto) solo mientras hay algo en proceso. */
+.gira {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: gira 60s linear infinite;
+}
+
+@keyframes gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brota,
+  .gira {
+    animation: none;
+  }
+
+  .petalo {
+    transition: none;
+  }
+
+  .petalo:hover {
+    transform: none;
+  }
+}
