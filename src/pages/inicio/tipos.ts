@@ -26,8 +26,17 @@ export interface EstadioCkmHome {
 /** La Segunda Opinión más reciente de la paciente (ServiceRequest de SOM). */
 export interface SegundaOpinionHome {
   readonly id: string;
-  /** `active` = en análisis; `completed` = informe firmado; el resto, «otro» con su etiqueta. */
-  readonly estado: 'en-analisis' | 'completada' | 'otro';
+  /**
+   * `active` = en análisis; `completed` = el informe está listo (lo completa el bot que lo
+   * prepara con IA: completada NO quiere decir firmada); `revoked` o `entered-in-error` =
+   * cancelada (se le vuelve a ofrecer pedirla); el resto (en pausa, borrador…), «otro».
+   */
+  readonly estado: 'en-analisis' | 'completada' | 'cancelada' | 'otro';
+  /**
+   * true solo si el DiagnosticReport del informe está `final` y tiene un `resultsInterpreter`
+   * Practitioner: la única marca de firma médica que hay. Sin ella, la Home nunca dice «firmado».
+   */
+  readonly firmada: boolean;
   /** Etiqueta para la paciente (ESTADO_SOM de src/fhir/som.ts). */
   readonly etiqueta: string;
   /** Fecha del pedido (ServiceRequest.authoredOn). */
@@ -38,8 +47,12 @@ export interface SegundaOpinionHome {
 
 /** El último PDF de laboratorio que mandó la paciente y qué hizo el agente con él. */
 export interface LaboratorioHome {
-  /** `en-proceso` hasta que el bot `som-procesar-laboratorio` suma su DiagnosticReport. */
-  readonly estado: 'en-proceso' | 'procesado';
+  /**
+   * `en-proceso` hasta que el bot `som-procesar-laboratorio` suma su DiagnosticReport;
+   * `demorado` si pasó más de un día sin resultado (el bot no pudo leerlo y le escribe a la
+   * paciente por Mensajes: no queda «leyendo» para siempre).
+   */
+  readonly estado: 'en-proceso' | 'demorado' | 'procesado';
   /** Fecha del documento (DocumentReference.date). */
   readonly fecha?: string;
   /** Cantidad de valores que leyó el agente (DiagnosticReport.result.length). */
@@ -49,11 +62,16 @@ export interface LaboratorioHome {
   readonly revisionMedica: boolean;
 }
 
-/** PREVENT del informe firmado de la Segunda Opinión (probabilidades 0-1). */
+/**
+ * PREVENT del informe de la Segunda Opinión (el RiskAssessment que calcula el bot; probabilidades
+ * 0-1). Es «firmado» solo si la Segunda Opinión está `firmada`.
+ */
 export interface PreventFirmado {
   readonly ascvd10?: number;
   readonly hf10?: number;
   readonly total30?: number;
+  /** Fecha del informe (DiagnosticReport.issued o RiskAssessment.occurrenceDateTime). */
+  readonly fecha?: string;
 }
 
 /**
@@ -63,6 +81,12 @@ export interface PreventFirmado {
 export interface PreventEstimado extends PreventFirmado {
   /** Datos que faltan o que limitan la estimación (en español, del vendor). */
   readonly faltantes: readonly string[];
+}
+
+/** La última consulta que ya pasó (para saber si la devolución de sus datos ya se dio). */
+export interface UltimaConsulta {
+  /** Appointment.start (ISO). */
+  readonly inicio: string;
 }
 
 /** El próximo turno de la paciente (Appointment futuro, no cancelado ni realizado). */
@@ -92,6 +116,8 @@ export interface Camino {
   readonly href: string;
   /** Uno solo (o ninguno) va como «Recomendado para vos». */
   readonly recomendado: boolean;
+  /** Una aclaración corta debajo del botón (p. ej. qué tiene costo). */
+  readonly nota?: string;
 }
 
 /** Todo lo que muestra la Home E, cargado una sola vez y pasado por props. */
@@ -127,6 +153,8 @@ export interface DatosHomeE {
   readonly preventFaltantes?: readonly string[];
   /** El próximo turno, si tiene uno reservado. */
   readonly proximoTurno?: ProximoTurno;
+  /** La última consulta que ya pasó, si hay. */
+  readonly ultimaConsulta?: UltimaConsulta;
 }
 
 /** «Lo de hoy»: una sola acción, elegida por una regla fija (no la elige la IA). */
@@ -156,8 +184,10 @@ export interface AnillosRosa {
   readonly iaEnProceso: boolean;
   /** Marca «Laboratorio · leído por IA» sobre el anillo de IA. */
   readonly laboratorioLeido: boolean;
-  /** Tramo encendido de la Segunda Opinión: IA + equipo juntos (en análisis) o firmado. */
+  /** Tramo encendido de la Segunda Opinión: IA + equipo juntos (en análisis) o informe listo. */
   readonly segundaOpinion?: 'en-analisis' | 'completada';
+  /** Si el informe tiene firma médica registrada (si no, el nodo dice «informe listo», no «firmada»). */
+  readonly segundaOpinionFirmada?: boolean;
   readonly equipo: readonly NodoEquipo[];
 }
 

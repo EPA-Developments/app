@@ -50,8 +50,8 @@ function plan(hitos: HitoBienestar[]): PlanBienestar {
   };
 }
 
-function som(estado: SegundaOpinionHome['estado'], actualizada?: string): SegundaOpinionHome {
-  return { id: 'som-1', estado, etiqueta: 'Etiqueta', pedida: '2026-09-01', actualizada };
+function som(estado: SegundaOpinionHome['estado'], actualizada?: string, firmada = false): SegundaOpinionHome {
+  return { id: 'som-1', estado, etiqueta: 'Etiqueta', pedida: '2026-09-01', actualizada, firmada };
 }
 
 /** Un laboratorio que leyó un agente de IA y que ningún médico revisó todavía. */
@@ -113,14 +113,20 @@ describe('paraHoy: una sola acción, elegida por una regla fija', () => {
     });
   });
 
-  test('4. con el informe recién firmado, verlo (con el nombre del servicio que llega por parámetro)', () => {
+  test('4. con el informe recién listo, verlo (con el nombre del servicio que llega por parámetro)', () => {
     expect(paraHoy(alDia({ segundaOpinion: som('completada', '2026-10-08T15:00:00.000Z') }), OPCIONES)).toEqual({
       clave: 'informe',
       titulo: 'Tu informe de Revisión Experta está listo',
-      detalle: 'Lo firmó tu equipo médico.',
+      // Sin firma médica registrada no se dice que lo firmó nadie (la orden la completa el bot).
+      detalle: 'Leelo con calma; si te surgen dudas, revisalo con un profesional en una teleconsulta.',
       cta: 'Ver mi informe',
       href: '/mi-segunda-opinion',
     });
+  });
+
+  test('4. con la firma médica registrada, dice que lo firmó su equipo', () => {
+    const accion = paraHoy(alDia({ segundaOpinion: som('completada', '2026-10-08T15:00:00.000Z', true) }), OPCIONES);
+    expect(accion.detalle).toBe('Lo firmó tu equipo médico.');
   });
 
   test('5. con resultados que nadie revisó todavía, reservar la teleconsulta para revisarlos juntos', () => {
@@ -128,7 +134,7 @@ describe('paraHoy: una sola acción, elegida por una regla fija', () => {
       clave: 'teleconsulta',
       titulo: 'Revisemos juntos tus resultados',
       detalle:
-        'Ya tenemos tus datos. En una teleconsulta, tu equipo médico te los explica y te propone los próximos pasos.',
+        'Ya tenemos tus datos. En una teleconsulta, un profesional de nuestro equipo te los explica y te propone los próximos pasos.',
       cta: 'Reservar mi teleconsulta',
       href: '/get-care?modalidad=teleconsulta',
     });
@@ -356,5 +362,26 @@ describe('paraHoy: cómo se completa cada pétalo', () => {
 
   test('sin puntaje LE8 (todavía cargando) no propone pétalos', () => {
     expect(paraHoy(alDia({ le8: undefined }), OPCIONES).clave).toBe('al-dia');
+  });
+});
+
+describe('paraHoy: con los datos como llegan de verdad', () => {
+  test('con una consulta después de su laboratorio, no vuelve a pedir la teleconsulta', () => {
+    const accion = paraHoy(
+      alDia({ laboratorio: LAB_SIN_REVISAR, ultimaConsulta: { inicio: '2026-10-06T13:00:00.000Z' } }),
+      OPCIONES
+    );
+    expect(accion.clave).not.toBe('teleconsulta');
+  });
+
+  test('con un laboratorio en proceso, no le pide que mande el laboratorio de nuevo', () => {
+    const enProceso: LaboratorioHome = {
+      estado: 'en-proceso',
+      fecha: '2026-10-10T12:00:00.000Z',
+      revisionMedica: false,
+    };
+    const sinLab = le8(['lipidos', 'glucemia']);
+    expect(paraHoy(alDia({ le8: sinLab }), OPCIONES).clave).toBe('le8-lipidos');
+    expect(paraHoy(alDia({ le8: sinLab, laboratorio: enProceso }), OPCIONES).clave).toBe('al-dia');
   });
 });

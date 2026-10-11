@@ -37,6 +37,7 @@ import { cargarEstudiosEnviados, estadoEstudio } from '../../fhir/estudios';
 import { hoyArgentina } from '../../fhir/glp1';
 import { buscarUltimoIngreso } from '../../fhir/ingreso';
 import { contarNoLeidas } from '../../fhir/notificaciones';
+import { estadoReservaPortal } from '../../fhir/agenda';
 import { esTeleconsulta } from '../../fhir/teleconsulta';
 import type { PreventValores } from '../../fhir/som';
 import { cargarInformeSOM, cargarMisSolicitudesSOM, ESTADO_SOM, extractPrevent } from '../../fhir/som';
@@ -50,6 +51,7 @@ import type {
   PreventFirmado,
   ProximoTurno,
   SegundaOpinionHome,
+  UltimaConsulta,
 } from './tipos';
 
 // ─── Traducciones puras ──────────────────────────────────────────────────────────────
@@ -67,8 +69,16 @@ export function estadioCkmHome(
   return estimado === undefined ? undefined : { estadio: estimado, origen: 'estimado' };
 }
 
-/** La Segunda Opinión más reciente, como la muestra la Home (ESTADO_SOM para la etiqueta). */
-export function segundaOpinionHome(sr: ServiceRequest | undefined): SegundaOpinionHome | undefined {
+/**
+ * La Segunda Opinión más reciente, como la muestra la Home (ESTADO_SOM para la etiqueta).
+ * `informe` es su DiagnosticReport, si se leyó: la orden `completed` solo dice que el informe
+ * está listo (la completa el bot que lo prepara con IA); firmada quiere decir `final` y con un
+ * `resultsInterpreter` Practitioner, la única marca de firma médica que hay.
+ */
+export function segundaOpinionHome(
+  sr: ServiceRequest | undefined,
+  informe?: DiagnosticReport
+): SegundaOpinionHome | undefined {
   if (!sr?.id) {
     return undefined;
   }
@@ -77,6 +87,8 @@ export function segundaOpinionHome(sr: ServiceRequest | undefined): SegundaOpini
     estado = 'en-analisis';
   } else if (sr.status === 'completed') {
     estado = 'completada';
+  } else if (sr.status === 'revoked' || sr.status === 'entered-in-error') {
+    estado = 'cancelada';
   }
   return {
     id: sr.id,
@@ -84,7 +96,16 @@ export function segundaOpinionHome(sr: ServiceRequest | undefined): SegundaOpini
     etiqueta: (ESTADO_SOM[sr.status] ?? ESTADO_SOM.unknown).label,
     pedida: sr.authoredOn,
     actualizada: sr.meta?.lastUpdated,
+    firmada: estado === 'completada' && informeFirmado(informe),
   };
+}
+
+/** ¿El informe tiene firma médica registrada? `final` y un `resultsInterpreter` Practitioner. */
+export function informeFirmado(informe: DiagnosticReport | undefined): boolean {
+  return (
+    informe?.status === 'final' &&
+    (informe.resultsInterpreter ?? []).some((r) => r.reference?.startsWith('Practitioner/') ?? false)
+  );
 }
 
 /** Sin documento, falta; firmado con otra versión del texto, desactualizado. */
@@ -95,11 +116,11 @@ export function estadoConsentimiento(doc: DocumentReference | undefined): Estado
   return consentimientoAlDia(doc, VERSION_CONSENTIMIENTO) ? 'firmado' : 'desactualizado';
 }
 
-/** El PREVENT del informe firmado, solo si trae al menos un valor. */
-export function preventFirmado(valores: PreventValores): PreventFirmado | undefined {
+/** El PREVENT del informe de la Segunda Opinión, solo si trae al menos un valor (con su fecha, si la hay). */
+export function preventFirmado(valores: PreventValores, fecha?: string): PreventFirmado | undefined {
   const { ascvd10, hf10, total30 } = valores;
   const hayValor = [ascvd10, hf10, total30].some((v) => typeof v === 'number' && Number.isFinite(v));
-  return hayValor ? { ascvd10, hf10, total30 } : undefined;
+  return hayValor ? { ascvd10, hf10, total30, ...(fecha ? { fecha } : {}) } : undefined;
 }
 
 /**
@@ -107,10 +128,18 @@ export function preventFirmado(valores: PreventValores): PreventFirmado | undefi
  * que sumó el bot (si se pudo leer): la revisión médica cuenta solo si está `final` y tiene
  * `resultsInterpreter`.
  */
-export function laboratorioHome(doc: DocumentReference, informe?: DiagnosticReport): LaboratorioHome {
+export function laboratorioHome(
+  doc: DocumentReference,
+  informe?: DiagnosticReport,
+  ahora: Date = new Date()
+): LaboratorioHome {
   const estado = estadoEstudio(doc);
   if (estado.estado === 'en-proceso') {
-    return { estado: 'en-proceso', fecha: doc.date, revisionMedica: false };
+    // El bot tarda minutos; si pasó más de un día, no pudo leerlo (le escribe a la paciente
+    // por Mensajes y deja la tarea al equipo): no queda «leyendo» para siempre.
+    const enviado = doc.date ? Date.parse(doc.date) : Number.NaN;
+    const demorado = Number.isFinite(enviado) && ahora.getTime() - enviado > HORAS_PARA_DEMORA * 60 * 60 * 1000;
+    return { estado: demorado ? 'demorado' : 'en-proceso', fecha: doc.date, revisionMedica: false };
   }
   return {
     estado: 'procesado',
@@ -120,6 +149,9 @@ export function laboratorioHome(doc: DocumentReference, informe?: DiagnosticRepo
     revisionMedica: informe?.status === 'final' && (informe.resultsInterpreter?.length ?? 0) > 0,
   };
 }
+
+/** Después de cuántas horas sin resultado un PDF de laboratorio se da por demorado. */
+export const HORAS_PARA_DEMORA = 24;
 
 // ─── Cargas ──────────────────────────────────────────────────────────────────────────
 
@@ -131,13 +163,16 @@ interface SegundaOpinionYPrevent {
 /** La Segunda Opinión más reciente (la primera: vienen por fecha de pedido) y, si está completada, su PREVENT. */
 async function cargarSegundaOpinion(medplum: MedplumClient, patient: Patient): Promise<SegundaOpinionYPrevent> {
   const [ultima] = await cargarMisSolicitudesSOM(medplum, patient);
-  const segundaOpinion = segundaOpinionHome(ultima);
-  if (!ultima || segundaOpinion?.estado !== 'completada') {
-    return { segundaOpinion };
+  if (ultima?.status !== 'completed') {
+    return { segundaOpinion: segundaOpinionHome(ultima) };
   }
-  // Sin el informe, la Segunda Opinión igual se muestra (sin PREVENT).
+  // Sin el informe, la Segunda Opinión igual se muestra (sin PREVENT y sin firma).
   const informe = await cargarInformeSOM(medplum, ultima).catch(() => undefined);
-  return { segundaOpinion, prevent: informe ? preventFirmado(extractPrevent(informe.risk)) : undefined };
+  const fecha = informe?.report?.issued ?? informe?.risk?.occurrenceDateTime;
+  return {
+    segundaOpinion: segundaOpinionHome(ultima, informe?.report),
+    prevent: informe ? preventFirmado(extractPrevent(informe.risk), fecha) : undefined,
+  };
 }
 
 /** El último PDF de laboratorio; si ya está procesado, con el DiagnosticReport que creó el bot. */
@@ -165,6 +200,8 @@ const TURNO_TERMINADO = new Set<Appointment['status']>(['cancelled', 'noshow', '
 export function proximoTurnoDe(turnos: readonly Appointment[], ahora: Date = new Date()): ProximoTurno | undefined {
   const proximo = turnos
     .filter((a) => a.id && a.start && !TURNO_TERMINADO.has(a.status))
+    // Una reserva del portal sin la seña paga vence a los 30 minutos (hasta que corre el cron).
+    .filter((a) => estadoReservaPortal(a, ahora)?.estado !== 'vencido')
     .filter((a) => Date.parse(a.end ?? (a.start as string)) >= ahora.getTime())
     .sort((a, b) => Date.parse(a.start as string) - Date.parse(b.start as string))[0];
   return proximo?.id && proximo.start
@@ -172,19 +209,29 @@ export function proximoTurnoDe(turnos: readonly Appointment[], ahora: Date = new
     : undefined;
 }
 
-/** Los turnos de la paciente desde ayer (los de hoy pueden estar en curso). */
-async function cargarProximoTurno(
-  medplum: MedplumClient,
-  patient: Patient,
-  hoy: string
-): Promise<ProximoTurno | undefined> {
-  const desde = new Date(Date.parse(`${hoy}T00:00:00Z`) - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const turnos = await medplum.searchResources(
+/** Estados de un turno que ya pasó y en el que hubo consulta (o se la da por hecha). */
+const CONSULTA_HECHA = new Set<Appointment['status']>(['fulfilled', 'booked', 'arrived', 'checked-in']);
+
+/**
+ * La última consulta que ya pasó (realizada, o confirmada con la fecha ya pasada): la más
+ * reciente. Sirve para no volver a pedirle que reserve si ya revisó sus datos. Pura.
+ */
+export function ultimaConsultaDe(turnos: readonly Appointment[], ahora: Date = new Date()): UltimaConsulta | undefined {
+  const ultima = turnos
+    .filter((a) => a.start && CONSULTA_HECHA.has(a.status))
+    .filter((a) => Date.parse(a.start as string) < ahora.getTime())
+    .sort((a, b) => Date.parse(b.start as string) - Date.parse(a.start as string))[0];
+  return ultima?.start ? { inicio: ultima.start } : undefined;
+}
+
+/** Los turnos de la paciente del último año en adelante (los próximos y los que ya pasaron). */
+function cargarTurnos(medplum: MedplumClient, patient: Patient, hoy: string): Promise<Appointment[]> {
+  const desde = new Date(Date.parse(`${hoy}T00:00:00Z`) - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return medplum.searchResources(
     'Appointment',
-    { patient: getReferenceString(patient) ?? '', date: `ge${desde}`, _sort: 'date', _count: '20' },
+    { patient: getReferenceString(patient) ?? '', date: `ge${desde}`, _sort: '-date', _count: '100' },
     { cache: 'no-cache' }
   );
-  return proximoTurnoDe(turnos);
 }
 
 /** Lo que devuelve cada consulta del efecto, tal como lo deja `Promise.allSettled`. */
@@ -198,6 +245,8 @@ export interface ResultadosHomeE {
   readonly ingreso: PromiseSettledResult<QuestionnaireResponse | undefined>;
   /** Opcional: si falta o falló, la Home no sabe de turnos (y ofrece reservar). */
   readonly turno?: PromiseSettledResult<ProximoTurno | undefined>;
+  /** Opcional, como `turno`. */
+  readonly ultimaConsulta?: PromiseSettledResult<UltimaConsulta | undefined>;
 }
 
 /** Lo que trajo el efecto, ya traducido para la Home. */
@@ -212,6 +261,7 @@ export interface CargasHomeE {
   readonly fechaConsentimiento?: string;
   readonly ingresoPendiente: boolean;
   readonly proximoTurno?: ProximoTurno;
+  readonly ultimaConsulta?: UltimaConsulta;
 }
 
 /** Mientras el efecto no terminó: nada que pedir ni que avisar todavía. */
@@ -240,6 +290,7 @@ export function cargasHomeE(r: ResultadosHomeE): CargasHomeE {
     fechaConsentimiento: consentimiento?.date,
     ingresoPendiente: r.ingreso.status === 'fulfilled' && r.ingreso.value === undefined,
     proximoTurno: r.turno ? valor(r.turno) : undefined,
+    ultimaConsulta: r.ultimaConsulta ? valor(r.ultimaConsulta) : undefined,
   };
 }
 
@@ -250,7 +301,8 @@ export async function cargarHomeE(
   hoy: string = hoyArgentina()
 ): Promise<CargasHomeE> {
   const recipient = getReferenceString(patient);
-  const [plan, segundaOpinion, laboratorio, equipo, novedadesSinLeer, consentimiento, ingreso, turno] =
+  const turnos = cargarTurnos(medplum, patient, hoy);
+  const [plan, segundaOpinion, laboratorio, equipo, novedadesSinLeer, consentimiento, ingreso, turno, ultimaConsulta] =
     await Promise.allSettled([
       cargarPlanBienestar(medplum, patient),
       cargarSegundaOpinion(medplum, patient),
@@ -259,9 +311,20 @@ export async function cargarHomeE(
       recipient ? contarNoLeidas(medplum, recipient) : Promise.resolve(0),
       buscarConsentimiento(medplum, patient),
       buscarUltimoIngreso(medplum, patient),
-      cargarProximoTurno(medplum, patient, hoy),
+      turnos.then((t) => proximoTurnoDe(t)),
+      turnos.then((t) => ultimaConsultaDe(t)),
     ]);
-  return cargasHomeE({ plan, segundaOpinion, laboratorio, equipo, novedadesSinLeer, consentimiento, ingreso, turno });
+  return cargasHomeE({
+    plan,
+    segundaOpinion,
+    laboratorio,
+    equipo,
+    novedadesSinLeer,
+    consentimiento,
+    ingreso,
+    turno,
+    ultimaConsulta,
+  });
 }
 
 // ─── Combinación ─────────────────────────────────────────────────────────────────────
@@ -331,8 +394,12 @@ export function preventEstimado(
 export function useDatosHomeE(): DatosHomeE {
   const medplum = useMedplum();
   const perfil = useMedplumProfile();
-  const patient = perfil?.resourceType === 'Patient' ? perfil : undefined;
-  const ref = patient ? getReferenceString(patient) : undefined;
+  const perfilPaciente = perfil?.resourceType === 'Patient' ? perfil : undefined;
+  const ref = perfilPaciente ? getReferenceString(perfilPaciente) : undefined;
+  // Al renovar el token, Medplum trae otra vez el mismo perfil (otro objeto): la paciente se fija
+  // por su referencia para no repetir todas las consultas ni volver a los skeletons.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const patient = useMemo(() => perfilPaciente, [ref]);
 
   // Los hooks del vendor van siempre (reglas de hooks); sin paciente no consultan nada.
   const tablero = useTableroLe8({ patient });

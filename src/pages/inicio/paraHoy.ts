@@ -104,13 +104,21 @@ function informeReciente(datos: DatosHomeE): boolean {
   return fecha !== undefined && diasEntre(fecha, datos.hoy) <= DIAS_INFORME_RECIENTE;
 }
 
+/** Hábitos que completa el laboratorio: si hay uno en camino, no se le pide que lo mande de nuevo. */
+const DEL_LABORATORIO: ReadonlySet<Le8Domain> = new Set<Le8Domain>(['lipidos', 'glucemia']);
+
 /** El primer hábito sin puntaje, en el orden de la rosa (LE8_DOMINIOS). */
 function primerPetaloSinDato(datos: DatosHomeE): Le8Domain | undefined {
   const dominios = datos.le8?.dominios;
   if (!dominios) {
     return undefined;
   }
-  return LE8_DOMINIOS.find((dominio) => dominios.find((d) => d.dominio === dominio)?.puntaje === undefined);
+  const laboratorioEnCamino = datos.laboratorio?.estado === 'en-proceso';
+  return LE8_DOMINIOS.find(
+    (dominio) =>
+      dominios.find((d) => d.dominio === dominio)?.puntaje === undefined &&
+      !(laboratorioEnCamino && DEL_LABORATORIO.has(dominio))
+  );
 }
 
 /** La acción de hoy, por la regla fija de arriba. Función pura: no consulta nada. */
@@ -146,7 +154,10 @@ export function paraHoy(datos: DatosHomeE, opciones: OpcionesParaHoy): ParaHoy {
     return {
       clave: 'informe',
       titulo: `Tu informe de ${opciones.producto} está listo`,
-      detalle: 'Lo firmó tu equipo médico.',
+      // «Firmó» solo con la firma médica registrada: la orden la completa el bot que prepara el informe.
+      detalle: datos.segundaOpinion?.firmada
+        ? 'Lo firmó tu equipo médico.'
+        : 'Leelo con calma; si te surgen dudas, revisalo con un profesional en una teleconsulta.',
       cta: 'Ver mi informe',
       href: RUTA_MI_SEGUNDA_OPINION,
     };
@@ -156,7 +167,7 @@ export function paraHoy(datos: DatosHomeE, opciones: OpcionesParaHoy): ParaHoy {
       clave: 'teleconsulta',
       titulo: 'Revisemos juntos tus resultados',
       detalle:
-        'Ya tenemos tus datos. En una teleconsulta, tu equipo médico te los explica y te propone los próximos pasos.',
+        'Ya tenemos tus datos. En una teleconsulta, un profesional de nuestro equipo te los explica y te propone los próximos pasos.',
       cta: 'Reservar mi teleconsulta',
       href: RUTA_RESERVAR_TELECONSULTA,
     };

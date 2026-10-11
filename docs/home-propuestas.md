@@ -30,6 +30,15 @@ A, B, C y E y el escritorio de A.
   clásica) rotulada «Estimado con tus datos · sin revisión médica», con la teleconsulta y la Segunda Opinión como
   próximos pasos.
 - **La Home clásica no cambia** (y su test «ninguna opción ofrece la Segunda Opinión» sigue): la reemplaza el D.
+- **Honestidad (de la revisión del código)**: la Home dice «firmado» solo si el informe trae la firma de un médico
+  (`DiagnosticReport` `final` con un `resultsInterpreter` Practitioner). Hoy `bot-som-report` completa la orden y
+  arma el informe con IA sin ese paso, así que se ve «Tu informe está listo». La teleconsulta se ofrece con «un
+  profesional de nuestro equipo» (la reserva abre el catálogo, no el equipo de la paciente) y avisa qué tiene costo.
+  Se deja de pedir cuando hubo una consulta posterior al laboratorio, y no se empuja mientras la Segunda Opinión
+  está en análisis.
+- **Para acordar con Recepción**: (1) registrar la firma médica del informe de la Segunda Opinión y la revisión
+  del laboratorio (`resultsInterpreter`); (2) una consulta de «revisión de resultados» con los profesionales del
+  equipo de la paciente y la referencia al `DiagnosticReport` en el pedido de turno.
 
 ## El objetivo
 

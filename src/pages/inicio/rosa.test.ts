@@ -332,7 +332,7 @@ describe('colores de los pétalos', () => {
   });
 
   test('las bandas son las del escenario', () => {
-    expect(COLORES_PETALOS.porBanda).toEqual({ alta: '#5ad1bf', moderada: '#ffd27a', baja: '#ffa59a' });
+    expect(COLORES_PETALOS.porBanda).toEqual({ alta: '#5ad1bf', moderada: '#ffd27a', baja: '#ffb0a6' });
     expect(COLORES_PETALOS.borde).toBe('#e6f3ff');
   });
 

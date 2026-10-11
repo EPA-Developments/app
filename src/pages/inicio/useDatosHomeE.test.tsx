@@ -27,10 +27,12 @@ import {
   cargasHomeE,
   estadioCkmHome,
   estadoConsentimiento,
+  informeFirmado,
   laboratorioHome,
   preventEstimado,
   preventFirmado,
   proximoTurnoDe,
+  ultimaConsultaDe,
   segundaOpinionHome,
   useDatosHomeE,
 } from './useDatosHomeE';
@@ -386,10 +388,33 @@ describe('traducciones para la Home', () => {
       etiqueta: 'Completada',
       pedida: '2026-10-01T13:00:00.000Z',
       actualizada: '2026-10-05T10:00:00.000Z',
+      // Completada no es firmada: la orden la cierra el bot que prepara el informe.
+      firmada: false,
     });
     expect(segundaOpinionHome({ ...sr, status: 'active' })?.estado).toBe('en-analisis');
     expect(segundaOpinionHome({ ...sr, status: 'on-hold' })).toMatchObject({ estado: 'otro', etiqueta: 'En pausa' });
+    expect(segundaOpinionHome({ ...sr, status: 'revoked' })?.estado).toBe('cancelada');
+    expect(segundaOpinionHome({ ...sr, status: 'entered-in-error' })?.estado).toBe('cancelada');
     expect(segundaOpinionHome(undefined)).toBeUndefined();
+  });
+
+  test('informeFirmado: solo final y con un resultsInterpreter Practitioner', () => {
+    const informe: DiagnosticReport = { resourceType: 'DiagnosticReport', status: 'final', code: { text: 'SOM' } };
+    expect(informeFirmado(undefined)).toBe(false);
+    expect(informeFirmado(informe)).toBe(false);
+    expect(informeFirmado({ ...informe, resultsInterpreter: [{ reference: 'Organization/o1' }] })).toBe(false);
+    expect(
+      informeFirmado({ ...informe, status: 'preliminary', resultsInterpreter: [{ reference: 'Practitioner/p1' }] })
+    ).toBe(false);
+    expect(informeFirmado({ ...informe, resultsInterpreter: [{ reference: 'Practitioner/p1' }] })).toBe(true);
+    const sr: ServiceRequest = { ...solicitudSOM(PACIENTE, 'completed'), id: 's1' };
+    expect(
+      segundaOpinionHome(sr, { ...informe, resultsInterpreter: [{ reference: 'Practitioner/p1' }] })?.firmada
+    ).toBe(true);
+  });
+
+  test('preventFirmado: con la fecha del informe, si la hay', () => {
+    expect(preventFirmado({ ascvd10: 0.04 }, '2026-10-05')).toMatchObject({ ascvd10: 0.04, fecha: '2026-10-05' });
   });
 
   test('preventFirmado: solo si trae al menos un valor', () => {
@@ -421,11 +446,16 @@ describe('traducciones para la Home', () => {
     };
 
     test('mientras el bot no suma su informe, en proceso', () => {
-      expect(laboratorioHome(pdf)).toEqual({
+      expect(laboratorioHome(pdf, undefined, new Date('2026-10-03T12:30:00.000Z'))).toEqual({
         estado: 'en-proceso',
         fecha: '2026-10-03T12:00:00.000Z',
         revisionMedica: false,
       });
+    });
+
+    test('si pasó más de un día sin resultado, demorado (no queda «leyendo» para siempre)', () => {
+      expect(laboratorioHome(pdf, undefined, new Date('2026-10-04T12:30:00.000Z')).estado).toBe('demorado');
+      expect(laboratorioHome(pdf, undefined, new Date('2026-10-04T11:30:00.000Z')).estado).toBe('en-proceso');
     });
 
     test('procesado: cuántos valores leyó el agente, sin revisión médica todavía', () => {
@@ -529,5 +559,35 @@ describe('proximoTurnoDe: el turno que viene, como en «Mis turnos»', () => {
     };
     const vigente = conId('vigente', turno(PACIENTE, '2026-10-14T13:00:00.000Z'));
     expect(proximoTurnoDe([sinId, sinInicio, vigente], AHORA)?.id).toBe('vigente');
+  });
+});
+
+describe('ultimaConsultaDe: la última consulta que ya pasó', () => {
+  const AHORA_UC = new Date('2026-10-10T15:00:00.000Z');
+  function conIdUc(id: string, a: Appointment): Appointment {
+    return { ...a, id };
+  }
+
+  test('la más reciente que ya pasó, realizada o confirmada; no las canceladas ni las futuras', () => {
+    const turnos = [
+      conIdUc('vieja', turno(PACIENTE, '2026-09-01T13:00:00.000Z', { status: 'fulfilled' })),
+      conIdUc('reciente', turno(PACIENTE, '2026-10-05T13:00:00.000Z', { status: 'booked' })),
+      conIdUc('cancelada', turno(PACIENTE, '2026-10-08T13:00:00.000Z', { status: 'cancelled' })),
+      conIdUc('futura', turno(PACIENTE, '2026-10-12T13:00:00.000Z', { status: 'booked' })),
+    ];
+    expect(ultimaConsultaDe(turnos, AHORA_UC)).toEqual({ inicio: '2026-10-05T13:00:00.000Z' });
+    expect(ultimaConsultaDe([], AHORA_UC)).toBeUndefined();
+  });
+});
+
+describe('proximoTurnoDe: una reserva del portal sin la seña paga, vencida, no es un turno', () => {
+  test('la reserva pendiente con la seña vencida no cuenta', () => {
+    const ahora = new Date('2026-10-10T15:00:00.000Z');
+    const vencida: Appointment = {
+      ...turno(PACIENTE, '2026-10-12T13:00:00.000Z', { status: 'pending' }),
+      id: 'vencida',
+      extension: [{ url: EXT_AGENDA.reservaExpira, valueDateTime: '2026-10-10T14:00:00.000Z' }],
+    };
+    expect(proximoTurnoDe([vencida], ahora)).toBeUndefined();
   });
 });

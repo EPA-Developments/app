@@ -148,9 +148,23 @@ describe('RosaLe8', () => {
     );
   });
 
-  test('con la Segunda Opinión firmada: «firmada» y sin tramo encendido', () => {
+  test('con el informe listo pero sin firma médica registrada: «informe listo», nunca «firmada»', () => {
     const rosa = renderRosa({
       anillos: { ...SIN_ANILLOS, segundaOpinion: 'completada', equipo: ['segunda-opinion'] },
+    });
+    expect(screen.getByText('informe listo')).toBeInTheDocument();
+    expect(screen.queryByText('firmada')).not.toBeInTheDocument();
+    expect(rosa.getAttribute('aria-label')).toContain(`${MARCA.producto}, con el informe listo.`);
+  });
+
+  test('con la Segunda Opinión firmada: «firmada» y sin tramo encendido', () => {
+    const rosa = renderRosa({
+      anillos: {
+        ...SIN_ANILLOS,
+        segundaOpinion: 'completada',
+        segundaOpinionFirmada: true,
+        equipo: ['segunda-opinion'],
+      },
     });
     expect(screen.getByText('firmada')).toBeInTheDocument();
     expect(screen.queryByText('en análisis')).not.toBeInTheDocument();

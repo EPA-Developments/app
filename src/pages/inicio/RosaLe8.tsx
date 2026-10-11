@@ -51,6 +51,7 @@ export function RosaLe8(props: RosaLe8Props): JSX.Element {
   const { dominios, total, totalInicial, anillos, nombreSegundaOpinion } = props;
   const modo = props.modoColor ?? COLORES_PETALOS.modo;
   const categoria = props.categoria ?? (total === undefined ? undefined : categoriaLe8(total));
+  const habitosConDato = dominios.filter((d) => d.puntaje !== undefined).length;
   const enAnalisis = anillos.segundaOpinion === 'en-analisis';
   const { desde, hasta } = TRAMO_SEGUNDA_OPINION;
   // Sin «día 0», el total y la banda bajan un poco para quedar centrados en el núcleo.
@@ -176,7 +177,7 @@ export function RosaLe8(props: RosaLe8Props): JSX.Element {
       >
         {total === undefined ? '—' : Math.round(total)}
       </text>
-      {total !== undefined && categoria && (
+      {total !== undefined && categoria && habitosConDato === LE8_DOMINIOS.length && (
         <text
           x={CENTRO}
           y={288 + bajada}
@@ -186,6 +187,19 @@ export function RosaLe8(props: RosaLe8Props): JSX.Element {
           fill={COLORES_ROSA.banda[categoria]}
         >
           {categoria}
+        </text>
+      )}
+      {/* Con hábitos sin dato, el total es un promedio parcial: se dice cuántos tiene, no la banda. */}
+      {total !== undefined && habitosConDato < LE8_DOMINIOS.length && (
+        <text
+          x={CENTRO}
+          y={288 + bajada}
+          textAnchor="middle"
+          fontSize={14}
+          fontWeight={600}
+          fill={COLORES_ROSA.secundario}
+        >
+          {habitosConDato} de 8 hábitos
         </text>
       )}
       {totalInicial !== undefined && (
@@ -307,12 +321,18 @@ export function RosaLe8(props: RosaLe8Props): JSX.Element {
   );
 }
 
-/** «en análisis» o «firmada», debajo del nodo de la Segunda Opinión. */
+/**
+ * «en análisis», «informe listo» o «firmada», debajo del nodo de la Segunda Opinión. «Firmada»
+ * solo con la firma médica registrada: la orden la completa el bot que prepara el informe.
+ */
 function textoEstado(anillos: AnillosRosa): string | undefined {
   if (anillos.segundaOpinion === 'en-analisis') {
     return 'en análisis';
   }
-  return anillos.segundaOpinion === 'completada' ? 'firmada' : undefined;
+  if (anillos.segundaOpinion === 'completada') {
+    return anillos.segundaOpinionFirmada ? 'firmada' : 'informe listo';
+  }
+  return undefined;
 }
 
 /** El aria-label: todo lo que muestra la rosa, dicho en palabras. */
@@ -332,8 +352,13 @@ function descripcion(props: RosaLe8Props): string {
   if (total === undefined) {
     frases.push(`En el centro va tu total, que todavía no tiene datos${dia0}.`);
   } else {
-    const categoria = props.categoria ?? categoriaLe8(total);
-    frases.push(`En el centro, tu total: ${Math.round(total)}, banda ${categoria}${dia0}.`);
+    const conDato = dominios.filter((d) => d.puntaje !== undefined).length;
+    if (conDato < LE8_DOMINIOS.length) {
+      frases.push(`En el centro, tu total con ${conDato} de 8 hábitos con dato: ${Math.round(total)}${dia0}.`);
+    } else {
+      const categoria = props.categoria ?? categoriaLe8(total);
+      frases.push(`En el centro, tu total: ${Math.round(total)}, banda ${categoria}${dia0}.`);
+    }
   }
 
   const queHaceLaIa = [
@@ -348,7 +373,9 @@ function descripcion(props: RosaLe8Props): string {
     anillos.segundaOpinion === 'en-analisis'
       ? 'que está en análisis'
       : anillos.segundaOpinion === 'completada'
-        ? 'ya firmada'
+        ? anillos.segundaOpinionFirmada
+          ? 'ya firmada'
+          : 'con el informe listo'
         : undefined;
   // La Segunda Opinión es el último nodo de la lista: su estado va pegado a su nombre.
   const conNodoSegundaOpinion = nodos.includes('segunda-opinion');
@@ -358,7 +385,10 @@ function descripcion(props: RosaLe8Props): string {
     (estado && conNodoSegundaOpinion ? `, ${estado}` : '');
   frases.push(`Alrededor, ${ia}, y ${equipo}.`);
   if (anillos.segundaOpinion && !conNodoSegundaOpinion) {
-    const como = anillos.segundaOpinion === 'en-analisis' ? 'está en análisis' : 'ya está firmada';
+    let como = 'está en análisis';
+    if (anillos.segundaOpinion === 'completada') {
+      como = anillos.segundaOpinionFirmada ? 'ya está firmada' : 'ya tiene el informe listo';
+    }
     frases.push(`Tu ${nombreSegundaOpinion} ${como}.`);
   }
   return frases.join(' ');

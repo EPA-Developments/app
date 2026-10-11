@@ -2,7 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 import { LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import type { PlanBienestar } from '../../fhir/bienestar';
-import { caminoRecomendado, caminosDe, devolucionPendiente, fechaHoraTurno, subioDatos } from './caminos';
+import {
+  caminoRecomendado,
+  caminosDe,
+  devolucionDada,
+  devolucionPendiente,
+  fechaHoraTurno,
+  NOTA_COSTO_TELECONSULTA,
+  pidioSegundaOpinion,
+  puedeOfrecerTeleconsulta,
+  subioDatos,
+} from './caminos';
 import type {
   Camino,
   ClaveCamino,
@@ -67,8 +77,13 @@ function plan(cambios: Partial<PlanBienestar> = {}): PlanBienestar {
 }
 
 function som(estado: SegundaOpinionHome['estado'], cambios: Partial<SegundaOpinionHome> = {}): SegundaOpinionHome {
-  const etiqueta = { 'en-analisis': 'En análisis', completada: 'Completada', otro: 'En pausa' }[estado];
-  return { id: 'som-1', estado, etiqueta, pedida: '2026-10-01T13:00:00.000Z', ...cambios };
+  const etiqueta = {
+    'en-analisis': 'En análisis',
+    completada: 'Completada',
+    cancelada: 'Cancelada',
+    otro: 'En pausa',
+  }[estado];
+  return { id: 'som-1', estado, etiqueta, pedida: '2026-10-01T13:00:00.000Z', firmada: false, ...cambios };
 }
 
 /** Una paciente que todavía no cargó nada: sin plan, sin Segunda Opinión y sin turnos. */
@@ -221,7 +236,7 @@ describe('caminosDe: los tres caminos, en orden', () => {
     expect(caminos.map((c) => [c.numero, c.clave, c.titulo])).toEqual([
       [1, 'plan', 'Plan Bienestar · 100 días'],
       [2, 'segunda-opinion', 'Tu Revisión Experta'],
-      [3, 'teleconsulta', 'Teleconsulta con tu equipo médico'],
+      [3, 'teleconsulta', 'Teleconsulta por videollamada'],
     ]);
   });
 
@@ -240,8 +255,10 @@ describe('caminosDe: los tres caminos, en orden', () => {
     const segunda = camino(datos(), 'segunda-opinion');
     expect(segunda.titulo).toBe('Tu Revisión Experta');
     expect(segunda.cta).toBe('Pedir mi Revisión Experta');
-    expect(segunda.descripcion).toContain('El equipo médico dirigido por la Dra. Prueba analiza tu caso');
-    expect(segunda.descripcion).toContain('informe firmado con tu riesgo cardiovascular');
+    expect(segunda.descripcion).toContain('Nuestro equipo médico, dirigido por la Dra. Prueba, analiza tu caso');
+    expect(segunda.descripcion).toContain('un informe con tu riesgo cardiovascular');
+    // No promete una firma que el backend no registra (ver tipos.ts: completada ≠ firmada).
+    expect(segunda.descripcion).not.toMatch(/firmad/);
   });
 
   describe('1. Plan Bienestar · 100 días', () => {
@@ -304,12 +321,25 @@ describe('caminosDe: los tres caminos, en orden', () => {
       }
     });
 
-    test('completada: el informe está firmado, y verlo', () => {
+    test('completada sin firma médica registrada: el informe está listo (no «firmado»), y verlo', () => {
       expect(camino(datos({ segundaOpinion: som('completada') }), 'segunda-opinion')).toMatchObject({
-        estado: 'Tu informe está firmado',
+        estado: 'Tu informe está listo',
         cta: 'Ver mi informe',
         href: '/mi-segunda-opinion',
       });
+    });
+
+    test('completada con la firma médica registrada: el informe está firmado', () => {
+      const c = camino(datos({ segundaOpinion: som('completada', { firmada: true }) }), 'segunda-opinion');
+      expect(c.estado).toBe('Tu informe está firmado');
+    });
+
+    test('cancelada: como si no la hubiera pedido, se ofrece pedirla otra vez', () => {
+      expect(camino(datos({ segundaOpinion: som('cancelada') }), 'segunda-opinion')).toMatchObject({
+        cta: 'Pedir mi Revisión Experta',
+        href: '/solicitar-som',
+      });
+      expect(camino(datos({ segundaOpinion: som('cancelada') }), 'segunda-opinion').estado).toBeUndefined();
     });
 
     test('en otro estado: su etiqueta, y verla', () => {
@@ -369,5 +399,55 @@ describe('fechaHoraTurno: día y hora en Argentina, con reloj de 24 horas como e
 
   test('una fecha ilegible no muestra nada', () => {
     expect(fechaHoraTurno('no-es-fecha')).toBe('');
+  });
+});
+
+describe('la devolución: una vez revisados los datos, no se le vuelve a pedir que reserve', () => {
+  // El laboratorio y el PREVENT estimado llegan juntos: el estimado sale de esos mismos valores.
+  const CON_DATOS = { laboratorio: LAB_SIN_REVISAR, preventEstimado: PREVENT_ESTIMADO };
+
+  test('sin consulta posterior a su laboratorio: la devolución está pendiente', () => {
+    expect(devolucionPendiente(datos(CON_DATOS))).toBe(true);
+    // Una consulta de antes de mandar el laboratorio no cuenta.
+    expect(devolucionDada(datos({ ...CON_DATOS, ultimaConsulta: { inicio: '2026-09-20T13:00:00.000Z' } }))).toBe(false);
+  });
+
+  test('con una consulta después de su laboratorio: la devolución ya se dio', () => {
+    const d = datos({ ...CON_DATOS, plan: plan(), ultimaConsulta: { inicio: '2026-10-05T13:00:00.000Z' } });
+    expect(devolucionDada(d)).toBe(true);
+    expect(devolucionPendiente(d)).toBe(false);
+    expect(puedeOfrecerTeleconsulta(d)).toBe(false);
+    // Ya no se la recomienda: se vuelve a lo que le falta (la Segunda Opinión, con plan).
+    expect(caminoRecomendado(d)).toBe('segunda-opinion');
+    const tele = camino(d, 'teleconsulta');
+    expect(tele.estado).toBe('Tu última consulta: 5 de octubre');
+    expect(tele.cta).toBe('Reservar otra teleconsulta');
+  });
+
+  test('con la Segunda Opinión en análisis: la devolución llega con su informe, no se empuja la teleconsulta', () => {
+    const d = datos({ ...CON_DATOS, plan: plan(), segundaOpinion: som('en-analisis') });
+    expect(puedeOfrecerTeleconsulta(d)).toBe(false);
+    expect(devolucionPendiente(d)).toBe(false);
+    expect(caminoRecomendado(d)).toBeUndefined();
+    expect(camino(d, 'teleconsulta').recomendado).toBe(false);
+  });
+
+  test('un PDF que el bot no pudo leer (demorado) no cuenta como datos subidos', () => {
+    const demorado: LaboratorioHome = { estado: 'demorado', fecha: LAB_SIN_REVISAR.fecha, revisionMedica: false };
+    expect(subioDatos(datos({ laboratorio: demorado }))).toBe(false);
+    expect(caminoRecomendado(datos({ laboratorio: demorado }))).toBe('plan');
+  });
+
+  test('una Segunda Opinión cancelada no cuenta como pedida; una en pausa, sí', () => {
+    expect(pidioSegundaOpinion(datos({ segundaOpinion: som('cancelada') }))).toBe(false);
+    expect(pidioSegundaOpinion(datos({ segundaOpinion: som('otro') }))).toBe(true);
+    expect(caminoRecomendado(datos({ plan: plan(), segundaOpinion: som('cancelada') }))).toBe('segunda-opinion');
+  });
+
+  test('la teleconsulta dice qué tiene costo (salvo con un turno ya reservado)', () => {
+    expect(camino(datos(), 'teleconsulta').nota).toBe(NOTA_COSTO_TELECONSULTA);
+    expect(camino(datos({ proximoTurno: TURNO_TELECONSULTA }), 'teleconsulta').nota).toBeUndefined();
+    // No promete «tu equipo médico»: la reserva abre el catálogo de profesionales.
+    expect(camino(datos(CON_DATOS), 'teleconsulta').descripcion).toContain('un profesional de nuestro equipo');
   });
 });

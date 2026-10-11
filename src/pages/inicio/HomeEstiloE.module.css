@@ -952,6 +952,15 @@
   box-shadow: 0 0 0 3px #99c8ff;
 }
 
+/* Qué se paga al reservar, debajo del botón (gris de la zona clara: 7,3:1 sobre blanco). */
+.caminoNota {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--e-secundario);
+  text-wrap: pretty;
+}
+
 .caminoAccion {
   margin-top: auto;
   display: flex;

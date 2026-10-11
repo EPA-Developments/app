@@ -86,6 +86,7 @@ function laura(cambios: Partial<DatosHomeE> = {}): DatosHomeE {
       etiqueta: 'En análisis',
       pedida: '2026-09-28T13:00:00.000Z',
       actualizada: '2026-10-01T13:00:00.000Z',
+      firmada: false,
     },
     equipo: { equipoPlan: [], segundaOpinion: [] },
     consentimiento: 'firmado',
@@ -129,7 +130,7 @@ describe('VistaHomeE con los datos de Laura', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Laura, estás en el centro.' })).toBeInTheDocument();
     expect(screen.getByText('Hola, Laura · sábado 10 de octubre')).toBeInTheDocument();
-    expect(screen.getByText('Ordenado para tu etapa: Salud CKM 2')).toBeInTheDocument();
+    expect(screen.getByText('Tu etapa CKM: 2')).toBeInTheDocument();
 
     // «Para hoy»: la acción que elige paraHoy (acá, el hito pendiente del plan).
     const accion = paraHoy(datos, { producto: MARCA.producto });
@@ -142,7 +143,7 @@ describe('VistaHomeE con los datos de Laura', () => {
     // La rosa, con sus puntajes en el aria-label, y la frase del hábito con más margen.
     expect(screen.getByRole('img', { name: /Sueño 45/ })).toBeInTheDocument();
     expect(
-      screen.getByText('El sueño es tu hábito con más margen. En tu plan tenés pasos para cuidarlo.')
+      screen.getByText('El sueño es tu hábito con más margen. En tu plan tenés pasos para mejorar ese puntaje.')
     ).toBeInTheDocument();
 
     const cambio = screen.getByRole('region', { name: 'Lo que cambió' });
@@ -156,7 +157,7 @@ describe('VistaHomeE con los datos de Laura', () => {
     expect(within(cambio).getByRole('heading', { name: `Tu ${MARCA.producto}` })).toBeInTheDocument();
     expect(within(cambio).getByText('En análisis')).toBeInTheDocument();
     expect(within(cambio).getByText('Pedida el 28 de septiembre')).toBeInTheDocument();
-    expect(within(cambio).getByText(/te avisamos en Novedades cuando esté firmada/)).toBeInTheDocument();
+    expect(within(cambio).getByText(/te avisamos en Novedades cuando esté lista/)).toBeInTheDocument();
     expect(hrefDe(`Ver mi ${MARCA.producto}`, cambio)).toBe('/mi-segunda-opinion');
     expect(within(cambio).getByText('Tenés 2 novedades sin leer en la campanita.')).toBeInTheDocument();
     expect(within(cambio).getByText('Cómo se lee')).toBeInTheDocument();
@@ -184,9 +185,7 @@ describe('VistaHomeE con los datos de Laura', () => {
     // como su Segunda Opinión está en análisis, avisa que va a traer el riesgo firmado.
     const prevent = screen.getByRole('article', { name: 'Tu riesgo cardiovascular' });
     expect(within(prevent).getByText('Todavía no podemos estimar tu riesgo.')).toBeInTheDocument();
-    expect(
-      within(prevent).getByText(`Tu ${MARCA.producto} va a traer tu riesgo revisado y firmado.`)
-    ).toBeInTheDocument();
+    expect(within(prevent).getByText(`Tu ${MARCA.producto} va a traer tu riesgo en su informe.`)).toBeInTheDocument();
     expect(hrefDe('Enviar mi laboratorio en PDF', prevent)).toBe('/enviar-estudios');
 
     // La tabla equivalente, enfocable y con el cambio de cada hábito.
@@ -287,12 +286,24 @@ describe('VistaHomeE: los tres caminos', () => {
     expect(within(som).getByRole('heading', { name: `Tu ${MARCA.producto}` })).toBeInTheDocument();
     expect(within(som).getByText(/^En análisis desde el 28 de septiembre/)).toBeInTheDocument();
     expect(hrefDe(`Ver mi ${MARCA.producto}`, som)).toBe('/mi-segunda-opinion');
-    expect(within(tele).getByRole('heading', { name: 'Teleconsulta con tu equipo médico' })).toBeInTheDocument();
+    expect(within(tele).getByRole('heading', { name: 'Teleconsulta por videollamada' })).toBeInTheDocument();
     expect(hrefDe('Reservar mi teleconsulta', tele)).toBe('/get-care?modalidad=teleconsulta');
+    // Lo que se paga, dicho antes de reservar.
+    expect(
+      within(tele).getByText('Las consultas del Plan Bienestar están incluidas; las demás se confirman con una seña.')
+    ).toBeInTheDocument();
+  });
+
+  test('con la Segunda Opinión en análisis, no se empuja la teleconsulta (la devolución llega con su informe)', async () => {
+    await mostrar(laura());
+    const tele = tarjetasDeCaminos()[2];
+    expect(within(tele).queryByText('Recomendado para vos')).not.toBeInTheDocument();
+    const cambio = screen.getByRole('region', { name: 'Lo que cambió' });
+    expect(within(cambio).queryByRole('link', { name: /Revisarlos en una teleconsulta/ })).not.toBeInTheDocument();
   });
 
   test('quien subió datos y no tiene turno: la teleconsulta va como «Recomendado para vos»', async () => {
-    await mostrar(laura());
+    await mostrar(laura({ segundaOpinion: undefined }));
     const [plan, som, tele] = tarjetasDeCaminos();
     expect(within(tele).getByText('Recomendado para vos')).toBeInTheDocument();
     expect(within(plan).queryByText('Recomendado para vos')).not.toBeInTheDocument();
@@ -335,11 +346,74 @@ describe('VistaHomeE: los tres caminos', () => {
   });
 });
 
+describe('VistaHomeE: lo que encontró la revisión', () => {
+  test('una Segunda Opinión completada sin firma médica registrada nunca dice «firmado»', async () => {
+    await mostrar(
+      laura({
+        segundaOpinion: {
+          id: 's1',
+          estado: 'completada',
+          etiqueta: 'Completada',
+          pedida: '2026-09-01',
+          firmada: false,
+        },
+        prevent: { ascvd10: 0.042, hf10: 0.031, total30: 0.187, fecha: '2026-10-05' },
+      })
+    );
+    expect(document.body).not.toHaveTextContent(/firmad[oa] por tu equipo/);
+    expect(screen.queryByText('Tu informe está firmado.')).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Tu informe está listo/).length).toBeGreaterThan(0);
+    const prevent = screen.getByRole('article', { name: 'Tu riesgo cardiovascular' });
+    expect(within(prevent).getByText(`Del informe de tu ${MARCA.producto} · preparado con IA`)).toBeInTheDocument();
+  });
+
+  test('con la firma médica registrada, el PREVENT dice que es del informe firmado y su fecha', async () => {
+    await mostrar(
+      laura({
+        segundaOpinion: { id: 's1', estado: 'completada', etiqueta: 'Completada', pedida: '2026-09-01', firmada: true },
+        prevent: { ascvd10: 0.042, fecha: '2026-10-05' },
+      })
+    );
+    const prevent = screen.getByRole('article', { name: 'Tu riesgo cardiovascular' });
+    expect(within(prevent).getByText('Del informe firmado por tu equipo médico el 5 de octubre.')).toBeInTheDocument();
+  });
+
+  test('un LE8 parcial dice con cuántos hábitos se calculó, sin banda en la rosa', async () => {
+    await mostrar(laura({ le8: le8([60, 62, undefined, 45, undefined, undefined, undefined, undefined], 56) }));
+    const lectura = screen.getByRole('article', { name: /Respuesta a 100 días|Tus 8 hábitos/ });
+    expect(within(lectura).getByText('Con 3 de 8 hábitos')).toBeInTheDocument();
+    expect(screen.getByText('3 de 8 hábitos')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /tu total con 3 de 8 hábitos con dato: 56/ })).toBeInTheDocument();
+  });
+
+  test('un PDF que el bot no pudo leer no queda «leyendo»: dice que lo estamos revisando', async () => {
+    await mostrar(
+      laura({ laboratorio: { estado: 'demorado', fecha: '2026-10-03T12:00:00.000Z', revisionMedica: false } })
+    );
+    expect(screen.getByRole('heading', { name: 'Tu PDF necesita una revisión' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Lo estamos revisando. Si no pudimos leerlo, te escribimos por Mensajes.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/está leyendo tu PDF/)).not.toBeInTheDocument();
+  });
+
+  test('la etapa CKM estimada se rotula como estimada en el escenario', async () => {
+    await mostrar(laura({ ckm: { estadio: 3, origen: 'estimado' } }));
+    expect(screen.getByText('Tu etapa CKM: 3 (estimada)')).toBeInTheDocument();
+  });
+});
+
 describe('VistaHomeE: otros estados', () => {
   test('con el PREVENT del informe firmado muestra los porcentajes con coma', async () => {
     await mostrar(
       laura({
-        segundaOpinion: { id: 'som-1', estado: 'completada', etiqueta: 'Completada', pedida: '2026-08-20' },
+        segundaOpinion: {
+          id: 'som-1',
+          estado: 'completada',
+          etiqueta: 'Completada',
+          pedida: '2026-08-20',
+          firmada: true,
+        },
         prevent: { ascvd10: 0.042, hf10: 0.031, total30: 0.187 },
       })
     );
@@ -370,7 +444,7 @@ describe('VistaHomeE: otros estados', () => {
     // Oportunidad de venta: un cálculo automático se revisa con un médico.
     expect(within(prevent).getByText('Es un cálculo automático')).toBeInTheDocument();
     expect(hrefDe('Reservar mi teleconsulta', prevent)).toBe('/get-care?modalidad=teleconsulta');
-    expect(hrefDe(`Pedir mi ${MARCA.producto}: tu riesgo revisado y firmado`, prevent)).toBe('/solicitar-som');
+    expect(hrefDe(`Pedir mi ${MARCA.producto}: un informe de tu caso y tu riesgo`, prevent)).toBe('/solicitar-som');
   });
 
   test('con un turno reservado, el PREVENT estimado se revisa ahí y no ofrece reservar otro', async () => {
@@ -382,7 +456,7 @@ describe('VistaHomeE: otros estados', () => {
       })
     );
     const prevent = screen.getByRole('article', { name: 'Tu riesgo cardiovascular' });
-    expect(within(prevent).getByText(/^Lo revisan en tu turno del sábado, 17 de octubre/)).toBeInTheDocument();
+    expect(within(prevent).getByText(/^Podés llevarlo a tu turno del sábado, 17 de octubre/)).toBeInTheDocument();
     expect(within(prevent).queryByRole('link', { name: 'Reservar mi teleconsulta' })).not.toBeInTheDocument();
   });
 

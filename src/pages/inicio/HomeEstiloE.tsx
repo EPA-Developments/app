@@ -61,7 +61,7 @@ import { esCentro } from '../../fhir/equipo';
 import { hoyArgentina, ZONA_HORARIA } from '../../fhir/glp1';
 import { MARCA } from '../../marca';
 import { RUTA_SALUD } from '../health-record/Salud.data';
-import { caminosDe, fechaHoraTurno } from './caminos';
+import { caminosDe, fechaHoraTurno, pidioSegundaOpinion, puedeOfrecerTeleconsulta } from './caminos';
 import classes from './HomeEstiloE.module.css';
 import { paraHoy } from './paraHoy';
 import { dominioConMasMargen, puntajeDe } from './rosa';
@@ -244,16 +244,16 @@ function clases(...nombres: (string | false | undefined)[]): string {
 /** Los 8 hábitos sin puntaje (una paciente sin LE8 todavía, o un perfil que no es paciente). */
 const SIN_DOMINIOS: readonly PuntajeDominio[] = LE8_DOMINIOS.map((dominio) => ({ dominio }));
 
-/** Cómo se nombra cada hábito dentro de una frase, y con qué pronombre se lo retoma. */
-const HABITO_EN_FRASE: Readonly<Record<Le8Domain, { readonly nombre: string; readonly lo: 'lo' | 'la' }>> = {
-  dieta: { nombre: 'La alimentación', lo: 'la' },
-  'actividad-fisica': { nombre: 'La actividad física', lo: 'la' },
-  nicotina: { nombre: 'La nicotina', lo: 'la' },
-  sueno: { nombre: 'El sueño', lo: 'lo' },
-  imc: { nombre: 'El peso', lo: 'lo' },
-  lipidos: { nombre: 'El colesterol', lo: 'lo' },
-  glucemia: { nombre: 'La glucemia', lo: 'la' },
-  'presion-arterial': { nombre: 'La presión arterial', lo: 'la' },
+/** Cómo se nombra cada hábito al empezar una frase. */
+const HABITO_EN_FRASE: Readonly<Record<Le8Domain, { readonly nombre: string }>> = {
+  dieta: { nombre: 'La alimentación' },
+  'actividad-fisica': { nombre: 'La actividad física' },
+  nicotina: { nombre: 'La nicotina' },
+  sueno: { nombre: 'El sueño' },
+  imc: { nombre: 'El peso' },
+  lipidos: { nombre: 'El colesterol' },
+  glucemia: { nombre: 'La glucemia' },
+  'presion-arterial': { nombre: 'La presión arterial' },
 };
 
 /** De dónde sale el puntaje de cada hábito (la tabla equivalente). */
@@ -294,14 +294,35 @@ const BANDA_PREVENT: Readonly<Record<PreventBanda, string>> = {
   alto: 'Riesgo alto',
 };
 
+/**
+ * El hábito con más margen: el de menor puntaje, solo si hay al menos 2 con dato (con uno solo no
+ * hay con qué comparar) y si está por debajo de la banda alta (80).
+ */
+function habitoConMasMargen(le8: DatosHomeE['le8']): Le8Domain | undefined {
+  if (!le8 || le8.conDato < 2) {
+    return undefined;
+  }
+  const dominio = dominioConMasMargen(le8.dominios);
+  const puntaje = le8.dominios.find((d) => d.dominio === dominio)?.puntaje;
+  return dominio && puntaje !== undefined && puntaje < 80 ? dominio : undefined;
+}
+
 /** La frase debajo de la rosa: el hábito con más margen (el de menor puntaje con dato). */
 function fraseRosa(datos: DatosHomeE): string {
-  const dominio = datos.le8 ? dominioConMasMargen(datos.le8.dominios) : undefined;
-  if (!dominio) {
+  const le8 = datos.le8;
+  const dominio = habitoConMasMargen(le8);
+  if (!le8 || le8.conDato < 2) {
     return 'Tu forma todavía no está completa. Respondé tus cuestionarios de hábitos y la vas a ver crecer.';
   }
-  const { nombre, lo } = HABITO_EN_FRASE[dominio];
-  const despues = datos.plan ? `En tu plan tenés pasos para cuidar${lo}.` : 'Mirá qué podés hacer en tus 8 hábitos.';
+  if (!dominio) {
+    return le8?.completo
+      ? 'Tus 8 hábitos están en buena forma. Mirá cómo sostenerlos.'
+      : 'Tus hábitos con dato están en buena forma. Completá los que faltan para ver tu forma entera.';
+  }
+  const { nombre } = HABITO_EN_FRASE[dominio];
+  const despues = datos.plan
+    ? 'En tu plan tenés pasos para mejorar ese puntaje.'
+    : 'Mirá qué podés hacer en tus 8 hábitos.';
   return `${nombre} es tu hábito con más margen. ${despues}`;
 }
 
@@ -326,6 +347,7 @@ function anillosDe(datos: DatosHomeE): AnillosRosa {
     iaEnProceso: laboratorio?.estado === 'en-proceso' || estadoSom === 'en-analisis',
     laboratorioLeido: laboratorio?.estado === 'procesado',
     segundaOpinion: estadoSom,
+    segundaOpinionFirmada: segundaOpinion?.firmada ?? false,
     equipo: nodos,
   };
 }
@@ -383,7 +405,8 @@ export function VistaHomeE({ datos, modoColor }: VistaHomeEProps): JSX.Element {
             {datos.ckm && (
               <p className={classes.chipEtapa}>
                 <IconStack2 size={18} stroke={1.75} aria-hidden="true" />
-                Ordenado para tu etapa: Salud CKM {datos.ckm.estadio}
+                Tu etapa CKM: {datos.ckm.estadio}
+                {datos.ckm.origen === 'estimado' ? ' (estimada)' : ''}
               </p>
             )}
             <TarjetaParaHoy datos={datos} />
@@ -540,7 +563,14 @@ function LoQueCambio({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
   } else {
     cuerpo = (
       <>
-        {laboratorio && <NovedadLaboratorio laboratorio={laboratorio} hoy={hoy} proximoTurno={datos.proximoTurno} />}
+        {laboratorio && (
+          <NovedadLaboratorio
+            laboratorio={laboratorio}
+            hoy={hoy}
+            proximoTurno={datos.proximoTurno}
+            ofrecerTeleconsulta={puedeOfrecerTeleconsulta(datos)}
+          />
+        )}
         {laboratorio && segundaOpinion && <div aria-hidden="true" className={classes.divisorOscuro} />}
         {segundaOpinion && <NovedadSegundaOpinion segundaOpinion={segundaOpinion} hoy={hoy} />}
         {segundaOpinion && (
@@ -577,13 +607,26 @@ function NovedadLaboratorio({
   laboratorio,
   hoy,
   proximoTurno,
+  ofrecerTeleconsulta,
 }: {
   readonly laboratorio: LaboratorioHome;
   readonly hoy: string;
   readonly proximoTurno?: ProximoTurno;
+  /** Sin turno, sin Segunda Opinión en análisis y sin una consulta posterior (caminos.ts). */
+  readonly ofrecerTeleconsulta: boolean;
 }): JSX.Element {
   const procesado = laboratorio.estado === 'procesado';
+  const demorado = laboratorio.estado === 'demorado';
   const sinRevisar = procesado && !laboratorio.revisionMedica;
+  let titulo = 'Procesando tu PDF';
+  let nota = 'Un agente de IA está leyendo tu PDF para pasar los valores a tus biomarcadores.';
+  if (procesado) {
+    titulo = 'Resultados listos';
+    nota = 'Un agente de IA leyó tu PDF y pasó los valores a tus biomarcadores.';
+  } else if (demorado) {
+    titulo = 'Tu PDF necesita una revisión';
+    nota = 'Lo estamos revisando. Si no pudimos leerlo, te escribimos por Mensajes.';
+  }
   const fecha = fechaCorta(laboratorio.fecha, hoy);
   const resumen = [fecha ? `Laboratorio del ${fecha}` : 'Tu laboratorio'];
   if (procesado && laboratorio.valores !== undefined) {
@@ -593,14 +636,10 @@ function NovedadLaboratorio({
     <article aria-labelledby={ID.laboratorio} className={classes.novedad}>
       <div className={classes.novedadTitulo}>
         <IconoPunteado />
-        <h3 id={ID.laboratorio}>{procesado ? 'Resultados listos' : 'Procesando tu PDF'}</h3>
+        <h3 id={ID.laboratorio}>{titulo}</h3>
       </div>
       <p className={classes.textoOscuro}>{resumen.join(' · ')}</p>
-      <p className={classes.notaOscura}>
-        {procesado
-          ? 'Un agente de IA leyó tu PDF y pasó los valores a tus biomarcadores.'
-          : 'Un agente de IA está leyendo tu PDF para pasar los valores a tus biomarcadores.'}
-      </p>
+      <p className={classes.notaOscura}>{nota}</p>
       <div className={classes.novedadPie}>
         {laboratorio.revisionMedica ? (
           <p className={classes.chipSolido}>Revisado por tu equipo médico</p>
@@ -621,21 +660,21 @@ function NovedadLaboratorio({
       {sinRevisar && proximoTurno && (
         <p className={classes.turnoOscuro}>
           <IconCalendarEvent size={20} stroke={1.75} aria-hidden="true" />
-          <span>Los revisan en tu turno del {fechaHoraTurno(proximoTurno.inicio)}.</span>
+          <span>Podés llevarlos a tu turno del {fechaHoraTurno(proximoTurno.inicio)}.</span>
         </p>
       )}
-      {sinRevisar && !proximoTurno && (
+      {sinRevisar && ofrecerTeleconsulta && (
         <div className={classes.devolucionOscura}>
-          <p className={classes.textoOscuro}>Te los explicamos: tu equipo médico los revisa con vos.</p>
+          <p className={classes.textoOscuro}>Te los explicamos: un profesional de nuestro equipo los revisa con vos.</p>
           <UnstyledButton component={Link} to={RUTA_RESERVAR_TELECONSULTA} className={classes.botonBlanco}>
             Revisarlos en una teleconsulta
             <Flecha />
           </UnstyledButton>
         </div>
       )}
-      {!procesado && !proximoTurno && (
+      {laboratorio.estado === 'en-proceso' && ofrecerTeleconsulta && (
         <p className={classes.notaOscura}>
-          Cuando estén listos, te ofrecemos revisarlos con tu equipo médico en una teleconsulta.
+          Cuando estén listos, te ofrecemos revisarlos con un profesional en una teleconsulta.
         </p>
       )}
     </article>
@@ -653,9 +692,10 @@ function NovedadSegundaOpinion({
   let texto: string | undefined;
   if (segundaOpinion.estado === 'en-analisis') {
     texto =
-      'La trabajan juntos nuestros agentes de IA y tu equipo médico; te avisamos en Novedades cuando esté firmada.';
+      'La trabajan juntos nuestros agentes de IA y nuestro equipo médico; te avisamos en Novedades cuando esté lista.';
   } else if (segundaOpinion.estado === 'completada') {
-    texto = 'Tu informe está firmado.';
+    // La orden la completa el bot que prepara el informe: «firmado» solo con la firma registrada.
+    texto = segundaOpinion.firmada ? 'Tu informe está firmado.' : 'Tu informe está listo.';
   }
   return (
     <article aria-labelledby={ID.segundaOpinion} className={classes.novedad}>
@@ -690,7 +730,7 @@ function ComoSeLee(): JSX.Element {
           />
         </svg>
         <p>
-          <strong>Punteado:</strong> lo procesan nuestros agentes de IA.
+          <strong>Punteado:</strong> todavía sin revisión médica (lo leyó un agente de IA o es un cálculo automático).
         </p>
       </div>
       <div className={classes.comoSeLeeFila}>
@@ -734,7 +774,7 @@ function TresCaminos({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
           <h2 id={ID.caminos} className={classes.tituloSeccion}>
             Tres caminos para cuidar tu corazón
           </h2>
-          <p className={classes.bajada}>En los tres, tu equipo médico te acompaña y te da una devolución.</p>
+          <p className={classes.bajada}>En los tres, nuestro equipo médico te acompaña y te da una devolución.</p>
         </div>
         {datos.cargando ? (
           <div className={classes.caminos}>
@@ -800,6 +840,7 @@ function TarjetaCamino({ camino }: { readonly camino: Camino }): JSX.Element {
           {camino.cta}
           <Flecha />
         </UnstyledButton>
+        {camino.nota && <p className={classes.caminoNota}>{camino.nota}</p>}
       </div>
     </article>
   );
@@ -818,7 +859,7 @@ function TusTresLecturas({ datos }: { readonly datos: DatosHomeE }): JSX.Element
           </h2>
           <p className={classes.bajada}>
             Tres maneras de mirar tu salud cardiovascular, calculadas con tus datos y las guías de la AHA. Son
-            orientativas: tu equipo médico las revisa en tu seguimiento.
+            orientativas y no reemplazan la revisión médica.
           </p>
         </div>
         {datos.cargando ? (
@@ -848,7 +889,7 @@ function LecturaLe8({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
   const total = le8?.total === undefined ? undefined : Math.round(le8.total);
   const inicial = le8Inicial?.total === undefined ? undefined : Math.round(le8Inicial.total);
   const categoria = le8?.categoria ?? (total === undefined ? undefined : categoriaLe8(total));
-  const margen = dominioConMasMargen(dominios);
+  const margen = habitoConMasMargen(le8);
   return (
     <article aria-labelledby={ID.le8} className={classes.tarjeta}>
       <div className={classes.tarjetaCabecera}>
@@ -863,6 +904,8 @@ function LecturaLe8({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
         </p>
         <p className={classes.totalBanda}>
           {categoria ? <span data-banda={categoria}>Banda {categoria}</span> : <span>Todavía sin datos</span>}
+          {/* Con hábitos sin dato, el total es un promedio parcial: se dice con cuántos. */}
+          {categoria && le8 && !le8.completo && <span>Con {le8.conDato} de 8 hábitos</span>}
           {total !== undefined && inicial !== undefined && (
             <span>
               {total === inicial
@@ -955,9 +998,7 @@ function LecturaCkm({ ckm }: { readonly ckm: EstadioCkmHome | undefined }): JSX.
           );
         })}
       </ol>
-      {ckm?.origen === 'estimado' && (
-        <p className={classes.nota}>Estimado con tus datos; tu equipo lo confirma en tu informe.</p>
-      )}
+      {ckm?.origen === 'estimado' && <p className={classes.nota}>Estimado con tus datos, sin revisión médica.</p>}
       {!ckm && <p className={classes.nota}>Faltan datos para ubicar tu etapa.</p>}
       <Anchor component={Link} to={RUTA_CKM} underline="always" className={classes.link}>
         Entendé tu salud CKM
@@ -973,8 +1014,11 @@ function LecturaCkm({ ckm }: { readonly ckm: EstadioCkmHome | undefined }): JSX.
  * médica; si no alcanzan los datos, qué falta. Abajo, qué hacer con eso (AccionesPrevent).
  */
 function LecturaPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
-  const { prevent: firmado, preventEstimado: estimado } = datos;
-  const valores: PreventFirmado | undefined = firmado ?? estimado;
+  const { prevent: delInforme, preventEstimado: estimado } = datos;
+  // «Firmado» solo con la firma médica registrada; si no, es el cálculo del informe preparado con IA.
+  const firmado = delInforme !== undefined && (datos.segundaOpinion?.firmada ?? false);
+  const fechaInforme = delInforme?.fecha ? fechaCorta(delInforme.fecha, datos.hoy) : undefined;
+  const valores: PreventFirmado | undefined = delInforme ?? estimado;
   return (
     <article aria-labelledby={ID.prevent} className={classes.tarjeta}>
       <div className={classes.tarjetaCabecera}>
@@ -983,8 +1027,21 @@ function LecturaPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element 
           Tu riesgo cardiovascular
         </h3>
       </div>
-      {firmado && <p className={classes.texto}>Del informe firmado por tu equipo médico.</p>}
-      {!firmado && estimado && (
+      {firmado && (
+        <p className={classes.texto}>
+          Del informe firmado por tu equipo médico{fechaInforme ? ` el ${fechaInforme}` : ''}.
+        </p>
+      )}
+      {delInforme && !firmado && (
+        <>
+          <p className={classes.chipEstimado}>Del informe de tu {MARCA.producto} · preparado con IA</p>
+          <p className={classes.texto}>
+            Lo calculamos con la fórmula PREVENT de la AHA para tu informe{fechaInforme ? ` del ${fechaInforme}` : ''}.
+            Es orientativo: no es un diagnóstico.
+          </p>
+        </>
+      )}
+      {!delInforme && estimado && (
         <>
           <p className={classes.chipEstimado}>Estimado con tus datos · sin revisión médica</p>
           <p className={classes.texto}>
@@ -1028,7 +1085,7 @@ function LecturaPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element 
           })}
         </ul>
       )}
-      {!firmado && estimado && estimado.faltantes.length > 0 && (
+      {!delInforme && estimado && estimado.faltantes.length > 0 && (
         <p className={classes.nota}>Para afinarlo nos falta: {estimado.faltantes.join(', ')}.</p>
       )}
       <AccionesPrevent datos={datos} />
@@ -1044,18 +1101,19 @@ function LecturaPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element 
  * - sin datos: mandar el laboratorio en PDF o cargar sus datos.
  */
 function AccionesPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
-  const { prevent: firmado, preventEstimado: estimado, segundaOpinion: som, proximoTurno: turno } = datos;
+  const { prevent: delInforme, preventEstimado: estimado, segundaOpinion: som, proximoTurno: turno } = datos;
   const enAnalisis = som?.estado === 'en-analisis';
-  const traeElRiesgo = <p className={classes.nota}>Tu {MARCA.producto} va a traer tu riesgo revisado y firmado.</p>;
+  const ofrecer = puedeOfrecerTeleconsulta(datos);
+  const traeElRiesgo = <p className={classes.nota}>Tu {MARCA.producto} va a traer tu riesgo en su informe.</p>;
 
-  if (firmado) {
+  if (delInforme) {
     return (
       <div className={classes.preventPie}>
         <Anchor component={Link} to={RUTA_MI_SEGUNDA_OPINION} underline="always" className={classes.link}>
           Ver mi informe
           <Flecha tamano={18} />
         </Anchor>
-        {!turno && (
+        {ofrecer && (
           <Anchor component={Link} to={RUTA_RESERVAR_TELECONSULTA} underline="always" className={classes.link}>
             Revisarlo en una teleconsulta
           </Anchor>
@@ -1075,7 +1133,7 @@ function AccionesPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element
           </Anchor>
         </>
       );
-    } else if (som) {
+    } else if (pidioSegundaOpinion(datos)) {
       segundaOpinion = (
         <Anchor component={Link} to={RUTA_MI_SEGUNDA_OPINION} underline="always" className={classes.link}>
           Ver mi {MARCA.producto}
@@ -1084,7 +1142,25 @@ function AccionesPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element
     } else {
       segundaOpinion = (
         <Anchor component={Link} to={RUTA_SOLICITAR_SEGUNDA_OPINION} underline="always" className={classes.link}>
-          Pedir mi {MARCA.producto}: tu riesgo revisado y firmado
+          Pedir mi {MARCA.producto}: un informe de tu caso y tu riesgo
+        </Anchor>
+      );
+    }
+    let teleconsulta: JSX.Element | undefined;
+    if (turno) {
+      teleconsulta = <TurnoReservado turno={turno} frase="Podés llevarlo a" />;
+    } else if (ofrecer) {
+      teleconsulta = (
+        <UnstyledButton component={Link} to={RUTA_RESERVAR_TELECONSULTA} className={classes.boton}>
+          Reservar mi teleconsulta
+          <Flecha />
+        </UnstyledButton>
+      );
+    } else if (!enAnalisis) {
+      // Ya tuvo una consulta después de sus datos: se lo deja a mano, sin empujar.
+      teleconsulta = (
+        <Anchor component={Link} to={RUTA_RESERVAR_TELECONSULTA} underline="always" className={classes.link}>
+          Reservar otra teleconsulta
         </Anchor>
       );
     }
@@ -1094,14 +1170,7 @@ function AccionesPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element
           <p className={classes.revisaloTitulo}>Es un cálculo automático</p>
           <p className={classes.texto}>Para saber qué significa para vos y qué hacer, revisalo con un médico.</p>
         </div>
-        {turno ? (
-          <TurnoReservado turno={turno} frase="Lo revisan" />
-        ) : (
-          <UnstyledButton component={Link} to={RUTA_RESERVAR_TELECONSULTA} className={classes.boton}>
-            Reservar mi teleconsulta
-            <Flecha />
-          </UnstyledButton>
-        )}
+        {teleconsulta}
         {segundaOpinion}
       </div>
     );
@@ -1127,7 +1196,7 @@ function TurnoReservado({ turno, frase }: { readonly turno: ProximoTurno; readon
     <p className={classes.turnoClaro}>
       <IconCalendarEvent size={20} stroke={1.75} aria-hidden="true" />
       <span>
-        {frase} en tu turno del {fechaHoraTurno(turno.inicio)}.
+        {frase} tu turno del {fechaHoraTurno(turno.inicio)}.
       </span>
     </p>
   );
@@ -1149,6 +1218,8 @@ function TablaHabitos({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
   let origenTotal = 'Promedio de los hábitos con dato';
   if (le8?.completo) {
     origenTotal = 'Promedio de los 8';
+  } else if (le8 && le8.conDato === 1) {
+    origenTotal = 'Promedio del hábito con dato';
   } else if (le8 && le8.conDato > 0) {
     origenTotal = `Promedio de los ${le8.conDato} con dato`;
   }
@@ -1427,7 +1498,7 @@ function miembrosDe(datos: DatosHomeE): MiembroHome[] {
       clave: `som-${ref.reference}`,
       referencia: ref,
       rol: MARCA.producto,
-      descripcion: 'Analiza tu caso, decide y firma tu informe.',
+      descripcion: 'Analiza tu caso y prepara tu informe.',
       estado: segundaOpinion?.etiqueta,
     });
   }
@@ -1544,7 +1615,7 @@ function accesosDe(datos: DatosHomeE): readonly Acceso[] {
     },
     { titulo: 'Historia clínica', detalle: 'Estudios y registros', href: RUTA_SALUD, icono: IconClipboardText },
     // El camino 2: quien ya tiene una Segunda Opinión la sigue; quien no, la pide.
-    datos.segundaOpinion
+    pidioSegundaOpinion(datos)
       ? {
           titulo: `Mi ${MARCA.producto}`,
           detalle: 'Tu pedido y tu informe',
@@ -1553,14 +1624,14 @@ function accesosDe(datos: DatosHomeE): readonly Acceso[] {
         }
       : {
           titulo: `Pedir mi ${MARCA.producto}`,
-          detalle: 'Tu riesgo, revisado y firmado',
+          detalle: 'Un informe de tu caso y tu riesgo',
           href: RUTA_SOLICITAR_SEGUNDA_OPINION,
           icono: IconStethoscope,
         },
     { titulo: 'Mensajes', detalle: 'Escribile a tu equipo', href: RUTA_MENSAJES, icono: IconMessage },
     {
       titulo: 'Reservar una teleconsulta',
-      detalle: 'Con tu equipo médico, por videollamada',
+      detalle: 'Con un profesional, por videollamada',
       href: RUTA_RESERVAR_TELECONSULTA,
       icono: IconVideo,
     },

@@ -82,7 +82,7 @@ export const COLORES_ROSA = {
   equipo: '#ffffff',
   guia: '#cce4ff',
   /** Bandas LE8 escritas sobre el escenario (en el núcleo). */
-  banda: { alta: '#5ad1bf', moderada: '#ffd27a', baja: '#ffa59a' } as Readonly<Record<CategoriaLe8, string>>,
+  banda: { alta: '#5ad1bf', moderada: '#ffd27a', baja: '#ffb0a6' } as Readonly<Record<CategoriaLe8, string>>,
 } as const;
 
 export interface ColoresPetalos {
@@ -124,7 +124,7 @@ export const COLORES_PETALOS: ColoresPetalos = {
     glucemia: '#e1a170',
     'presion-arterial': '#beb466',
   },
-  porBanda: { alta: '#5ad1bf', moderada: '#ffd27a', baja: '#ffa59a' },
+  porBanda: { alta: '#5ad1bf', moderada: '#ffd27a', baja: '#ffb0a6' },
   borde: '#e6f3ff',
 };
 
