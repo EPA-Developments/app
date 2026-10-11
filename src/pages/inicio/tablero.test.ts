@@ -25,7 +25,6 @@ import {
   filasTablero,
   informesALeer,
   MAX_FILAS,
-  minusculaNatural,
   NOMBRE_MEDICION,
   nombreMediciones,
   NOTA_INFORME_EN_CAMINO,
@@ -418,13 +417,6 @@ describe('filasDeCuestionarios', () => {
         respuesta('q3', suenio.url, { status: 'in-progress' }),
       ])
     ).toEqual([]);
-  });
-
-  test('minusculaNatural: solo la primera letra, y las siglas quedan', () => {
-    expect(minusculaNatural('Calidad del sueño')).toBe('calidad del sueño');
-    expect(minusculaNatural('Actividad física')).toBe('actividad física');
-    expect(minusculaNatural('LE8')).toBe('LE8');
-    expect(minusculaNatural('')).toBe('');
   });
 });
 

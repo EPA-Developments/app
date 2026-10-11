@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Los tres caminos que la Home le ofrece a la paciente, en este orden:
+// Los tres caminos que la Home (E y D) le ofrece a la persona, en este orden:
 //  1. el Plan Bienestar · 100 días (sumarse o seguirlo);
 //  2. la Segunda Opinión (pedirla, o seguir la que ya pidió);
 //  3. la teleconsulta para revisar sus resultados con el equipo médico.
@@ -10,6 +10,7 @@
 // como «Recomendado para vos». Si no, se recomienda sumarse al plan; si ya está en el plan, pedir
 // la Segunda Opinión. Funciones puras: el nombre del servicio entra por parámetro (MARCA.producto).
 import { fmtDiaArg, fmtHoraArg } from '../../fhir/agenda';
+import { fechaCorta } from './formato';
 import {
   RUTA_MI_SEGUNDA_OPINION,
   RUTA_MIS_TURNOS,
@@ -20,7 +21,7 @@ import {
 import type { Camino, ClaveCamino, DatosHomeE } from './tipos';
 
 export interface OpcionesCaminos {
-  /** El servicio que pide la paciente (MARCA.producto). */
+  /** El servicio que pide la persona (MARCA.producto). */
   readonly producto: string;
   /** «el Dr. …» (MARCA.dirigidoPor). */
   readonly dirigidoPor: string;
@@ -107,21 +108,7 @@ export function fechaHoraTurno(iso: string): string {
   return `${fmtDiaArg.format(fecha)}, ${fmtHoraArg.format(fecha)}`;
 }
 
-function fechaCorta(iso: string | undefined): string | undefined {
-  if (!iso) {
-    return undefined;
-  }
-  const fecha = new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso);
-  return Number.isNaN(fecha.getTime())
-    ? undefined
-    : new Intl.DateTimeFormat('es-AR', {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        day: 'numeric',
-        month: 'long',
-      }).format(fecha);
-}
-
-/** Los tres caminos, en orden, con el estado de la paciente en cada uno. */
+/** Los tres caminos, en orden, con el estado de la persona en cada uno. */
 export function caminosDe(datos: DatosHomeE, opciones: OpcionesCaminos): readonly Camino[] {
   const recomendado = caminoRecomendado(datos);
   const { plan, segundaOpinion: som, proximoTurno: turno } = datos;
@@ -144,7 +131,7 @@ export function caminosDe(datos: DatosHomeE, opciones: OpcionesCaminos): readonl
   let hrefSom = RUTA_SOLICITAR_SEGUNDA_OPINION;
   // Una cancelada o con error no cuenta como pedida: se ofrece pedir otra.
   if (som && pidioSegundaOpinion(datos)) {
-    const desde = fechaCorta(som.pedida);
+    const desde = fechaCorta(som.pedida, datos.hoy);
     if (som.estado === 'en-analisis') {
       estadoSom = desde ? `${som.etiqueta} desde el ${desde}` : som.etiqueta;
     } else if (som.estado === 'completada') {
@@ -169,7 +156,8 @@ export function caminosDe(datos: DatosHomeE, opciones: OpcionesCaminos): readonl
 
   // La reserva abre el catálogo de consultas por videollamada: atiende un profesional de nuestro
   // equipo (no necesariamente el de su plan), así que no se promete «tu equipo médico».
-  const ultima = datos.ultimaConsulta && devolucionDada(datos) ? fechaCorta(datos.ultimaConsulta.inicio) : undefined;
+  const ultima =
+    datos.ultimaConsulta && devolucionDada(datos) ? fechaCorta(datos.ultimaConsulta.inicio, datos.hoy) : undefined;
   let estadoTele: string | undefined;
   if (turno) {
     estadoTele = `Tu turno: ${fechaHoraTurno(turno.inicio)}`;

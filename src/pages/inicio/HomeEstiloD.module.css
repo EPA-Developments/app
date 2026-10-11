@@ -1,0 +1,1271 @@
+/*
+ * Home estilo D («Salidas y llegadas»): la ve todo el que no ve el E (estilo.ts).
+ * Un solo árbol responsive: la base es el celular y desde 62em (md) la puerta pasa a 7/5,
+ * los caminos y los instrumentos a 3 columnas y los servicios a 4. El header (60px) y el menú
+ * inferior del celular los pone el AppShell: acá no se dibujan.
+ *
+ * Los tokens --d-* se definen UNA vez, acá, sobre la raíz de la Home D, para el tema oscuro
+ * (el diseño aprobado) y su equivalente claro. Los otros módulos de D
+ * (TableroSalidasLlegadas.module.css, RutaIdaVuelta.module.css) usan solo var(--d-…).
+ * Contrastes medidos (oscuro / claro, con la fórmula de WCAG 2):
+ *  - --d-texto-2 sobre --d-superficie 8,3 / 8,4; --d-acento sobre --d-superficie 6,4 / 6,2;
+ *  - --d-boton-texto sobre --d-boton 7,7 / 6,2; --d-borde sobre --d-superficie 4,5 / 4,0;
+ *  - los tonos de los chips sobre su fondo (el tono al 10 % sobre --d-superficie) ≥ 4,5 en los dos
+ *    temas (el más justo: --d-ok en claro, 4,6).
+ */
+
+.raiz {
+  /* Tipografías: las carga useFuentesHomeD(). Mono SOLO para el tablero, la tira de pase y
+     overlines cortos. */
+  --d-fuente: 'Schibsted Grotesk', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  --d-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  min-height: 100%;
+  background: var(--d-fondo);
+  color: var(--d-texto);
+  font-family: var(--d-fuente);
+  font-size: 17px;
+  line-height: 26px;
+  -webkit-font-smoothing: antialiased;
+  /* Ningún hijo empuja la página de costado (320 px). */
+  overflow-x: clip;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 18px;
+    line-height: 28px;
+  }
+
+  & p,
+  & h1,
+  & h2,
+  & h3,
+  & ol,
+  & ul,
+  & dl,
+  & dd,
+  & figure {
+    margin: 0;
+  }
+}
+
+.raiz[data-tema='oscuro'] {
+  color-scheme: dark;
+  --d-fondo: #04182f;
+  --d-superficie: #0a2645;
+  --d-elevada: #10335a;
+  --d-fila: #071e38;
+  --d-filete: #1d4673;
+  --d-borde: #5b8fc9;
+  --d-texto: #f2f7ff;
+  --d-texto-2: #a9c1de;
+  --d-acento: #66abff;
+  --d-ruta: #338fff;
+  --d-relleno: #007ce8;
+  --d-boton: #66abff;
+  --d-boton-hover: #99c8ff;
+  --d-boton-texto: #03152a;
+  --d-nuevo: #99c8ff;
+  --d-ok: #3cc9b0;
+  --d-atencion: #f2c14e;
+  --d-demorado: #ff8a80;
+  --d-foco: #99c8ff;
+  --d-sombra: 0 18px 48px rgba(0, 0, 0, 0.35);
+  /* Solo de esta vista: el brillo detrás de la puerta y del botón primario. */
+  --d-brillo: rgba(51, 143, 255, 0.12);
+  --d-brillo-boton: 0 14px 30px -16px rgba(102, 171, 255, 0.8);
+}
+
+.raiz[data-tema='claro'] {
+  color-scheme: light;
+  --d-fondo: #f4f8fd;
+  --d-superficie: #ffffff;
+  --d-elevada: #e6f3ff;
+  --d-fila: #f8fbff;
+  --d-filete: #d6e6f8;
+  --d-borde: #5d82ad;
+  --d-texto: #141517;
+  --d-texto-2: #3d4f63;
+  --d-acento: #0061b8;
+  --d-ruta: #0073f0;
+  --d-relleno: #007ce8;
+  --d-boton: #0061b8;
+  --d-boton-hover: #004d92;
+  --d-boton-texto: #ffffff;
+  --d-nuevo: #004d92;
+  --d-ok: #0b7a68;
+  --d-atencion: #8a5a00;
+  --d-demorado: #b3261e;
+  --d-foco: #0061b8;
+  --d-sombra: 0 12px 32px rgba(16, 51, 90, 0.12);
+  --d-brillo: rgba(0, 115, 240, 0.07);
+  --d-brillo-boton: 0 12px 26px -16px rgba(0, 77, 146, 0.55);
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Foco visible: 3px en --d-foco, en todo lo que se alcanza con el teclado. */
+.raiz :is(a, button, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--d-foco);
+  outline-offset: 3px;
+}
+
+.contenedor {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    padding: 0 24px;
+  }
+}
+
+/* ─── Botones y links ─── */
+
+.boton,
+.botonContorno {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 22px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.boton {
+  border: 0;
+  background: var(--d-boton);
+  color: var(--d-boton-texto);
+
+  &:hover {
+    background: var(--d-boton-hover);
+    color: var(--d-boton-texto);
+  }
+}
+
+.botonContorno {
+  border: 1px solid var(--d-borde);
+  background: transparent;
+  color: var(--d-texto);
+
+  &:hover {
+    background: var(--d-elevada);
+    color: var(--d-texto);
+  }
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--d-acento);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--d-acento);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+/* ─── Esqueletos (mientras carga): las mismas medidas, sin saltos ─── */
+
+.hueso {
+  display: block;
+  border-radius: 10px;
+  background: var(--d-elevada);
+  animation: latido 1.6s ease-in-out infinite;
+}
+
+@keyframes latido {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ─── 1. Puerta (hero 7/5) ─── */
+
+.puerta {
+  background: radial-gradient(860px 520px at 80% 34%, var(--d-brillo), transparent 70%), var(--d-fondo);
+}
+
+.puertaInterior {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 16px;
+  padding-bottom: 48px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 8px;
+    padding-top: 20px;
+    padding-bottom: 88px;
+  }
+}
+
+.barraTema {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tema {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--d-borde);
+  background: transparent;
+  color: var(--d-texto);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+
+  &:hover,
+  &[aria-pressed='true'] {
+    background: var(--d-elevada);
+  }
+}
+
+.puertaGrilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: center;
+    gap: 48px;
+  }
+}
+
+.puertaTexto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 32px;
+  }
+}
+
+.puertaCabecera {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    gap: 16px;
+  }
+}
+
+.overline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--d-acento);
+}
+
+.punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--d-acento);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--d-acento) 18%, transparent);
+}
+
+.titulo {
+  /* 30/36 en el celular, 52/56 en escritorio. */
+  font-size: clamp(1.875rem, 1.2rem + 2.6vw, 3.25rem);
+  line-height: clamp(2.25rem, 1.65rem + 2.6vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--d-texto);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.bajada {
+  max-width: 34em;
+  color: var(--d-texto-2);
+  text-wrap: pretty;
+}
+
+.puertaAcciones {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+  }
+}
+
+.botonPuerta {
+  min-height: 56px;
+  padding: 12px 26px;
+  font-size: 18px;
+  box-shadow: var(--d-brillo-boton);
+}
+
+.linkAncla {
+  justify-content: center;
+}
+
+/* La tira tipo pase: mono, campos reales del plan. 2×2 en el celular, una fila en escritorio. */
+.tira {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  border: 1px solid var(--d-filete);
+  border-radius: 16px;
+  background: var(--d-fila);
+  overflow: hidden;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+.tiraCampo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 12px 12px 14px;
+  border-color: var(--d-filete);
+  border-style: dashed;
+  border-width: 0;
+
+  &:nth-child(odd) {
+    border-right-width: 1px;
+  }
+
+  &:nth-child(-n + 2) {
+    border-bottom-width: 1px;
+  }
+
+  /* Desde 48em, una fila que puede partir en dos (a 1000px el hito baja). Cada campo lleva su
+     filete a la izquierda y arriba, corrido 1px hacia afuera: el del primero de cada renglón y
+     el del primer renglón quedan debajo del borde de la tira (overflow: hidden) y no se ven, y
+     no queda un filete suelto contra el borde derecho cuando la fila parte. */
+  @mixin larger-than $mantine-breakpoint-sm {
+    flex: 1 1 auto;
+    margin: -1px 0 0 -1px;
+    padding: 14px 14px 14px 16px;
+    border-width: 1px 0 0 1px;
+
+    &:nth-child(odd),
+    &:nth-child(-n + 2) {
+      border-width: 1px 0 0 1px;
+    }
+  }
+}
+
+.tiraEtiqueta {
+  font-family: var(--d-mono);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--d-texto-2);
+}
+
+.tiraValor {
+  font-family: var(--d-mono);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 22px;
+  letter-spacing: 0.02em;
+  color: var(--d-texto);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 17px;
+    line-height: 24px;
+  }
+}
+
+.tiraDetalle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+}
+
+.tiraBarra {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--d-filete);
+  overflow: hidden;
+
+  & > span {
+    display: block;
+    height: 100%;
+    background: var(--d-ruta);
+  }
+}
+
+.sinPlan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 16px;
+  padding: 10px 16px;
+  border: 1px dashed var(--d-filete);
+  border-radius: 16px;
+  background: var(--d-fila);
+  color: var(--d-texto-2);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.puertaRuta {
+  min-width: 0;
+}
+
+/* Perfil que no es Patient: en lugar de la ruta, una nota neutra. */
+.panelNeutro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  border-radius: 22px;
+  background: var(--d-superficie);
+  border: 1px solid var(--d-filete);
+  color: var(--d-texto-2);
+}
+
+/* Más o menos lo que mide la tarjeta de la ruta (U vertical en el celular, horizontal desde 62em). */
+/* Las alturas medidas de la tarjeta de la ruta: vertical en el celular (680-800px), horizontal y a
+   todo el ancho entre 48em y 62em (580-690px) y horizontal en la columna del hero (670-810px). */
+.huesoRuta {
+  height: 760px;
+  border-radius: 24px;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    height: 640px;
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    height: 720px;
+  }
+}
+
+/* ─── Secciones ─── */
+
+.seccion {
+  padding-bottom: 72px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    padding-bottom: 104px;
+  }
+}
+
+/* El ancla «Ver salidas y llegadas» no queda tapada por el header fijo (60px). */
+.seccionTablero {
+  scroll-margin-top: 76px;
+}
+
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    margin-bottom: 28px;
+  }
+}
+
+.overlineMono {
+  font-family: var(--d-mono);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--d-texto-2);
+}
+
+.tituloSeccion {
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--d-texto);
+  text-wrap: balance;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 28px;
+    line-height: 34px;
+  }
+}
+
+.bajadaSeccion {
+  max-width: 40em;
+  color: var(--d-texto-2);
+  text-wrap: pretty;
+}
+
+.tarjeta {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 22px;
+  border-radius: 22px;
+  background: var(--d-superficie);
+  border: 1px solid var(--d-filete);
+
+  @mixin larger-than $mantine-breakpoint-md {
+    padding: 26px;
+  }
+}
+
+.tituloTarjeta {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--d-texto);
+}
+
+.texto {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--d-texto-2);
+  text-wrap: pretty;
+}
+
+.nota {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+  text-wrap: pretty;
+}
+
+/* Chips: el tono acompaña SIEMPRE a un texto (nunca solo color). */
+.chip {
+  --tono: var(--d-texto-2);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tono) 10%, transparent);
+  color: var(--tono);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+
+  &[data-tono='ok'] {
+    --tono: var(--d-ok);
+  }
+
+  &[data-tono='atencion'] {
+    --tono: var(--d-atencion);
+  }
+
+  &[data-tono='demorado'] {
+    --tono: var(--d-demorado);
+  }
+
+  &[data-tono='acento'] {
+    --tono: var(--d-acento);
+  }
+
+  &[data-tono='nuevo'] {
+    --tono: var(--d-nuevo);
+  }
+}
+
+.chipPunto {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ─── 3. Tres caminos ─── */
+
+.caminos {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+.caminoItem {
+  min-width: 0;
+}
+
+.camino {
+  gap: 16px;
+}
+
+/* El recomendado: borde entero en el acento (no un borde izquierdo) y sombra. */
+.caminoRecomendado {
+  border-color: var(--d-acento);
+  box-shadow:
+    0 0 0 1px var(--d-acento),
+    var(--d-sombra);
+}
+
+.cinta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--d-boton);
+  color: var(--d-boton-texto);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.caminoCabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.caminoNumero {
+  font-family: var(--d-mono);
+  font-weight: 500;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--d-acento);
+  font-variant-numeric: tabular-nums;
+}
+
+.icono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--d-elevada);
+  color: var(--d-acento);
+}
+
+.caminoCuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.caminoEstado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--d-texto);
+
+  & > span:first-child {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--d-acento);
+  }
+}
+
+.caminoAccion {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.huesoCamino {
+  height: 420px;
+  border-radius: 22px;
+}
+
+/* ─── 4. Tus tres instrumentos ─── */
+
+/* En el celular van apiladas (no carrusel): ver el comentario de TusTresInstrumentos. */
+.instrumentos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+.huesoInstrumento {
+  height: 460px;
+  border-radius: 22px;
+}
+
+/* El título de la tarjeta no se parte («PREVENT · / AHA 2023»): si el rótulo no entra al lado
+   del título, baja a su propio renglón. El bloque del título parte de 0 y su mínimo es el
+   título entero (la bajada sí se parte), así el rótulo solo baja cuando hace falta. */
+.instrumentoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px 12px;
+
+  & > div {
+    flex: 1 1 0%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  & .tituloTarjeta {
+    white-space: nowrap;
+  }
+}
+
+.subtitulo {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+}
+
+/* El arco (SVG decorativo) con la cifra encima, en HTML. */
+.cifra {
+  position: relative;
+  align-self: center;
+  width: 200px;
+  max-width: 100%;
+  height: 124px;
+
+  & > svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+}
+
+.cifraTexto {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.cifraNumero {
+  font-size: 44px;
+  line-height: 46px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--d-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El porcentaje de PREVENT: cifras proporcionales (las tabulares de Schibsted Grotesk también
+   ensanchan la coma decimal: «8 , 1%»). */
+.cifraNumeroChico {
+  font-size: 36px;
+  line-height: 46px;
+  font-variant-numeric: normal;
+}
+
+.cifraUnidad {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--d-texto-2);
+}
+
+.cifraExtremo {
+  position: absolute;
+  bottom: -6px;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--d-texto-2);
+}
+
+.arcoPista {
+  fill: none;
+  stroke: var(--d-filete);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.arcoPunteado {
+  fill: none;
+  stroke: var(--d-borde);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.5 10;
+}
+
+.arcoRelleno {
+  fill: none;
+  stroke: var(--d-relleno);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.arcoSegmento {
+  fill: none;
+  stroke: var(--d-filete);
+  stroke-width: 8;
+}
+
+.arcoSegmentoActual {
+  stroke: var(--d-relleno);
+}
+
+.arcoMarca {
+  stroke: var(--d-texto);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.datos {
+  display: flex;
+  flex-direction: column;
+
+  & > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2px 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--d-filete);
+  }
+
+  & dt {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--d-texto-2);
+  }
+
+  & dd {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    color: var(--d-texto);
+  }
+}
+
+.datoSecundario {
+  font-weight: 400;
+  color: var(--d-texto-2);
+}
+
+.lectura {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--d-filete);
+}
+
+.lecturaTitulo {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--d-texto);
+}
+
+.linkTarjeta {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* PREVENT */
+.procedencia {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--d-texto);
+}
+
+.riesgos {
+  display: flex;
+  flex-direction: column;
+
+  & > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--d-filete);
+  }
+
+  & dt {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    line-height: 24px;
+    color: var(--d-texto);
+
+    & > span + span {
+      font-size: 15px;
+      line-height: 22px;
+      color: var(--d-texto-2);
+    }
+  }
+
+  & dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px 8px;
+  }
+}
+
+.riesgoPorcentaje {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+  color: var(--d-texto);
+  /* Proporcionales: las tabulares de Schibsted Grotesk ensanchan la coma («5 , 2%»). */
+  font-variant-numeric: normal;
+}
+
+.riesgoSinDato {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+}
+
+.preventAcciones {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+
+  & > .boton {
+    align-self: stretch;
+  }
+}
+
+/* «Es un cálculo automático»: un recuadro entero (sin borde izquierdo de acento). */
+.recuadro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--d-elevada);
+
+  & > .boton {
+    align-self: stretch;
+  }
+}
+
+.recuadroTitulo {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--d-texto);
+}
+
+.turno {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--d-texto);
+
+  & > svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--d-acento);
+  }
+}
+
+/* ─── 5. Seguimiento GLP-1: la tarjeta (Mantine, clara) sobre un panel; si no hay programa,
+   no ocupa lugar. ─── */
+
+.glp1 {
+  padding-bottom: 72px;
+
+  &:empty {
+    display: none;
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    padding-bottom: 104px;
+  }
+}
+
+/* ─── 6. Tus servicios ─── */
+
+.tiles {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+
+  @media (min-width: 22em) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  & > li {
+    min-width: 0;
+  }
+}
+
+.tile {
+  height: 100%;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--d-superficie);
+  border: 1px solid var(--d-filete);
+  color: var(--d-texto);
+  text-decoration: none;
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background: var(--d-elevada);
+    color: var(--d-texto);
+  }
+
+  @mixin larger-than $mantine-breakpoint-md {
+    min-height: 184px;
+    gap: 14px;
+    padding: 22px;
+    border-radius: 20px;
+  }
+}
+
+.tileTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tileTitulo {
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    font-size: 19px;
+    line-height: 26px;
+  }
+}
+
+.tileDetalle {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+}
+
+.tile > .chip {
+  align-self: flex-start;
+  margin-top: auto;
+  border-radius: 10px;
+}
+
+.notaServicios {
+  padding-top: 12px;
+}
+
+.tambien {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 20px;
+  color: var(--d-texto-2);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* En el celular, dos columnas sin separadores; desde 48em, renglones con «·» entre links (el
+   punto es decorativo: `content: '·' / ''` no lo lee un lector de pantalla). El punto va al
+   final de cada link, no al principio del siguiente: si la lista parte en dos renglones, el
+   segundo no empieza con «·». El margen negativo alinea el texto del primer link de cada
+   renglón con el rótulo (el link tiene 10px de relleno para llegar a 44px de alto). */
+.tambienLista {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 8px;
+
+  & > li:last-child {
+    grid-column: 1 / -1;
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+
+    & > li:not(:last-child)::after {
+      content: '·' / '';
+      color: var(--d-texto-2);
+    }
+  }
+}
+
+/* Más específico que el `margin: 0` de las listas de la raíz. */
+.tambien .tambienLista {
+  @mixin larger-than $mantine-breakpoint-sm {
+    margin-left: -10px;
+  }
+}
+
+.tambienLink {
+  display: inline-block;
+  padding: 10px 10px 10px 0;
+  border-radius: 10px;
+  color: var(--d-acento);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--d-acento);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 10px;
+  }
+}
+
+.tambienEstado {
+  font-weight: 400;
+}
+
+/* ─── 7. Cierre (no es un segundo pie: la app ya tiene Footer) ─── */
+
+.cierre {
+  border-top: 1px solid var(--d-filete);
+  padding: 40px 0 56px;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    padding: 56px 0 72px;
+  }
+}
+
+.cierreTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 52em;
+
+  & > p {
+    font-size: 16px;
+    line-height: 24px;
+    color: var(--d-texto-2);
+    text-wrap: pretty;
+  }
+
+  & > p:first-child {
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 500;
+    color: var(--d-texto);
+
+    @mixin larger-than $mantine-breakpoint-md {
+      font-size: 20px;
+      line-height: 30px;
+    }
+  }
+}
+
+/* ─── Movimiento: con reduce, nada late ni se desliza (los otros módulos apagan lo suyo). ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .hueso {
+    animation: none;
+  }
+
+  .boton,
+  .botonContorno,
+  .tema,
+  .tile {
+    transition: none;
+  }
+}

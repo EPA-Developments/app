@@ -611,15 +611,20 @@ describe('HomePage elige la Home E', () => {
     expect(fuentes[0]).toHaveAttribute('href', URL_FUENTES_HOME_E);
   });
 
-  test('un hombre de 55 años ve la Home clásica', async () => {
+  // La Home clásica ya no está: quien no ve la E ve la D («Salidas y llegadas», HomeEstiloD).
+  test('un hombre de 55 años ve la Home D', async () => {
     await enElInicio(await conPaciente('male', 55));
-    expect((await screen.findAllByText('Ver mi Plan Bienestar')).length).toBeGreaterThan(0);
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Salidas y llegadas de tus datos' }, ESPERA)
+    ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 1, name: /estás en el centro/ })).not.toBeInTheDocument();
   });
 
-  test('una mujer de 55 años con ?estilo=d ve la clásica', async () => {
+  test('una mujer de 55 años con ?estilo=d ve la Home D', async () => {
     await enElInicio(await conPaciente('female', 55), '/?estilo=d');
-    expect((await screen.findAllByText('Ver mi Plan Bienestar')).length).toBeGreaterThan(0);
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Salidas y llegadas de tus datos' }, ESPERA)
+    ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 1, name: /estás en el centro/ })).not.toBeInTheDocument();
   });
 

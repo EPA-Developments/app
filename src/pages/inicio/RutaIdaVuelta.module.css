@@ -1,0 +1,757 @@
+/*
+ * La ruta en U de la Home D (RutaIdaVuelta.tsx). Solo tokens var(--d-…): los define
+ * HomeEstiloD.module.css sobre la raíz de la Home D, para los dos temas.
+ *
+ * El dibujo es una grilla: cada estación pone su rótulo (HTML) y su pieza de vía (un SVG sin
+ * viewBox, con coordenadas en % de la pieza: no se deforma con el ancho) en la celda que le
+ * toca. Las piezas se tocan (sin gap), así la línea queda continua.
+ *  - Horizontal (escritorio): 15 subcolumnas (5 estaciones de ida × 3 = 3 de vuelta × 5) y la
+ *    del giro. Los rótulos de la ida alternan arriba y abajo de la línea: cada uno tiene el
+ *    ancho de dos estaciones y entran aun en la columna angosta del hero a 62em.
+ *  - Vertical (celular): la ida baja con sus rótulos a la izquierda y la vuelta sube con los
+ *    suyos a la derecha; el giro abajo. A 320px los nombres más largos («Consentimiento») entran.
+ *
+ * Contrastes medidos (oscuro / claro): --d-acento sobre --d-elevada 5,4 / 5,5; --d-atencion sobre
+ * --d-elevada 7,6 / 5,3; --d-texto-2 sobre --d-fila 9,1 / 8,1; --d-borde (los puntos de lo que
+ * falta recorrer) sobre --d-superficie 4,5 / 4,0.
+ */
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: clamp(12px, 4vw, 24px);
+  border: 1px solid var(--d-filete);
+  border-radius: 24px;
+  background-color: var(--d-superficie);
+  box-shadow: var(--d-sombra);
+  color: var(--d-texto);
+}
+
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--d-texto);
+  overflow-wrap: break-word;
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+}
+
+/* ─── El dibujo ───────────────────────────────────────────────────────────────────────
+ * Medidas: la columna del giro mide 24px y la vía horizontal 44px de alto; la vía vertical,
+ * 24px de ancho, y el giro de abajo tiene 16px de radio (de centro a centro de las vías: 32px). */
+
+.dibujo {
+  display: grid;
+  min-width: 0;
+}
+
+.dibujo[data-orientacion='horizontal'] {
+  grid-template-columns: repeat(15, minmax(0, 1fr)) [giro] 24px;
+  grid-template-rows:
+    [ida-arriba] auto [ida-via] 44px [ida-abajo] auto [vuelta-via] 44px
+    [vuelta-abajo] auto;
+}
+
+.dibujo[data-orientacion='vertical'] {
+  grid-template-columns:
+    [ida-rotulo] minmax(0, 1fr) [ida-via] 24px [medio] 8px [vuelta-via] 24px
+    [vuelta-rotulo] minmax(5.5rem, 0.8fr);
+  grid-template-rows: repeat(15, auto) [giro] 18px;
+}
+
+/* Dónde va cada estación. Horizontal: columnas; vertical: filas. */
+.dibujo[data-orientacion='horizontal'] [data-clave='app'] {
+  grid-column: 1 / span 3;
+}
+.dibujo[data-orientacion='horizontal'] [data-clave='historia'] {
+  grid-column: 4 / span 3;
+}
+.dibujo[data-orientacion='horizontal'] [data-clave='consentimiento'] {
+  grid-column: 7 / span 3;
+}
+.dibujo[data-orientacion='horizontal'] [data-clave='ia'] {
+  grid-column: 10 / span 3;
+}
+.dibujo[data-orientacion='horizontal'] [data-clave='equipo'] {
+  grid-column: 13 / span 3;
+}
+.dibujo[data-orientacion='horizontal'] [data-clave='informe'] {
+  grid-column: 11 / span 5;
+}
+.dibujo[data-orientacion='horizontal'] [data-clave='avisos'] {
+  grid-column: 6 / span 5;
+}
+.dibujo[data-orientacion='horizontal'] [data-clave='vos'] {
+  grid-column: 1 / span 5;
+}
+
+.dibujo[data-orientacion='vertical'] [data-clave='app'] {
+  grid-row: 1 / span 3;
+}
+.dibujo[data-orientacion='vertical'] [data-clave='historia'] {
+  grid-row: 4 / span 3;
+}
+.dibujo[data-orientacion='vertical'] [data-clave='consentimiento'] {
+  grid-row: 7 / span 3;
+}
+.dibujo[data-orientacion='vertical'] [data-clave='ia'] {
+  grid-row: 10 / span 3;
+}
+.dibujo[data-orientacion='vertical'] [data-clave='equipo'] {
+  grid-row: 13 / span 3;
+}
+/* La vuelta sube: tus resultados abajo, Vos arriba. */
+.dibujo[data-orientacion='vertical'] [data-clave='informe'] {
+  grid-row: 11 / span 5;
+}
+.dibujo[data-orientacion='vertical'] [data-clave='avisos'] {
+  grid-row: 6 / span 5;
+}
+.dibujo[data-orientacion='vertical'] [data-clave='vos'] {
+  grid-row: 1 / span 5;
+}
+
+/* ─── Rótulos (HTML) ────────────────────────────────────────────────────────────────── */
+
+.rotulo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: break-word;
+}
+
+.nombre {
+  font-weight: 600;
+  color: var(--d-texto);
+}
+
+.detalle {
+  color: var(--d-texto-2);
+}
+
+/* «FHIR R4»: un rótulo corto en mono, como en el tablero. */
+.chip {
+  padding: 0 6px;
+  border: 1px solid var(--d-filete);
+  border-radius: 6px;
+  background-color: var(--d-fila);
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0.04em;
+  color: var(--d-texto-2);
+}
+
+/* Horizontal: cada rótulo de la ida ocupa el ancho de dos estaciones, alternando arriba y abajo. */
+.dibujo[data-orientacion='horizontal'] .rotulo[data-tramo='ida'] {
+  align-items: center;
+  width: 200%;
+  margin-inline-start: -50%;
+  padding-inline: 4px;
+  text-align: center;
+}
+.dibujo[data-orientacion='horizontal'] .rotulo[data-tramo='ida'][data-lado='arriba'] {
+  grid-row: ida-arriba;
+  align-self: end;
+  padding-bottom: 6px;
+}
+.dibujo[data-orientacion='horizontal'] .rotulo[data-tramo='ida'][data-lado='abajo'] {
+  grid-row: ida-abajo;
+  align-self: start;
+  padding-top: 6px;
+  padding-bottom: 16px;
+}
+/* Los extremos no se salen de la tarjeta: tu app arranca en el borde y el equipo termina en el giro. */
+.dibujo[data-orientacion='horizontal'] .rotulo[data-clave='app'] {
+  align-items: flex-start;
+  width: 150%;
+  margin-inline-start: 0;
+  padding-inline-start: 0;
+  text-align: start;
+}
+.dibujo[data-orientacion='horizontal'] .rotulo[data-clave='equipo'] {
+  align-items: flex-end;
+  width: calc(150% + 24px);
+  padding-inline-end: 0;
+  text-align: end;
+}
+.dibujo[data-orientacion='horizontal'] .rotulo[data-tramo='vuelta'] {
+  grid-row: vuelta-abajo;
+  align-self: start;
+  align-items: center;
+  padding: 6px 4px 0;
+  text-align: center;
+}
+
+.dibujo[data-orientacion='vertical'] .rotulo {
+  align-self: center;
+  justify-content: center;
+  min-height: 52px;
+  padding-block: 4px;
+}
+.dibujo[data-orientacion='vertical'] .rotulo[data-tramo='ida'] {
+  grid-column: ida-rotulo;
+  align-items: flex-end;
+  padding-inline-end: 10px;
+  text-align: end;
+}
+.dibujo[data-orientacion='vertical'] .rotulo[data-tramo='vuelta'] {
+  grid-column: vuelta-rotulo;
+  align-items: flex-start;
+  padding-inline-start: 14px;
+  text-align: start;
+}
+
+/* ─── La vía (SVG) ──────────────────────────────────────────────────────────────────── */
+
+.via {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dibujo[data-orientacion='horizontal'] .via[data-tramo='ida'] {
+  grid-row: ida-via;
+}
+.dibujo[data-orientacion='horizontal'] .via[data-tramo='vuelta'] {
+  grid-row: vuelta-via;
+}
+.dibujo[data-orientacion='vertical'] .via[data-tramo='ida'] {
+  grid-column: ida-via;
+}
+.dibujo[data-orientacion='vertical'] .via[data-tramo='vuelta'] {
+  grid-column: vuelta-via;
+}
+
+.trazo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.linea {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.linea[data-estado='recorrido'] {
+  stroke: var(--d-ruta);
+}
+.linea[data-estado='por-recorrer'] {
+  stroke: var(--d-borde);
+  stroke-dasharray: 0.5 7.5;
+}
+
+.nodo {
+  stroke: var(--d-superficie);
+  stroke-width: 3;
+}
+.nodo[data-estado='recorrida'] {
+  fill: var(--d-ruta);
+}
+.nodo[data-estado='activa'] {
+  fill: var(--d-acento);
+}
+.nodo[data-estado='por-recorrer'] {
+  fill: var(--d-superficie);
+  stroke: var(--d-borde);
+  stroke-width: 2.5;
+}
+.halo {
+  fill: var(--d-acento);
+  fill-opacity: 0.22;
+}
+
+/* La cápsula que une a los agentes de IA con el equipo médico cuando trabajan juntos. */
+.capsula {
+  position: absolute;
+  border: 1.5px solid color-mix(in srgb, var(--d-acento) 60%, var(--d-superficie));
+  background-color: color-mix(in srgb, var(--d-acento) 14%, var(--d-superficie));
+}
+.dibujo[data-orientacion='horizontal'] .capsula {
+  top: calc(50% - 18px);
+  height: 36px;
+}
+.dibujo[data-orientacion='horizontal'] .capsula[data-extremo='inicio'] {
+  left: calc(50% - 18px);
+  right: 0;
+  border-right: 0;
+  border-radius: 18px 0 0 18px;
+}
+.dibujo[data-orientacion='horizontal'] .capsula[data-extremo='fin'] {
+  left: 0;
+  right: calc(50% - 18px);
+  border-left: 0;
+  border-radius: 0 18px 18px 0;
+}
+.dibujo[data-orientacion='vertical'] .capsula {
+  left: calc(50% - 15px);
+  width: 30px;
+}
+.dibujo[data-orientacion='vertical'] .capsula[data-extremo='inicio'] {
+  top: calc(50% - 15px);
+  bottom: 0;
+  border-bottom: 0;
+  border-radius: 15px 15px 0 0;
+}
+.dibujo[data-orientacion='vertical'] .capsula[data-extremo='fin'] {
+  top: 0;
+  bottom: calc(50% - 15px);
+  border-top: 0;
+  border-radius: 0 0 15px 15px;
+}
+
+/* El control (candado) y Vos: puntos en HTML, centrados sobre la vía. */
+.candado,
+.vos {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  background-color: var(--d-elevada);
+}
+.candado {
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--d-acento);
+  border-radius: 9px;
+  color: var(--d-acento);
+}
+.candado[data-estado='cerrada'],
+.candado[data-estado='activa'] {
+  border-color: var(--d-atencion);
+  color: var(--d-atencion);
+}
+.candado[data-estado='por-recorrer'] {
+  border-color: var(--d-borde);
+  color: var(--d-texto-2);
+}
+.vos {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--d-borde);
+  border-radius: 50%;
+  color: var(--d-texto);
+}
+.vos[data-estado='recorrida'] {
+  border-color: var(--d-ruta);
+}
+.vos[data-estado='activa'] {
+  border-color: var(--d-acento);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--d-acento) 22%, transparent);
+}
+
+/* El giro de la U: un borde redondeado entre la ida y la vuelta. */
+.giro {
+  border: 3px solid var(--d-ruta);
+}
+.giro[data-estado='por-recorrer'] {
+  border-style: dotted;
+  border-color: var(--d-borde);
+}
+.dibujo[data-orientacion='horizontal'] .giro {
+  grid-column: giro;
+  grid-row: ida-via / vuelta-abajo;
+  margin-block: 20.5px;
+  border-left: 0;
+  border-radius: 0 20px 20px 0;
+}
+.dibujo[data-orientacion='vertical'] .giro {
+  grid-row: giro;
+  grid-column: ida-via / vuelta-rotulo;
+  height: 17.5px;
+  margin-inline: 10.5px;
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+}
+
+/* ─── Movimiento ───────────────────────────────────────────────────────────────────────
+ * El trazo de entrada: cada pieza recorrida crece desde donde llegan los datos, una después
+ * de la otra, y entre todas tardan 900ms (la duración y el retraso de cada una van en línea,
+ * desde RutaIdaVuelta.tsx). */
+.trazando {
+  transform-box: fill-box;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+.trazando[data-hacia='derecha'] {
+  transform-origin: left center;
+  animation-name: trazar-x;
+}
+.trazando[data-hacia='izquierda'] {
+  transform-origin: right center;
+  animation-name: trazar-x;
+}
+.trazando[data-hacia='abajo'] {
+  transform-origin: center top;
+  animation-name: trazar-y;
+}
+.trazando[data-hacia='arriba'] {
+  transform-origin: center bottom;
+  animation-name: trazar-y;
+}
+.dibujo[data-orientacion='horizontal'] .giro.trazando {
+  animation-name: revelar-hacia-abajo;
+}
+.dibujo[data-orientacion='vertical'] .giro.trazando {
+  animation-name: revelar-hacia-la-derecha;
+}
+
+@keyframes trazar-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes trazar-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes revelar-hacia-abajo {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes revelar-hacia-la-derecha {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* El pulso de luz: solo con algo en curso. Cada media línea lo cruza en 500ms, una después de
+ * la otra (el retraso va en línea), así parece una sola luz que recorre la ruta; después espera
+ * hasta completar los 6s. data-recorrido dice de dónde a dónde cruza la pieza, en %. */
+.pulso {
+  position: absolute;
+  border-radius: 999px;
+  background-color: var(--d-nuevo);
+  box-shadow: 0 0 8px 2px var(--d-acento);
+  opacity: 0;
+  pointer-events: none;
+  animation-duration: 6s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.pulso[data-eje='x'] {
+  top: calc(50% - 1.5px);
+  width: 16px;
+  height: 3px;
+  margin-left: -8px;
+}
+.pulso[data-eje='y'] {
+  left: calc(50% - 1.5px);
+  width: 3px;
+  height: 16px;
+  margin-top: -8px;
+}
+.pulso[data-eje='x'][data-recorrido='0-50'] {
+  animation-name: pulso-x-0-50;
+}
+.pulso[data-eje='x'][data-recorrido='50-100'] {
+  animation-name: pulso-x-50-100;
+}
+.pulso[data-eje='x'][data-recorrido='100-50'] {
+  animation-name: pulso-x-100-50;
+}
+.pulso[data-eje='x'][data-recorrido='50-0'] {
+  animation-name: pulso-x-50-0;
+}
+.pulso[data-eje='y'][data-recorrido='0-50'] {
+  animation-name: pulso-y-0-50;
+}
+.pulso[data-eje='y'][data-recorrido='50-100'] {
+  animation-name: pulso-y-50-100;
+}
+.pulso[data-eje='y'][data-recorrido='100-50'] {
+  animation-name: pulso-y-100-50;
+}
+.pulso[data-eje='y'][data-recorrido='50-0'] {
+  animation-name: pulso-y-50-0;
+}
+
+@keyframes pulso-x-0-50 {
+  0% {
+    left: 0%;
+    opacity: 1;
+  }
+  8.33% {
+    left: 50%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    left: 50%;
+    opacity: 0;
+  }
+}
+@keyframes pulso-x-50-100 {
+  0% {
+    left: 50%;
+    opacity: 1;
+  }
+  8.33% {
+    left: 100%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@keyframes pulso-x-100-50 {
+  0% {
+    left: 100%;
+    opacity: 1;
+  }
+  8.33% {
+    left: 50%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    left: 50%;
+    opacity: 0;
+  }
+}
+@keyframes pulso-x-50-0 {
+  0% {
+    left: 50%;
+    opacity: 1;
+  }
+  8.33% {
+    left: 0%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    left: 0%;
+    opacity: 0;
+  }
+}
+@keyframes pulso-y-0-50 {
+  0% {
+    top: 0%;
+    opacity: 1;
+  }
+  8.33% {
+    top: 50%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    top: 50%;
+    opacity: 0;
+  }
+}
+@keyframes pulso-y-50-100 {
+  0% {
+    top: 50%;
+    opacity: 1;
+  }
+  8.33% {
+    top: 100%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+@keyframes pulso-y-100-50 {
+  0% {
+    top: 100%;
+    opacity: 1;
+  }
+  8.33% {
+    top: 50%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    top: 50%;
+    opacity: 0;
+  }
+}
+@keyframes pulso-y-50-0 {
+  0% {
+    top: 50%;
+    opacity: 1;
+  }
+  8.33% {
+    top: 0%;
+    opacity: 1;
+  }
+  8.34%,
+  100% {
+    top: 0%;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trazando,
+  .dibujo .giro.trazando {
+    animation: none !important;
+  }
+  .pulso {
+    display: none;
+  }
+}
+
+/* ─── Lo que va debajo del dibujo ──────────────────────────────────────────────────── */
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+}
+.leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.muestra {
+  flex: none;
+  overflow: visible;
+}
+
+.etiqueta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
+}
+.estadoActivo {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: var(--d-elevada);
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--d-acento);
+}
+
+.explicacion {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--d-texto);
+}
+
+.control {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background-color: var(--d-fila);
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--d-texto-2);
+}
+.control strong {
+  font-weight: 600;
+  color: var(--d-texto);
+}
+.iconoControl {
+  flex: none;
+  margin-top: 1px;
+  color: var(--d-acento);
+}
+.control[data-estado='falta'] .iconoControl,
+.control[data-estado='desactualizado'] .iconoControl {
+  color: var(--d-atencion);
+}
+.control[data-estado='cargando'] .iconoControl {
+  color: var(--d-texto-2);
+}
+
+.pie {
+  padding-top: 8px;
+  border-top: 1px dashed var(--d-filete);
+}
+
+.accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--d-acento);
+  text-decoration: none;
+}
+.accion:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.accion:focus-visible {
+  outline: 3px solid var(--d-foco);
+  outline-offset: 2px;
+}
+
+/* Para lectores de pantalla: la lista de estaciones, fuera de la vista. */
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

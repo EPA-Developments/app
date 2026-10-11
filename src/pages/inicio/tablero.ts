@@ -22,12 +22,19 @@ import type {
 } from '@medplum/fhirtypes';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
 import { estadoEstudio } from '../../fhir/estudios';
-import { hoyArgentina } from '../../fhir/glp1';
 import { destinoNotificacion, esNoLeida, tipoNotificacion } from '../../fhir/notificaciones';
 import { ESTADO_SOM } from '../../fhir/som';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { INTAKE_QUESTIONNAIRE_URL } from '../intake.questionnaire';
-import { aInstante, fechaCorta, mayuscula, minuscula, plural } from './formato';
+import {
+  aInstante,
+  diaArgentinaDe,
+  fechaCorta,
+  mayuscula,
+  MESES_ABREVIADOS,
+  minusculaNatural,
+  plural,
+} from './formato';
 import { RUTA_MI_SEGUNDA_OPINION } from './rutas';
 import type { FilaTablero, TableroHomeD, TonoEstado } from './tipos';
 import { informeFirmado, laboratorioHome } from './useDatosHomeE';
@@ -70,15 +77,6 @@ function ms(valor: string | undefined): number | undefined {
   return instante(valor)?.getTime();
 }
 
-/** El día de Argentina (AAAA-MM-DD) de una fecha FHIR. */
-function diaArgentina(valor: string | undefined): string | undefined {
-  const cuando = instante(valor);
-  return cuando ? hoyArgentina(cuando) : undefined;
-}
-
-/** Abreviaturas fijas (Intl cambia «sep» / «sept» según la versión de ICU). */
-const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'] as const;
-
 /** Cómo se muestra la fecha de una fila. */
 export interface FechaTablero {
   /** En mono, para la pantalla: «03 OCT», o «—» si todavía no hay fecha. */
@@ -91,25 +89,19 @@ export interface FechaTablero {
 
 /** La fecha de una fila en hora de Argentina: «03 OCT» en pantalla y «3 de octubre» para leer. */
 export function fechaDelTablero(valor: string | undefined, hoy: string): FechaTablero {
-  const dia = diaArgentina(valor);
+  const dia = diaArgentinaDe(valor);
   // fechaCorta (formato.ts) ya pone el año solo si no es el de hoy: «30 de diciembre de 2025».
   const larga = fechaCorta(valor, hoy);
   if (!dia || !larga) {
     return { corta: '—', larga: 'Sin fecha todavía' };
   }
   const [anio, mes, diaDelMes] = dia.split('-');
-  const corta = `${diaDelMes} ${MESES[Number(mes) - 1]}`;
+  // Abreviatura fija (formato.ts), en mayúsculas como el resto del tablero.
+  const corta = `${diaDelMes} ${MESES_ABREVIADOS[Number(mes) - 1].toLocaleUpperCase('es-AR')}`;
   return anio === hoy.slice(0, 4) ? { corta, larga } : { corta, anio, larga };
 }
 
 // ─── Textos ──────────────────────────────────────────────────────────────────────────
-
-/** Minúscula natural: «Calidad del sueño» → «calidad del sueño»; una sigla («LE8») queda igual. */
-export function minusculaNatural(texto: string): string {
-  const segunda = texto.charAt(1);
-  const esSigla = segunda !== segunda.toLocaleLowerCase('es-AR');
-  return esSigla ? texto : minuscula(texto);
-}
 
 /** «a», «a y b», «a, b y c». */
 function enumerar(partes: readonly string[]): string {
@@ -379,7 +371,7 @@ export function filasDeMediciones(observaciones: readonly Observation[]): FilaTa
       continue;
     }
     const fecha = fechaObservacion(o);
-    const dia = diaArgentina(fecha);
+    const dia = diaArgentinaDe(fecha);
     const codigos = (o.code?.coding ?? []).map((c) => c.code).filter((c): c is string => !!c && c in NOMBRE_MEDICION);
     if (!fecha || !dia || codigos.length === 0) {
       continue;

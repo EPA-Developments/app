@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// El portal está enfocado en el Plan Bienestar · 100 días: ninguna opción ofrece la
-// Segunda Opinión, y el camino de Bienvenida sigue en el consentimiento, el Cuestionario
-// de ingreso y Mi salud cardiovascular (Life's Essential 8). En el Inicio, quien no
-// respondió el Cuestionario de ingreso ve el aviso para completarlo.
+// El camino del Plan Bienestar · 100 días: la Bienvenida sigue en el consentimiento, el
+// Cuestionario de ingreso y Mi salud cardiovascular (Life's Essential 8), y el menú inferior y
+// la guía CKM no ofrecen la Segunda Opinión. En el Inicio (la Home D, «Salidas y llegadas»,
+// para quien no ve la E), el Cuestionario de ingreso es el próximo paso de la puerta para
+// quien ya firmó el consentimiento y todavía no lo respondió.
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
-import type { Patient, QuestionnaireResponse } from '@medplum/fhirtypes';
+import type { DocumentReference, Patient, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
@@ -15,10 +16,12 @@ import { Suspense } from 'react';
 import type { JSX } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { BottomNav } from '../components/BottomNav';
+import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM, CONSENT_VERSION_SYSTEM } from '../fhir/consentimiento';
 import { indexarDefinicionesFhir } from '../fhir/__fixtures__/glp1';
 import { LE8_QUESTIONNAIRES } from '../le8';
 import { CkmEducacion } from './ckm/CkmEducacion';
 import { InformedConsent } from './health-record/InformedConsent';
+import { VERSION_CONSENTIMIENTO } from './health-record/InformedConsent.data';
 import { INTAKE_QUESTIONNAIRE_URL } from './intake.questionnaire';
 import { HomePage } from './HomePage';
 import { LE8QuestionnairePage } from './LE8QuestionnairePage';
@@ -80,6 +83,21 @@ async function conIngreso(medplum: MockClient): Promise<MockClient> {
   return medplum;
 }
 
+/** El paciente ya firmó la versión vigente del consentimiento. */
+async function conConsentimiento(medplum: MockClient): Promise<MockClient> {
+  const patient = medplum.getProfile() as Patient;
+  await medplum.createResource<DocumentReference>({
+    resourceType: 'DocumentReference',
+    status: 'current',
+    type: { coding: [{ system: CONSENT_TYPE_SYSTEM, code: CONSENT_TYPE_CODE }] },
+    subject: { reference: `Patient/${patient.id}` },
+    date: '2026-08-08T15:00:00.000Z',
+    identifier: [{ system: CONSENT_VERSION_SYSTEM, value: VERSION_CONSENTIMIENTO }],
+    content: [{ attachment: { contentType: 'text/plain', data: 'ZmlybWFkbw==' } }],
+  });
+  return medplum;
+}
+
 async function firmarConsentimiento(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
@@ -92,31 +110,31 @@ async function firmarConsentimiento(): Promise<void> {
 }
 
 const OFRECE_SOM = /Segunda Opinión/;
+const ESPERA = { timeout: 10000 };
 
-describe('aviso del Cuestionario de ingreso en el Inicio', () => {
-  test('quien no lo respondió ve el aviso y va a completarlo', async () => {
-    await renderEn(await paciente(), '/');
-    const avisos = await screen.findAllByText('Completá tu cuestionario de ingreso');
-    expect(avisos.length).toBeGreaterThan(0);
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'Completar ahora' })[0]));
+describe('el Cuestionario de ingreso como próximo paso del Inicio', () => {
+  test('quien firmó el consentimiento y no lo respondió lo tiene en la puerta y va a completarlo', async () => {
+    await renderEn(await conConsentimiento(await paciente()), '/');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Ana, contanos tus antecedentes.' }, ESPERA)
+    ).toBeInTheDocument();
+    const completar = screen.getAllByRole('link', { name: 'Completar ahora' })[0];
+    expect(completar).toHaveAttribute('href', '/health-record/ingreso');
+    await act(async () => fireEvent.click(completar));
     expect(await screen.findByText('Cuestionario de ingreso')).toBeInTheDocument();
   });
 
   test('quien ya lo respondió no lo ve', async () => {
-    await renderEn(await conIngreso(await paciente()), '/');
-    expect(await screen.findAllByText('Ver mi Plan Bienestar')).not.toHaveLength(0);
-    expect(screen.queryByText('Completá tu cuestionario de ingreso')).not.toBeInTheDocument();
+    await renderEn(await conIngreso(await conConsentimiento(await paciente())), '/');
+    const titulo = await screen.findByRole('heading', { level: 1, name: /^Ana, / }, ESPERA);
+    expect(titulo).not.toHaveTextContent('contanos tus antecedentes');
+    expect(screen.queryByRole('link', { name: 'Completar ahora' })).not.toBeInTheDocument();
   });
 });
 
+// El Inicio ya no entra acá: desde la Home D (y la E), el camino 2 es pedir la Segunda Opinión
+// (decisión del negocio, src/pages/inicio/caminos.ts). El menú inferior y la guía CKM no cambian.
 describe('ninguna opción ofrece la Segunda Opinión', () => {
-  test('Inicio lleva al Plan Bienestar y a Mi salud cardiovascular', async () => {
-    await renderEn(await paciente(), '/');
-    expect(screen.getAllByText('Ver mi Plan Bienestar').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Mi salud cardiovascular').length).toBeGreaterThan(0);
-    expect(document.body).not.toHaveTextContent(OFRECE_SOM);
-  });
-
   test('las acciones rápidas del menú inferior', async () => {
     await renderEn(await paciente(), '/nav');
     fireEvent.click(screen.getByLabelText('Acciones rápidas'));
