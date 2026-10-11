@@ -1,0 +1,703 @@
+/*
+ * Tablero «Salidas y llegadas» de la Home D (TableroSalidasLlegadas.tsx).
+ * Solo tokens var(--d-…): los define HomeEstiloD.module.css sobre la raíz de la Home D, para
+ * el tema oscuro y el claro. Celular primero; escritorio desde 62em (la misma medida que
+ * useMediaQuery en el componente).
+ * Contrastes medidos (oscuro / claro): los tonos sobre --d-fila y --d-elevada ≥ 4,6:1; el
+ * borde de los controles (--d-borde) sobre --d-fila 5,0 / 3,9.
+ */
+
+.tablero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.soloLectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── Pestañas (SegmentedControl) ─── */
+
+.barra {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.tablero .segmento {
+  --sc-radius: 10px;
+  --sc-transition-duration: 150ms;
+  width: 100%;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 14px;
+  background-color: var(--d-fila);
+  border: 1px solid var(--d-borde);
+}
+
+.tablero .segmentoIndicador {
+  background-color: var(--d-elevada);
+  box-shadow: inset 0 0 0 1px var(--d-ruta);
+}
+
+.tablero .segmentoEtiqueta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 1rem;
+  line-height: 1.375rem;
+  font-weight: 500;
+  color: var(--d-texto-2);
+}
+
+.tablero .segmentoEtiqueta[data-active] {
+  font-weight: 600;
+  color: var(--d-texto);
+}
+
+.tablero .segmentoEtiqueta[data-active]::before {
+  background-color: var(--d-elevada);
+}
+
+.tablero .segmentoEntrada:focus-visible + .segmentoEtiqueta {
+  outline: 3px solid var(--d-foco);
+  outline-offset: -3px;
+}
+
+@media (hover: hover) {
+  .tablero .segmentoEtiqueta:not([data-active]):hover {
+    color: var(--d-texto);
+  }
+}
+
+@media (min-width: 62em) {
+  .tablero .segmento {
+    width: auto;
+    min-width: 22rem;
+  }
+}
+
+/* ─── Panel y encabezados ─── */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px;
+  border-radius: 18px;
+  background-color: var(--d-superficie);
+  border: 1px solid var(--d-filete);
+}
+
+.encabezados {
+  display: none;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  min-width: 0;
+  border-radius: 12px;
+}
+
+.item:focus-visible {
+  outline: 3px solid var(--d-foco);
+  outline-offset: 2px;
+}
+
+/* ─── Una fila: celular (dos líneas) ─── */
+
+.fila {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px auto minmax(0, 1fr);
+  grid-template-areas:
+    'sentido fecha estado'
+    'que que que'
+    'ruta ruta ruta'
+    'nota nota nota';
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px 12px 14px;
+  border-radius: 12px;
+  background-color: var(--d-fila);
+  color: var(--d-texto);
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+a.fila:hover {
+  background-color: var(--d-elevada);
+}
+
+a.fila:focus-visible {
+  outline: 3px solid var(--d-foco);
+  outline-offset: 2px;
+}
+
+.fila[data-nueva] {
+  box-shadow: inset 0 0 0 1px var(--d-nuevo);
+}
+
+.sentido {
+  grid-area: sentido;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: var(--d-elevada);
+  color: var(--d-texto-2);
+}
+
+.sentido[data-sentido='llegada'] {
+  color: var(--d-acento);
+}
+
+.fecha {
+  grid-area: fecha;
+  display: flex;
+  flex-direction: column;
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--d-texto);
+}
+
+.fecha[data-sin-fecha] {
+  color: var(--d-texto-2);
+}
+
+.anio {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.08em;
+  color: var(--d-texto-2);
+}
+
+/* Qué, ruta y nota son celdas de la grilla de la fila. */
+.cuerpo {
+  display: contents;
+}
+
+.que {
+  grid-area: que;
+  min-width: 0;
+  font-size: 1rem;
+  line-height: 1.375rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ruta {
+  grid-area: ruta;
+  min-width: 0;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  color: var(--d-texto-2);
+  overflow-wrap: anywhere;
+}
+
+.nota {
+  grid-area: nota;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--d-filete);
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  color: var(--d-texto-2);
+}
+
+.nota svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.estado {
+  grid-area: estado;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+  text-align: end;
+}
+
+.estadoTexto {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: var(--d-elevada);
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+/* El tono acompaña al texto del estado (nunca va solo). */
+.estadoTexto[data-tono='en-curso'] {
+  color: var(--d-acento);
+}
+
+.estadoTexto[data-tono='listo'] {
+  color: var(--d-ok);
+}
+
+.estadoTexto[data-tono='atencion'] {
+  color: var(--d-atencion);
+}
+
+.estadoTexto[data-tono='demorado'] {
+  color: var(--d-demorado);
+}
+
+.estadoTexto[data-tono='neutro'] {
+  color: var(--d-texto-2);
+}
+
+.nuevo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--d-nuevo);
+  background-color: var(--d-elevada);
+  color: var(--d-nuevo);
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  font-weight: 600;
+}
+
+.punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--d-nuevo);
+}
+
+.chevron {
+  grid-area: chevron;
+  display: none;
+  color: var(--d-texto-2);
+}
+
+/* ─── Paletas (split-flap): solo en las filas nuevas ─── */
+
+.paletas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: inherit;
+  gap: 2px 0;
+}
+
+.palabra {
+  display: inline-flex;
+}
+
+/* En el celular, letras sueltas que giran (sin la placa): el estado entra en la fila. */
+.letra {
+  display: inline-block;
+  transform-origin: 50% 50%;
+}
+
+.animar .letra {
+  animation: paleta 70ms linear 4 backwards;
+}
+
+@keyframes paleta {
+  from {
+    transform: perspective(160px) rotateX(-88deg);
+    filter: brightness(0.55);
+  }
+
+  to {
+    transform: perspective(160px) rotateX(0deg);
+    filter: brightness(1);
+  }
+}
+
+/* ─── Escritorio: columnas FECHA · QUÉ · RUTA · ESTADO ─── */
+
+@media (min-width: 62em) {
+  .panel {
+    padding: 10px;
+    border-radius: 22px;
+  }
+
+  .encabezados,
+  .fila {
+    grid-template-columns: 28px 7.5rem minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.95fr) 24px;
+    column-gap: 20px;
+  }
+
+  .encabezados {
+    display: grid;
+    padding: 10px 20px 6px;
+    font-family: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--d-texto-2);
+  }
+
+  .fila {
+    grid-template-areas: 'sentido fecha que ruta estado chevron';
+    row-gap: 4px;
+    min-height: 60px;
+    padding: 16px 20px;
+  }
+
+  .fila[data-con-nota] {
+    grid-template-areas:
+      'sentido fecha que ruta estado chevron'
+      'sentido fecha nota nota estado chevron';
+  }
+
+  .fecha {
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+  }
+
+  .que {
+    font-size: 1.125rem;
+    line-height: 1.625rem;
+  }
+
+  .ruta {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .nota {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .estado {
+    justify-self: start;
+    align-items: flex-start;
+    text-align: start;
+  }
+
+  .estadoTexto {
+    padding: 0;
+    background-color: transparent;
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+  }
+
+  .chevron {
+    display: block;
+  }
+
+  /* Las placas de paleta: arriba y abajo del corte, como un tablero de estación. */
+  .palabra {
+    gap: 2px;
+  }
+
+  .paletas {
+    gap: 4px 2px;
+  }
+
+  .letra {
+    display: inline-grid;
+    place-items: center;
+    min-width: 0.95em;
+    height: 1.65em;
+    border-radius: 3px;
+    background: linear-gradient(
+      var(--d-elevada) 0 calc(50% - 0.5px),
+      var(--d-fondo) calc(50% - 0.5px) calc(50% + 0.5px),
+      var(--d-superficie) calc(50% + 0.5px)
+    );
+  }
+}
+
+/* ─── Ver todo, vacíos, aviso y pie ─── */
+
+.verTodo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--d-borde);
+  background-color: transparent;
+  color: var(--d-acento);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.verTodo:hover {
+  background-color: var(--d-elevada);
+}
+
+.verTodo:focus-visible {
+  outline: 3px solid var(--d-foco);
+  outline-offset: 2px;
+}
+
+.vacioPestania {
+  margin: 0;
+  padding: 20px 16px;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: var(--d-texto-2);
+}
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 20px;
+  border-radius: 18px;
+  background-color: var(--d-superficie);
+  border: 1px solid var(--d-filete);
+}
+
+.vacioTexto {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: var(--d-texto);
+}
+
+.vacioAcciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 12px;
+  background-color: var(--d-boton);
+  color: var(--d-boton-texto);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.boton:hover {
+  background-color: var(--d-boton-hover);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--d-acento);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.boton:focus-visible,
+.link:focus-visible {
+  outline: 3px solid var(--d-foco);
+  outline-offset: 2px;
+}
+
+.incompleto,
+.pie {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  color: var(--d-texto-2);
+}
+
+.incompleto {
+  color: var(--d-texto);
+}
+
+.incompleto svg {
+  flex: none;
+  color: var(--d-atencion);
+}
+
+.pie svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.pie strong {
+  font-weight: 600;
+  color: var(--d-texto);
+}
+
+/* ─── Esqueleto: las mismas medidas que las filas ─── */
+
+.esqueleto {
+  display: grid;
+  grid-template-columns: 28px 4.5rem minmax(0, 1fr);
+  grid-template-areas:
+    'sentido fecha estado'
+    'que que que'
+    'ruta ruta ruta';
+  column-gap: 10px;
+  row-gap: 8px;
+  align-items: center;
+  padding: 12px 12px 14px;
+  border-radius: 12px;
+  background-color: var(--d-fila);
+}
+
+.huesoSentido,
+.huesoFecha,
+.huesoQue,
+.huesoRuta,
+.huesoEstado,
+.huesoPestanias {
+  display: block;
+  border-radius: 6px;
+  background-color: var(--d-elevada);
+  animation: latido 1.6s ease-in-out infinite;
+}
+
+.huesoSentido {
+  grid-area: sentido;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.huesoFecha {
+  grid-area: fecha;
+  height: 22px;
+}
+
+.huesoEstado {
+  grid-area: estado;
+  justify-self: end;
+  width: 7rem;
+  height: 26px;
+}
+
+.huesoQue {
+  grid-area: que;
+  width: 70%;
+  height: 22px;
+}
+
+.huesoRuta {
+  grid-area: ruta;
+  width: 50%;
+  height: 20px;
+}
+
+.huesoPestanias {
+  width: 100%;
+  height: 54px;
+  border-radius: 14px;
+}
+
+@keyframes latido {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (min-width: 62em) {
+  .esqueleto {
+    grid-template-columns: 28px 7.5rem minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.95fr) 24px;
+    grid-template-areas: 'sentido fecha que ruta estado .';
+    column-gap: 20px;
+    min-height: 60px;
+    padding: 16px 20px;
+  }
+
+  .huesoEstado {
+    justify-self: start;
+  }
+
+  .huesoQue,
+  .huesoRuta {
+    width: 80%;
+  }
+
+  .huesoPestanias {
+    width: 22rem;
+  }
+}
+
+/* ─── Sin movimiento: ni paletas, ni latido, ni transiciones ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .animar .letra,
+  .huesoSentido,
+  .huesoFecha,
+  .huesoQue,
+  .huesoRuta,
+  .huesoEstado,
+  .huesoPestanias {
+    animation: none;
+  }
+
+  .fila,
+  .verTodo,
+  .boton,
+  .tablero .segmento,
+  .tablero .segmentoIndicador,
+  .tablero .segmentoEtiqueta {
+    transition: none;
+  }
+}
