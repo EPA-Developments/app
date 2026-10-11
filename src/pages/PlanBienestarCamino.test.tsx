@@ -36,7 +36,9 @@ async function renderEn(medplum: MockClient, ruta: string): Promise<void> {
     render(
       <MemoryRouter initialEntries={[ruta]}>
         <MedplumProvider medplum={medplum}>
-          <MantineProvider>
+          {/* env="test": sin transiciones de Mantine, cuyos timers podían disparar después de
+              desmontar jsdom («window is not defined») y voltear la corrida al azar. */}
+          <MantineProvider env="test">
             <Notifications />
             <Suspense fallback={<div>cargando</div>}>
               <Routes>

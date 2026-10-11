@@ -20,6 +20,7 @@
 // reales. Los tokens --d-* viven en HomeEstiloD.module.css, sobre la raíz (`data-tema`).
 import { categoriaLe8, LE8_DOMINIO_LABEL } from '@epa/careplan-menopausia';
 import type { PreventBanda } from '@epa/careplan-menopausia';
+import { SegmentedControl } from '@mantine/core';
 import {
   IconArrowDown,
   IconArrowRight,
@@ -28,13 +29,13 @@ import {
   IconFileCertificate,
   IconFileUpload,
   IconMessage,
+  IconMoon,
   IconStarFilled,
   IconSun,
-  IconSunFilled,
   IconVideo,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
@@ -43,7 +44,7 @@ import { SeguimientoGlp1Card } from '../../components/SeguimientoGlp1Card';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import { MARCA } from '../../marca';
 import { RUTA_SALUD } from '../health-record/Salud.data';
-import { caminosDe, NOTA_COSTO_TELECONSULTA, pidioSegundaOpinion } from './caminos';
+import { caminosDe, NOTA_COSTO_TELECONSULTA, pidioSegundaOpinion, subioDatos } from './caminos';
 import { conSigno, fechaAbreviada, fechaConDia, fechaCorta, mayuscula, plural } from './formato';
 import classes from './HomeEstiloD.module.css';
 import { paraHoy } from './paraHoy';
@@ -51,7 +52,7 @@ import { preventDe } from './prevent';
 import type { AccionPrevent, ModeloPrevent, ProcedenciaPrevent } from './prevent';
 import { puertaDe } from './puerta';
 import { dominioConMasMargen, puntajeDe } from './rosa';
-import { rutaDe } from './ruta';
+import { detalleConsentimiento, rutaDe } from './ruta';
 import { RutaIdaVuelta } from './RutaIdaVuelta';
 import {
   RUTA_MI_SEGUNDA_OPINION,
@@ -62,7 +63,7 @@ import {
 } from './rutas';
 import { TableroSalidasLlegadas } from './TableroSalidasLlegadas';
 import type { CategoriaLe8, ClaveCamino, DatosHomeE, EstadioCkmHome, Camino, TableroHomeD, TemaHomeD } from './tipos';
-import { useDatosHomeE } from './useDatosHomeE';
+import { ETAPAS_CKM, useDatosHomeE } from './useDatosHomeE';
 import { useTableroHomeD } from './useTableroHomeD';
 
 const RUTA_RESERVAR_TURNO = '/get-care';
@@ -211,15 +212,6 @@ const ROTULO_PREVENT: Readonly<Record<ProcedenciaPrevent, { readonly texto: stri
   'sin-datos': { texto: 'Sin datos', tono: 'neutro' },
 };
 
-/** Las etapas CKM, de 0 a 4, como las lee la persona (las mismas que la Home E). */
-const ETAPAS_CKM: readonly string[] = [
-  'Zona saludable',
-  'Primeras señales',
-  'Factores de riesgo activos',
-  'Señales tempranas en el corazón o riñón',
-  'Cuidado activo',
-];
-
 function redondo(puntaje: number | undefined): number | undefined {
   return puntaje === undefined ? undefined : Math.round(Math.min(100, Math.max(0, puntaje)));
 }
@@ -232,22 +224,6 @@ function habitoMasBajo(le8: DatosHomeE['le8']): { readonly nombre: string; reado
   const dominio = dominioConMasMargen(le8.dominios);
   const puntaje = dominio ? redondo(puntajeDe(le8.dominios, dominio)) : undefined;
   return dominio && puntaje !== undefined ? { nombre: LE8_DOMINIO_LABEL[dominio], puntaje } : undefined;
-}
-
-/** El estado del consentimiento, para el link de «También en tu portal». */
-function estadoDelConsentimiento(datos: DatosHomeE): string | undefined {
-  switch (datos.consentimiento) {
-    case 'firmado': {
-      const fecha = fechaCorta(datos.fechaConsentimiento, datos.hoy);
-      return fecha ? `firmado el ${fecha}` : 'firmado';
-    }
-    case 'desactualizado':
-      return 'hay una versión nueva';
-    case 'falta':
-      return 'falta tu firma';
-    default:
-      return undefined;
-  }
 }
 
 function Flecha({ tamano = 20 }: { readonly tamano?: number }): JSX.Element {
@@ -274,7 +250,7 @@ export interface VistaHomeDProps {
   /** Lo que devuelve useTableroHomeD(). */
   readonly tablero: TableroHomeD;
   readonly tema: TemaHomeD;
-  /** Sin él, no se muestra el botón de tema (p. ej. en el visor de capturas). */
+  /** Sin él, no se muestra el selector de tema (p. ej. en el visor de capturas). */
   readonly alCambiarTema?: (tema: TemaHomeD) => void;
 }
 
@@ -306,25 +282,42 @@ export function VistaHomeD({ datos, tablero, tema, alCambiarTema }: VistaHomeDPr
 
 // ─── 1. Puerta ───────────────────────────────────────────────────────────────────────
 
-function BotonTema({
+/** Las dos opciones del tema, con su ícono: se elige una, y la elegida se ve marcada. */
+const OPCIONES_TEMA: readonly { readonly value: TemaHomeD; readonly texto: string; readonly icono: Icon }[] = [
+  { value: 'oscuro', texto: 'Oscuro', icono: IconMoon },
+  { value: 'claro', texto: 'Claro', icono: IconSun },
+];
+
+function SelectorTema({
   tema,
   alCambiar,
 }: {
   readonly tema: TemaHomeD;
   readonly alCambiar: (tema: TemaHomeD) => void;
 }): JSX.Element {
-  // Un interruptor: el nombre no cambia («Modo claro») y aria-pressed dice si está activo.
-  const claro = tema === 'claro';
+  // Dos opciones a la vista (un radiogroup): siempre se sabe en qué tema estás y cuál es el otro.
   return (
-    <button
-      type="button"
-      className={classes.tema}
-      aria-pressed={claro}
-      onClick={() => alCambiar(claro ? 'oscuro' : 'claro')}
-    >
-      {claro ? <IconSunFilled size={18} aria-hidden="true" /> : <IconSun size={18} stroke={1.75} aria-hidden="true" />}
-      Modo claro
-    </button>
+    <SegmentedControl
+      aria-label="Tema de la página"
+      data={OPCIONES_TEMA.map(({ value, texto, icono: Icono }) => ({
+        value,
+        label: (
+          <span className={classes.temaOpcion}>
+            <Icono size={18} stroke={1.75} aria-hidden="true" />
+            {texto}
+          </span>
+        ),
+      }))}
+      value={tema}
+      onChange={(valor) => alCambiar(valor === 'claro' ? 'claro' : 'oscuro')}
+      withItemsBorders={false}
+      classNames={{
+        root: classes.tema,
+        indicator: classes.temaIndicador,
+        input: classes.temaEntrada,
+        label: classes.temaEtiqueta,
+      }}
+    />
   );
 }
 
@@ -342,7 +335,7 @@ function Puerta({
       <div className={clases(classes.contenedor, classes.puertaInterior)}>
         {alCambiarTema && (
           <div className={classes.barraTema}>
-            <BotonTema tema={tema} alCambiar={alCambiarTema} />
+            <SelectorTema tema={tema} alCambiar={alCambiarTema} />
           </div>
         )}
         <div className={classes.puertaGrilla}>
@@ -380,6 +373,7 @@ function PuertaCargando(): JSX.Element {
 
 function PuertaTexto({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
   const puerta = puertaDe(datos, paraHoy(datos, { producto: MARCA.producto }));
+  const idNota = useId();
   return (
     <div className={classes.puertaTexto}>
       <div className={classes.puertaCabecera}>
@@ -393,10 +387,20 @@ function PuertaTexto({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
         <p className={classes.bajada}>{puerta.bajada}</p>
       </div>
       <div className={classes.puertaAcciones}>
-        <Link to={puerta.paso.href} className={clases(classes.boton, classes.botonPuerta)}>
+        <Link
+          to={puerta.paso.href}
+          className={clases(classes.boton, classes.botonPuerta)}
+          aria-describedby={puerta.nota ? idNota : undefined}
+        >
           {puerta.paso.cta}
           <Flecha />
         </Link>
+        {/* Qué tiene costo (la teleconsulta), justo debajo del botón. */}
+        {puerta.nota && (
+          <p id={idNota} className={clases(classes.nota, classes.notaPuerta)}>
+            {puerta.nota}
+          </p>
+        )}
         {datos.esPaciente && (
           // Un ancla dentro de la página: <a href="#…"> nativo (el navegador baja hasta el tablero).
           <a href={`#${ID.seccionTablero}`} className={clases(classes.link, classes.linkAncla)}>
@@ -508,7 +512,8 @@ function SeccionTablero({
           {/* «Lo que vuelve a vos», no «lo que te devuelve tu equipo»: muchas llegadas son de IA. */}
           <p className={classes.bajadaSeccion}>Salidas: lo que mandaste. Llegadas: lo que vuelve a vos.</p>
         </div>
-        <TableroSalidasLlegadas tablero={tablero} idTitulo={ID.tablero} hoy={datos.hoy} />
+        {/* Con el tablero vacío, a quien ya tiene datos no se le dice que no mandó nada. */}
+        <TableroSalidasLlegadas tablero={tablero} idTitulo={ID.tablero} hoy={datos.hoy} conDatos={subioDatos(datos)} />
       </div>
     </section>
   );
@@ -887,12 +892,28 @@ function InstrumentoPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Elem
   );
 }
 
+/** ¿La acción lleva a reservar una teleconsulta? Entonces va con la nota de lo que tiene costo. */
+function reservaTeleconsulta(accion: AccionPrevent): boolean {
+  return (accion.tipo === 'boton' || accion.tipo === 'link') && accion.href === RUTA_RESERVAR_TELECONSULTA;
+}
+
 /**
  * Qué hacer con el PREVENT (las reglas están en prevent.ts). Un cálculo automático lleva el
  * recuadro «Es un cálculo automático» con sus acciones adentro; el resto, las acciones solas.
+ * Justo después de la acción que reserva una teleconsulta, qué tiene costo (como en la puerta,
+ * la ruta y el camino 3).
  */
 function AccionesPrevent({ modelo }: { readonly modelo: ModeloPrevent }): JSX.Element {
-  const acciones = modelo.acciones.map((accion) => <AccionDePrevent key={accion.texto} accion={accion} />);
+  const acciones = modelo.acciones.flatMap((accion) => [
+    <AccionDePrevent key={accion.texto} accion={accion} />,
+    ...(reservaTeleconsulta(accion)
+      ? [
+          <p key={`${accion.texto}-costo`} className={classes.nota}>
+            {NOTA_COSTO_TELECONSULTA}
+          </p>,
+        ]
+      : []),
+  ]);
   if (!modelo.recuadro) {
     return <div className={classes.preventAcciones}>{acciones}</div>;
   }
@@ -1003,7 +1024,8 @@ function accesosDe(datos: DatosHomeE): readonly Acceso[] {
     {
       texto: 'Consentimiento informado',
       href: RUTA_CONSENTIMIENTO,
-      estado: datos.esPaciente && !datos.cargando ? estadoDelConsentimiento(datos) : undefined,
+      // El mismo texto que la estación «Consentimiento» de la ruta.
+      estado: datos.esPaciente && !datos.cargando ? detalleConsentimiento(datos) : undefined,
     }
   );
   return accesos;

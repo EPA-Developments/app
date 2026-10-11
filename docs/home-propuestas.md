@@ -37,23 +37,30 @@ A, B, C y E y el escritorio de A.
   como control), el tablero «Salidas y llegadas de tus datos», los tres caminos, sus tres instrumentos (LE8, CKM y
   PREVENT), el seguimiento GLP-1 si corresponde, sus servicios y un cierre con quién acompaña a la persona. Textos
   neutros (lo ven hombres y mujeres). Oscuro por defecto, con un modo claro equivalente: los tokens `--d-*` se
-  definen una sola vez en `HomeEstiloD.module.css` y el botón «Modo claro» guarda la elección en este dispositivo
+  definen una sola vez en `HomeEstiloD.module.css` y el selector «Oscuro · Claro» guarda la elección en este dispositivo
   (`localStorage['home-d-tema']`).
 - **El tablero y sus fuentes FHIR** (`tablero.ts`, `useTableroHomeD.ts`): cada fila es un recurso real con su
   estado real. Salidas: los PDFs de laboratorio (`DocumentReference`: en proceso, demorado o procesado), los
   pedidos de Segunda Opinión (`ServiceRequest`), los cuestionarios de hábitos y el de ingreso
-  (`QuestionnaireResponse`) y las mediciones de la casa (`Observation`, una fila por día). Llegadas: los
-  resultados de cada PDF (`DiagnosticReport`, con su aviso si no tienen revisión médica), el informe de la
-  Segunda Opinión («Firmado» solo con la firma médica registrada) y las Novedades (`Communication`). Son cinco
-  consultas en paralelo: si una falla, el tablero lo dice y muestra el resto. «Nuevo» quiere decir que cambió
-  desde la última visita en este dispositivo; lo que llega en tiempo real usa la misma suscripción que la
-  campanita.
+  (`QuestionnaireResponse`), las mediciones de la casa y el laboratorio cargado a mano (`Observation`, una fila
+  por día). Llegadas: los resultados de cada PDF (`DiagnosticReport`, todos en una sola búsqueda, con su aviso si
+  no tienen revisión médica), el informe de la Segunda Opinión («Firmado» solo con la firma médica registrada) y
+  las Novedades (`Communication`). Si un informe no se pudo leer, su llegada dice «Listo» sin afirmar nada de la
+  revisión ni de la firma, y el tablero avisa que no trajo todo. Lo cargado por error no aparece. Son seis
+  consultas en paralelo: si una falla, el tablero lo dice y muestra el resto. Lo que sigue en curso (un pedido en
+  análisis, su informe en camino, un PDF en proceso o demorado) entra siempre entre las 20 filas. «Nuevo» quiere
+  decir que cambió desde la última visita en este dispositivo; lo que llega en tiempo real usa la misma
+  suscripción que la campanita, y los avisos seguidos se juntan en una sola recarga.
 - **Honestidad (de la revisión del código)**: la Home dice «firmado» solo si el informe trae la firma de un médico
   (`DiagnosticReport` `final` con un `resultsInterpreter` Practitioner). Hoy `bot-som-report` completa la orden y
   arma el informe con IA sin ese paso, así que se ve «Tu informe está listo». La teleconsulta se ofrece con «un
-  profesional de nuestro equipo» (la reserva abre el catálogo, no el equipo de la paciente) y avisa qué tiene costo.
-  Se deja de pedir cuando hubo una consulta posterior al laboratorio, y no se empuja mientras la Segunda Opinión
-  está en análisis.
+  profesional de nuestro equipo» (la reserva abre el catálogo, no el equipo de la paciente) y avisa qué tiene costo
+  junto a cada botón que la reserva (en la D: la puerta, la ruta, PREVENT y el camino 3). Se deja de pedir cuando
+  hubo una consulta posterior al laboratorio, y no se empuja mientras la Segunda Opinión está en análisis. La ruta
+  de la D marca la estación del equipo médico como recorrida solo con una revisión registrada o una consulta
+  posterior al laboratorio (con solo hábitos no hay fecha con qué comparar: queda por recorrer); con el informe
+  completado sin firma, la estación dice «sin firma registrada». El pulso de luz de la ruta hace una sola pasada
+  (como mucho 4 s): en loop, sin forma de pausarlo, no cumplía WCAG 2.2.2.
 - **Para acordar con Recepción**: (1) registrar la firma médica del informe de la Segunda Opinión y la revisión
   del laboratorio (`resultsInterpreter`); (2) una consulta de «revisión de resultados» con los profesionales del
   equipo de la paciente y la referencia al `DiagnosticReport` en el pedido de turno.
@@ -169,16 +176,16 @@ ordenan, calculan y redactan borradores, y tu equipo médico revisa, decide y fi
 
 ## Comparativa
 
-| | A Horizonte | B Tu parte / nuestra | C Carta | D Salidas y llegadas | E Vos en el centro |
-|---|---|---|---|---|---|
-| Tema | Claro | Claro + bloques azules | Papel cálido | Oscuro | Oscuro arriba, claro abajo |
-| «Qué hago hoy» | Muy fuerte | Fuerte | Media | Fuerte | Media |
-| Cuenta el diferencial (datos → IA → médico) | Media | Muy fuerte | Fuerte | Muy fuerte | Muy fuerte |
-| Seguridad / confianza clínica | Fuerte | Fuerte | Muy fuerte | Fuerte | Fuerte |
-| Impacto al entrar | Medio | Alto | Medio | Alto | Muy alto |
-| Riesgo con público 40–70 | Bajo | Bajo | Bajo | Alto | Medio |
-| Costo de construir | Bajo | Medio | Medio-alto | Alto | Alto |
-| Cambios en el backend | Ninguno | Estado intermedio del informe | Procedencia (`meta.author`, `resultsInterpreter`) | Estados de proceso del PDF | Estado intermedio del informe |
+|                                             | A Horizonte | B Tu parte / nuestra          | C Carta                                           | D Salidas y llegadas       | E Vos en el centro            |
+| ------------------------------------------- | ----------- | ----------------------------- | ------------------------------------------------- | -------------------------- | ----------------------------- |
+| Tema                                        | Claro       | Claro + bloques azules        | Papel cálido                                      | Oscuro                     | Oscuro arriba, claro abajo    |
+| «Qué hago hoy»                              | Muy fuerte  | Fuerte                        | Media                                             | Fuerte                     | Media                         |
+| Cuenta el diferencial (datos → IA → médico) | Media       | Muy fuerte                    | Fuerte                                            | Muy fuerte                 | Muy fuerte                    |
+| Seguridad / confianza clínica               | Fuerte      | Fuerte                        | Muy fuerte                                        | Fuerte                     | Fuerte                        |
+| Impacto al entrar                           | Medio       | Alto                          | Medio                                             | Alto                       | Muy alto                      |
+| Riesgo con público 40–70                    | Bajo        | Bajo                          | Bajo                                              | Alto                       | Medio                         |
+| Costo de construir                          | Bajo        | Medio                         | Medio-alto                                        | Alto                       | Alto                          |
+| Cambios en el backend                       | Ninguno     | Estado intermedio del informe | Procedencia (`meta.author`, `resultsInterpreter`) | Estados de proceso del PDF | Estado intermedio del informe |
 
 ## Recomendación
 

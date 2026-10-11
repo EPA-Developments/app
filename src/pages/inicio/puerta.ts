@@ -2,15 +2,21 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // La «puerta» del hero de la Home D: un solo próximo paso, el que elige `paraHoy` (la regla fija
-// que comparte con la Home E). Acá solo se escriben el H1 y la bajada para el estilo D: neutros
-// (los lee cualquier persona), con el nombre si lo hay y sin prometer nada que el paso no diga.
+// que comparte con la Home E). Acá solo se escriben el H1, la bajada y la nota del botón para el
+// estilo D: neutros (los lee cualquier persona), con el nombre si lo hay y sin prometer nada que
+// el paso no diga. Si el botón lleva a reservar una teleconsulta, la nota dice qué tiene costo.
 import { LE8_DOMINIO_LABEL, LE8_DOMINIOS } from '@epa/careplan-menopausia';
+import { NOTA_COSTO_TELECONSULTA, pidioSegundaOpinion, subioDatos } from './caminos';
 import { mayuscula, minusculaNatural } from './formato';
+import { RUTA_RESERVAR_TELECONSULTA } from './rutas';
 import type { DatosHomeE, Le8Domain, ParaHoy, PuertaHomeD } from './tipos';
 
 export const OVERLINE_PUERTA = 'Tu próximo paso';
 
-/** Lo que se suma a la bajada cuando queda natural: el tablero está justo abajo. */
+/**
+ * Lo que se suma a la bajada cuando queda natural: el tablero está justo abajo. Solo si mandó
+ * algo (si no, el tablero dice que todavía no mandó nada).
+ */
 export const ABAJO_VES = 'Abajo ves lo que mandaste y lo que vuelve a vos.';
 
 export const BAJADA_AL_DIA = 'Todo lo que mandaste está en marcha. Abajo ves cada salida y cada llegada.';
@@ -38,8 +44,13 @@ function tituloDe(clave: string): string {
   return TITULOS[clave] ?? TITULO_UN_PASO;
 }
 
+/** ¿Mandó algo que el tablero muestre (datos, un PDF aunque esté demorado, un pedido)? */
+function mandoAlgo(datos: DatosHomeE): boolean {
+  return subioDatos(datos) || datos.laboratorio !== undefined || pidioSegundaOpinion(datos);
+}
+
 /** La bajada: el detalle del paso, salvo donde el de la Home E no le sirve a D. */
-function bajadaDe(paso: ParaHoy): string {
+function bajadaDe(datos: DatosHomeE, paso: ParaHoy): string {
   const { clave } = paso;
   if (clave === 'al-dia') {
     return BAJADA_AL_DIA;
@@ -55,8 +66,8 @@ function bajadaDe(paso: ParaHoy): string {
       ? `${paso.titulo}: con ese dato, tu hábito de ${habito} entra en tu puntaje de 8 hábitos.`
       : `${paso.titulo}: con ese dato, completás tu puntaje de 8 hábitos.`;
   }
-  // El consentimiento va solo: es el primer paso y no hay nada que mirar abajo todavía.
-  if (clave === 'consentimiento' || clave === 'consentimiento-actualizado') {
+  // El consentimiento va solo: es el primer paso. Y sin nada mandado, no hay qué mirar abajo.
+  if (clave === 'consentimiento' || clave === 'consentimiento-actualizado' || !mandoAlgo(datos)) {
     return paso.detalle;
   }
   return `${paso.detalle} ${ABAJO_VES}`;
@@ -72,7 +83,9 @@ export function puertaDe(datos: DatosHomeE, paso: ParaHoy): PuertaHomeD {
   return {
     overline: OVERLINE_PUERTA,
     titulo: nombre ? `${nombre}, ${frase}` : mayuscula(frase),
-    bajada: bajadaDe(paso),
+    bajada: bajadaDe(datos, paso),
     paso,
+    // Qué se paga al reservar (GetCarePage): se avisa junto al botón, no dos secciones más abajo.
+    ...(paso.href === RUTA_RESERVAR_TELECONSULTA ? { nota: NOTA_COSTO_TELECONSULTA } : {}),
   };
 }

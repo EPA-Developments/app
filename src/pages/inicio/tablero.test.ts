@@ -19,6 +19,7 @@ import {
   fechaDelTablero,
   filasDeCuestionarios,
   filasDeEstudios,
+  filasDeLaboratorioManual,
   filasDeMediciones,
   filasDeNovedades,
   filasDeSegundaOpinion,
@@ -210,14 +211,29 @@ describe('filasDeEstudios: una salida por PDF y la llegada de sus valores', () =
     expect(sinRevision).toMatchObject({ tono: 'atencion', nota: NOTA_LABORATORIO_SIN_REVISION });
   });
 
-  test('sin el informe (no se leyó): «Listo», con la fecha en que el bot lo sumó al PDF', () => {
+  test('sin el informe (no se leyó): «Listo», neutro y sin afirmar nada de la revisión', () => {
     const [, llegada] = filasDeEstudios([pdfProcesado('d1', 'dr1')], new Map(), AHORA);
     expect(llegada).toMatchObject({
       id: 'DiagnosticReport/dr1',
       estado: 'Listo',
-      tono: 'atencion',
+      tono: 'neutro',
       fecha: '2026-10-03T12:06:00.000Z',
     });
+    // No se sabe si lo revisó un médico: ni «todavía no lo revisó» ni «revisado».
+    expect(llegada?.nota).toBeUndefined();
+  });
+
+  test('cuatro PDFs procesados sin sus informes: ninguna llegada dice que no los revisó un médico', () => {
+    const docs = ['d1', 'd2', 'd3', 'd4'].map((id, i) => pdfProcesado(id, `dr${i + 1}`));
+    const llegadas = filasDeEstudios(docs, new Map(), AHORA).filter((f) => f.sentido === 'llegada');
+    expect(llegadas).toHaveLength(4);
+    for (const llegada of llegadas) {
+      expect(llegada).toMatchObject({ estado: 'Listo', tono: 'neutro' });
+      expect(llegada.nota).toBeUndefined();
+    }
+    // Con el informe leído (y sin revisión médica), sí lo dice.
+    const [, conInforme] = filasDeEstudios([docs[3]], new Map([['dr4', informeLab('dr4', 3)]]), AHORA);
+    expect(conInforme).toMatchObject({ tono: 'atencion', nota: NOTA_LABORATORIO_SIN_REVISION });
   });
 
   test('un informe sin valores no dice «0 valores»', () => {
@@ -229,7 +245,7 @@ describe('filasDeEstudios: una salida por PDF y la llegada de sus valores', () =
     expect(filasDeEstudios([pdf('d1', { status: 'entered-in-error' })], new Map(), AHORA)).toEqual([]);
   });
 
-  test('informesALeer: solo los DiagnosticReport de los 3 PDFs procesados más nuevos', () => {
+  test('informesALeer: los DiagnosticReport de todos los PDFs procesados (sin tope y sin repetir)', () => {
     const docs = [
       pdf('d0'),
       pdfProcesado('d1', 'dr1'),
@@ -237,8 +253,9 @@ describe('filasDeEstudios: una salida por PDF y la llegada de sus valores', () =
       pdfProcesado('d3', 'dr3', { status: 'entered-in-error' }),
       pdfProcesado('d4', 'dr4'),
       pdfProcesado('d5', 'dr5'),
+      pdfProcesado('d6', 'dr5'),
     ];
-    expect(informesALeer(docs)).toEqual(['dr1', 'dr2', 'dr4']);
+    expect(informesALeer(docs)).toEqual(['dr1', 'dr2', 'dr4', 'dr5']);
   });
 });
 
@@ -323,7 +340,7 @@ describe('filasDeSegundaOpinion: los pedidos y la llegada del informe', () => {
     expect(sinFirma?.estado).toBe('Listo');
   });
 
-  test('completada sin poder leer el informe: «Listo», con la fecha de la orden', () => {
+  test('completada sin poder leer el informe: «Listo», neutro, con la fecha de la orden y sin afirmar nada de la firma', () => {
     const sr = {
       ...pedido('s1', 'completed', '2026-09-28T13:00:00.000Z'),
       meta: { lastUpdated: '2026-10-05T09:00:00Z' },
@@ -332,8 +349,33 @@ describe('filasDeSegundaOpinion: los pedidos y la llegada del informe', () => {
     expect(llegada).toMatchObject({
       id: 'ServiceRequest/s1#llegada',
       estado: 'Listo',
+      tono: 'neutro',
       fecha: '2026-10-05T09:00:00Z',
     });
+    expect(llegada?.nota).toBeUndefined();
+  });
+
+  test('un pedido cargado por error no va (ni tapa la llegada del informe anterior)', () => {
+    const informe: DiagnosticReport = {
+      resourceType: 'DiagnosticReport',
+      id: 'inf-julio',
+      status: 'final',
+      code: { text: 'Informe' },
+      issued: '2026-07-10T10:00:00.000Z',
+    };
+    const filas = filasDeSegundaOpinion(
+      [
+        pedido('x', 'entered-in-error', '2026-10-05T13:00:00.000Z'),
+        pedido('y', 'completed', '2026-07-05T13:00:00.000Z'),
+      ],
+      informe,
+      PRODUCTO
+    );
+    expect(filas.map((f) => `${f.id} ${f.sentido} ${f.estado}`)).toEqual([
+      'ServiceRequest/y salida Completada',
+      'DiagnosticReport/inf-julio llegada Listo',
+    ]);
+    expect(filas.map((f) => f.estado.toLocaleLowerCase('es-AR'))).not.toContain('error');
   });
 
   test('cancelada, en pausa o borrador: solo la salida, en tono neutro', () => {
@@ -485,6 +527,47 @@ describe('filasDeMediciones: una salida por día de Argentina', () => {
   });
 });
 
+// ─── Laboratorio cargado a mano ──────────────────────────────────────────────────────
+
+describe('filasDeLaboratorioManual: una salida por día en que lo cargó', () => {
+  const cargado = (id: string, code: string, lastUpdated: string, cambios: Partial<Observation> = {}): Observation =>
+    medicion(id, code, '2026-09-15', { meta: { lastUpdated }, ...cambios });
+
+  test('los valores cargados el mismo día van juntos, con la fecha en que los cargó', () => {
+    const filas = filasDeLaboratorioManual([
+      cargado('l3', '1558-6', '2026-10-09T14:02:00.000Z'),
+      cargado('l2', '2085-9', '2026-10-09T14:01:00.000Z'),
+      cargado('l1', '2093-3', '2026-10-09T14:00:00.000Z'),
+      cargado('l0', '2093-3', '2026-08-02T14:00:00.000Z'),
+    ]);
+    expect(filas).toEqual([
+      {
+        id: 'Observation/l3',
+        sentido: 'salida',
+        recurso: 'Observation',
+        fecha: '2026-10-09T14:02:00.000Z',
+        actualizada: '2026-10-09T14:02:00.000Z',
+        que: 'Laboratorio cargado a mano',
+        ruta: 'Tu app → Tus biomarcadores',
+        estado: 'Registrado',
+        tono: 'listo',
+        href: '/health-record/biomarkers',
+      },
+      expect.objectContaining({ id: 'Observation/l0', fecha: '2026-08-02T14:00:00.000Z' }),
+    ]);
+  });
+
+  test('no van: lo que leyó el bot de un PDF, lo cargado por error ni lo que registró un profesional', () => {
+    expect(
+      filasDeLaboratorioManual([
+        cargado('bot', '2093-3', '2026-10-09T14:00:00.000Z', { derivedFrom: [{ reference: 'DocumentReference/d1' }] }),
+        cargado('error', '2093-3', '2026-10-09T14:00:00.000Z', { status: 'entered-in-error' }),
+        cargado('medico', '2093-3', '2026-10-09T14:00:00.000Z', { performer: [{ reference: 'Practitioner/m1' }] }),
+      ])
+    ).toEqual([]);
+  });
+});
+
 // ─── Novedades ───────────────────────────────────────────────────────────────────────
 
 describe('filasDeNovedades: cada novedad es una llegada', () => {
@@ -586,6 +669,49 @@ describe('filasTablero y ordenarFilas', () => {
     expect(filas.some((f) => f.id === 'Observation/o0')).toBe(false);
   });
 
+  test('lo que sigue en curso entra siempre, aunque haya MAX_FILAS más nuevas', () => {
+    // Jorge pidió su Segunda Opinión el 28/09 y después llegaron 25 novedades.
+    const novedades = Array.from({ length: 25 }, (_, i) =>
+      novedad(`c${i}`, 'recordatorio', { sent: new Date(Date.UTC(2026, 9, 1, 12 + i)).toISOString() })
+    );
+    const { filas } = filasTablero(fuentes({ novedades: ok(novedades) }), { producto: PRODUCTO, ahora: AHORA });
+    expect(filas).toHaveLength(MAX_FILAS);
+    const ids = filas.map((f) => f.id);
+    expect(ids).toContain('ServiceRequest/s1#llegada');
+    expect(ids).toContain('ServiceRequest/s1');
+    // El orden sigue siendo por fecha: lo que no tiene fecha, al final.
+    expect(ids[ids.length - 1]).toBe('ServiceRequest/s1#llegada');
+    // El lugar que queda es para las más nuevas.
+    expect(ids).toContain('Communication/c24');
+    expect(ids).not.toContain('Communication/c0');
+  });
+
+  test('ordenarFilas: un PDF demorado y lo que no tiene fecha se quedan; con lugar de sobra, entra todo', () => {
+    const fechadas = Array.from({ length: 5 }, (_, i) =>
+      fila(`n${i}`, { fecha: new Date(Date.UTC(2026, 9, 5, 12 + i)).toISOString() })
+    );
+    const demorado = fila('pdf', { fecha: '2026-09-01T12:00:00.000Z', tono: 'demorado', estado: 'Demorado' });
+    const enCamino = fila('camino', { tono: 'en-curso' });
+    expect(ordenarFilas([...fechadas, demorado, enCamino], 3).map((f) => f.id)).toEqual(['n4', 'pdf', 'camino']);
+    expect(ordenarFilas([...fechadas, demorado, enCamino], 20)).toHaveLength(7);
+  });
+
+  test('si no se pudo leer un informe, el tablero queda incompleto (y muestra el resto)', () => {
+    const estudios = ok({ documentos: [pdfProcesado('d1', 'dr1')], informes: new Map(), incompleto: true });
+    const conEstudios = filasTablero(fuentes({ estudios }), { producto: PRODUCTO, ahora: AHORA });
+    expect(conEstudios.incompleto).toBe(true);
+    expect(conEstudios.filas.map((f) => f.id)).toContain('DiagnosticReport/dr1');
+    const segundaOpinion = ok({ pedidos: [pedido('s1', 'completed', '2026-09-28T13:00:00.000Z')], incompleto: true });
+    expect(filasTablero(fuentes({ segundaOpinion }), { producto: PRODUCTO, ahora: AHORA }).incompleto).toBe(true);
+  });
+
+  test('el laboratorio cargado a mano es una salida (si la consulta falla, queda incompleto)', () => {
+    const manual = [medicion('l1', '2093-3', '2026-09-15', { meta: { lastUpdated: '2026-10-09T14:00:00.000Z' } })];
+    const { filas } = filasTablero(fuentes({ laboratorioManual: ok(manual) }), { producto: PRODUCTO, ahora: AHORA });
+    expect(filas[0]).toMatchObject({ id: 'Observation/l1', que: 'Laboratorio cargado a mano' });
+    expect(filasTablero(fuentes({ laboratorioManual: falla }), { producto: PRODUCTO }).incompleto).toBe(true);
+  });
+
   test('con la misma fecha, primero la llegada; después, por id', () => {
     const misma = '2026-10-03T12:00:00.000Z';
     const orden = ordenarFilas([
@@ -676,6 +802,7 @@ describe('textos del tablero', () => {
     ...filasDeCuestionarios(LE8_QUESTIONNAIRES.map((q, i) => respuesta(`q${i}`, q.url))),
     ...filasDeCuestionarios([respuesta('qi', INTAKE_QUESTIONNAIRE_URL)]),
     ...filasDeMediciones(CODIGOS_CASA.map((c, i) => medicion(`o${i}`, c, '2026-10-03T22:00:00.000Z'))),
+    ...filasDeLaboratorioManual([medicion('l1', '2093-3', '2026-09-15')]),
     ...filasDeNovedades([novedad('c1', 'resultados-listos'), novedad('c2', 'general')], new Set()),
   ];
 

@@ -20,8 +20,10 @@
 //    IA con el equipo médico cuando trabajan juntos); por recorrer: punteado y punto hueco;
 //    cerrada: el candado, y la línea se corta ahí.
 //  - Movimiento: el tramo recorrido se traza al entrar (900ms, una vez por sesión: queda
-//    anotado en sessionStorage) y un pulso de luz recorre la línea (6s, en loop) solo mientras
-//    `ruta.enCurso`. `prefers-reduced-motion` apaga los dos (RutaIdaVuelta.module.css).
+//    anotado en sessionStorage) y, solo mientras `ruta.enCurso`, un pulso de luz recorre una vez
+//    la línea hasta donde llegaron tus datos (500ms por media línea: como mucho 4s). No va en
+//    loop: un movimiento que dura más de 5s y no se puede pausar no cumple WCAG 2.2.2.
+//    `prefers-reduced-motion` apaga los dos (RutaIdaVuelta.module.css).
 // Solo tokens `var(--d-…)` de HomeEstiloD.module.css.
 import { useMediaQuery } from '@mantine/hooks';
 import { IconArrowRight, IconLock, IconLockCheck, IconLockExclamation, IconUser } from '@tabler/icons-react';
@@ -40,7 +42,7 @@ export const CLAVE_RUTA_TRAZADA = 'home-d-ruta-trazada';
 export const DESDE_HORIZONTAL = '(min-width: 48em)';
 /** Lo que dura el trazo de entrada, entero (se reparte entre las piezas recorridas). */
 export const TRAZO_MS = 900;
-/** Lo que tarda el pulso en cruzar cada media línea (el ciclo entero dura 6s). */
+/** Lo que tarda el pulso en cruzar cada media línea (una sola pasada: como mucho 8 × 500ms = 4s). */
 export const PULSO_POR_TRAMO_MS = 500;
 
 /** El estado de cada estación, dicho para la lista que leen los lectores de pantalla. */
@@ -72,6 +74,24 @@ function anotarRutaTrazada(): void {
   } catch {
     // Sin sessionStorage no hay cómo recordarlo: la próxima vez se vuelve a trazar.
   }
+}
+
+/**
+ * Por dónde parte un nombre de una sola palabra larga si no entra en su columna (celular angosto
+ * con la letra grande o más espaciado): por una sílaba, con guion, y no en cualquier letra. Va
+ * con guiones blandos (U+00AD), que no se ven si la palabra entra. Solo los nombres de una
+ * palabra: en una frase («Tus resultados») el navegador llenaría el renglón cortando la palabra
+ * en vez de pasarla entera al siguiente. Solo en el dibujo (decorativo): la lista que leen los
+ * lectores de pantalla lleva el texto tal cual.
+ */
+const CORTES: Readonly<Record<string, string>> = {
+  Consentimiento: 'Consenti\u00admiento',
+  Novedades: 'Nove\u00addades',
+};
+
+/** El nombre con su corte por sílaba (CORTES), si es una de esas palabras largas. */
+export function conCortes(nombre: string): string {
+  return CORTES[nombre] ?? nombre;
 }
 
 /** El texto del control, con su primera oración destacada («Control de consentimiento: firmado.»). */
@@ -189,7 +209,9 @@ function Estacion({ estacion, tramos, eje, consentimiento, trazar, pasoTrazo }: 
   return (
     <>
       <span className={classes.rotulo} data-clave={clave} data-tramo={tramo} data-lado={lado}>
-        <span className={classes.nombre}>{estacion.nombre}</span>
+        {/* El corte por sílaba, solo en la U vertical (columnas angostas); en la horizontal el
+            rótulo tiene el ancho de dos estaciones y el nombre va entero. */}
+        <span className={classes.nombre}>{eje === 'y' ? conCortes(estacion.nombre) : estacion.nombre}</span>
         {estacion.detalle && (
           <span className={clave === 'historia' ? classes.chip : classes.detalle}>{estacion.detalle}</span>
         )}
@@ -240,6 +262,7 @@ export interface RutaIdaVueltaProps {
 /** La tarjeta «Tus datos, ida y vuelta» (o «Tu {producto}, ida y vuelta») con la U. */
 export function RutaIdaVuelta({ ruta, nivelTitulo = 2 }: RutaIdaVueltaProps): JSX.Element {
   const idTitulo = useId();
+  const idNotaAccion = useId();
   const horizontal = useMediaQuery(DESDE_HORIZONTAL, undefined, { getInitialValueInEffect: false });
   // Se decide una vez al montar: si la ruta ya se trazó en esta sesión, aparece quieta.
   const [trazar] = useState(() => !rutaYaTrazada());
@@ -317,10 +340,20 @@ export function RutaIdaVuelta({ ruta, nivelTitulo = 2 }: RutaIdaVueltaProps): JS
       </p>
       {ruta.accion && (
         <div className={classes.pie}>
-          <Link to={ruta.accion.href} className={classes.accion}>
+          <Link
+            to={ruta.accion.href}
+            className={classes.accion}
+            aria-describedby={ruta.accion.nota ? idNotaAccion : undefined}
+          >
             {ruta.accion.texto}
             <IconArrowRight size={18} stroke={2} aria-hidden="true" />
           </Link>
+          {/* Qué tiene costo (la teleconsulta): junto a la acción, no dos secciones más abajo. */}
+          {ruta.accion.nota && (
+            <p id={idNotaAccion} className={classes.notaAccion}>
+              {ruta.accion.nota}
+            </p>
+          )}
         </div>
       )}
     </section>

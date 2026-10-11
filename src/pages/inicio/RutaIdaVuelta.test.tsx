@@ -9,10 +9,12 @@ import type { JSX, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
 import { simularPantalla } from '../../testing/pantalla';
+import { NOTA_COSTO_TELECONSULTA } from './caminos';
 import { rutaDe } from './ruta';
-import { RUTA_MI_SEGUNDA_OPINION } from './rutas';
+import { RUTA_MI_SEGUNDA_OPINION, RUTA_RESERVAR_TELECONSULTA } from './rutas';
 import {
   CLAVE_RUTA_TRAZADA,
+  conCortes,
   DESDE_HORIZONTAL,
   PULSO_POR_TRAMO_MS,
   RutaIdaVuelta,
@@ -166,6 +168,37 @@ describe('RutaIdaVuelta', () => {
     expect(screen.getByText('Por recorrer')).toBeInTheDocument();
   });
 
+  test('las palabras largas del dibujo parten por una sílaba (guion blando); la lista leída va tal cual', () => {
+    expect(conCortes('Consentimiento')).toBe('Consenti\u00admiento');
+    expect(conCortes('Novedades')).toBe('Nove\u00addades');
+    // En una frase no: el navegador cortaría la palabra en vez de pasarla al renglón siguiente.
+    expect(conCortes('Tus resultados')).toBe('Tus resultados');
+    dibujar({ ruta: ruta({ laboratorio: LAB_LEIDO }) });
+    // En el celular (la U vertical), con el corte; la lista leída, tal cual.
+    expect(dibujo()).toHaveAttribute('data-orientacion', 'vertical');
+    expect(dibujo().textContent).toContain('Consenti\u00admiento');
+    const lista = screen.getByRole('list', { name: 'Estaciones de la ruta, de ida y de vuelta' });
+    expect(lista.textContent).toContain('Consentimiento, firmado el 8 de agosto: recorrida');
+    expect(lista.textContent).not.toContain('\u00ad');
+  });
+
+  test('en la U horizontal el nombre va entero (sin el corte por sílaba)', () => {
+    simularPantalla(true);
+    dibujar({ ruta: ruta({ laboratorio: LAB_LEIDO }) });
+    expect(dibujo()).toHaveAttribute('data-orientacion', 'horizontal');
+    expect(dibujo().textContent).toContain('Consentimiento');
+    expect(dibujo().textContent).not.toContain('\u00ad');
+  });
+
+  test('la acción que reserva una teleconsulta lleva debajo qué tiene costo (y el link la describe)', () => {
+    dibujar({ ruta: ruta({ laboratorio: LAB_LEIDO }) });
+    const accion = screen.getByRole('link', { name: 'Reservar mi teleconsulta' });
+    expect(accion).toHaveAttribute('href', RUTA_RESERVAR_TELECONSULTA);
+    const nota = screen.getByText(NOTA_COSTO_TELECONSULTA);
+    expect(accion).toHaveAttribute('aria-describedby', nota.id);
+    expect(accion).toHaveAccessibleDescription(NOTA_COSTO_TELECONSULTA);
+  });
+
   test('sin firma: el candado cierra la ruta, la línea se corta y la acción lleva a firmar', () => {
     dibujar({ ruta: ruta({ consentimiento: 'falta', laboratorio: LAB_LEIDO }) });
     const u = dibujo();
@@ -213,8 +246,8 @@ describe('RutaIdaVuelta', () => {
     expect(pulsos.map((p) => p.style.animationDelay)).toEqual(
       Array.from({ length: 8 }, (_, k) => `${k * PULSO_POR_TRAMO_MS}ms`)
     );
-    // Toda la cadena entra en el ciclo de 6s.
-    expect(pulsos.length * PULSO_POR_TRAMO_MS).toBeLessThanOrEqual(6000);
+    // Una sola pasada, y toda la cadena cruza en menos de 5s (WCAG 2.2.2: no hace falta pausarla).
+    expect(pulsos.length * PULSO_POR_TRAMO_MS).toBeLessThan(5000);
     expect(pulsos[0]).toHaveAttribute('data-recorrido', '50-100');
   });
 
@@ -269,6 +302,18 @@ describe('RutaIdaVuelta.module.css', () => {
     expect((css.match(/var\(--[\w-]+/g) ?? []).filter((v) => !v.startsWith('var(--d-'))).toEqual([]);
   });
 
+  test('el pulso hace una sola pasada (sin loop: WCAG 2.2.2)', () => {
+    const pulso = /\.pulso\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(pulso).toMatch(/animation-iteration-count: 1;/);
+    expect(css).not.toMatch(/infinite/);
+  });
+
+  test('en la U vertical los nombres parten dentro de la palabra antes de salirse de la tarjeta', () => {
+    // El mínimo de la vuelta en px: no le quita ancho a la ida cuando crece la letra del navegador.
+    expect(css).toMatch(/\[vuelta-rotulo\] minmax\(88px, 1fr\)/);
+    expect(css).toMatch(/\.dibujo\[data-orientacion='vertical'\] \.nombre,[^{]*\{[^}]*overflow-wrap: anywhere/);
+  });
+
   test('con prefers-reduced-motion no hay trazo ni pulso', () => {
     const quieto = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
     expect(quieto).toMatch(/\.trazando[^{]*\{\s*animation: none !important/);
@@ -280,7 +325,7 @@ describe('RutaIdaVuelta.module.css', () => {
       /\.dibujo\[data-orientacion='horizontal'\]\s*\{\s*grid-template-columns: repeat\(15, minmax\(0, 1fr\)\)/
     );
     expect(css).toMatch(
-      /\.dibujo\[data-orientacion='vertical'\]\s*\{\s*grid-template-columns:\s*\[ida-rotulo\] minmax\(0, 1fr\)/
+      /\.dibujo\[data-orientacion='vertical'\]\s*\{\s*grid-template-columns:\s*\[ida-rotulo\] minmax\(0, 1\.33fr\)/
     );
   });
 });

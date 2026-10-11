@@ -1,23 +1,28 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Los datos del tablero «Salidas y llegadas» de la Home D: cinco consultas en paralelo con
+// Los datos del tablero «Salidas y llegadas» de la Home D: seis consultas en paralelo con
 // `Promise.allSettled` (si una falla, el tablero lo dice y muestra el resto), traducidas a
 // filas por `tablero.ts` (puro). La AccessPolicy del paciente permite leer todo esto
 // (docs/medplum/README.md): DocumentReference, DiagnosticReport, ServiceRequest,
-// QuestionnaireResponse, Observation y Communication.
+// QuestionnaireResponse, Observation y Communication. Los PDFs se piden una sola vez al montar
+// la Home (la misma consulta que useDatosHomeE, compartida mientras está en vuelo) y sus
+// informes, en una sola búsqueda.
 //
 // «Nuevo»: lo que cambió desde la última visita en este dispositivo
 // (`localStorage['home-d-visita:Patient/{id}']`). Al terminar de cargar se guarda «ahora»,
 // aunque alguna consulta haya fallado (si una falla siempre, por ejemplo por permisos, la
 // visita igual tiene que avanzar); las nuevas de esta sesión no cambian por eso.
 // Tiempo real: como la campanita, con la misma Subscription de las novedades; lo que llega
-// así se recarga (sin las búsquedas que el cliente tiene en caché) y entra como nuevo.
+// así se recarga (sin las búsquedas que el cliente tiene en caché) y entra como nuevo. Los
+// avisos seguidos (p. ej. «Leer todas» en la campanita, que actualiza cada novedad) se juntan
+// en una sola recarga.
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { DiagnosticReport, Patient } from '@medplum/fhirtypes';
 import { useMedplum, useMedplumProfile, useSubscription } from '@medplum/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CATEGORIA_OBSERVACION_SYSTEM } from '../../fhir/biomarkers';
 import { CODIGOS_CASA } from '../../fhir/datosDeSalud';
 import { cargarEstudiosEnviados } from '../../fhir/estudios';
 import { cargarNotificaciones, criteriaNotificaciones } from '../../fhir/notificaciones';
@@ -25,8 +30,12 @@ import { cargarInformeSOM, cargarMisSolicitudesSOM } from '../../fhir/som';
 import { MARCA } from '../../marca';
 import { tiempoRealHabilitado } from '../../utils/tiempoReal';
 import type { CargaTablero, EstudiosTablero, OpcionesTablero, SegundaOpinionTablero, TableroCargado } from './tablero';
-import { filasTablero, informesALeer, MAX_PEDIDOS_SOM, siguienteTablero } from './tablero';
+import { filasTablero, informesALeer, pedidosVigentes, siguienteTablero } from './tablero';
 import type { TableroHomeD } from './tipos';
+import { estudiosEnviadosCompartidos } from './useDatosHomeE';
+
+/** Cuánto se espera después del último aviso en tiempo real para recargar (junta los seguidos). */
+export const ESPERA_TIEMPO_REAL_MS = 1000;
 
 // ─── Última visita (por dispositivo) ─────────────────────────────────────────────────
 
@@ -55,44 +64,71 @@ export function guardarVisita(ref: string, cuando: string): void {
 
 // ─── Cargas ──────────────────────────────────────────────────────────────────────────
 
-/** Los PDFs enviados y el DiagnosticReport de los procesados más nuevos (los que se puedan leer). */
-async function cargarEstudios(medplum: MedplumClient, patient: Patient): Promise<EstudiosTablero> {
-  const documentos = await cargarEstudiosEnviados(medplum, patient);
-  const leidos = await Promise.all(
-    informesALeer(documentos).map((id) =>
-      medplum.readResource('DiagnosticReport', id).catch((): DiagnosticReport | undefined => undefined)
-    )
-  );
+/**
+ * Los PDFs enviados y el DiagnosticReport de cada uno de los procesados, en una sola búsqueda.
+ * Si la búsqueda de los informes falla, los PDFs se muestran igual (sus llegadas, sin afirmar
+ * nada de la revisión) y el tablero queda incompleto. `recarga`: sin compartir la consulta de
+ * los PDFs (lo que avisa el tiempo real es posterior a cualquier consulta en vuelo).
+ */
+async function cargarEstudios(medplum: MedplumClient, patient: Patient, recarga: boolean): Promise<EstudiosTablero> {
+  const documentos = await (recarga
+    ? cargarEstudiosEnviados(medplum, patient)
+    : estudiosEnviadosCompartidos(medplum, patient));
+  const ids = informesALeer(documentos);
   const informes = new Map<string, DiagnosticReport>();
-  for (const informe of leidos) {
-    if (informe?.id) {
+  if (ids.length === 0) {
+    return { documentos, informes };
+  }
+  try {
+    const leidos = await medplum.searchResources('DiagnosticReport', {
+      _id: ids.join(','),
+      _count: String(ids.length),
+    });
+    for (const informe of leidos) {
       informes.set(informe.id, informe);
     }
+    return { documentos, informes };
+  } catch (err) {
+    console.warn('No se pudieron leer los informes de laboratorio del tablero.', err);
+    return { documentos, informes, incompleto: true };
   }
-  return { documentos, informes };
 }
 
 /** Los pedidos más nuevos de la Segunda Opinión y, si el último está completado, su informe. */
 async function cargarSegundaOpinion(medplum: MedplumClient, patient: Patient): Promise<SegundaOpinionTablero> {
-  const pedidos = (await cargarMisSolicitudesSOM(medplum, patient)).slice(0, MAX_PEDIDOS_SOM);
+  // Los cargados por error no cuentan: la llegada es la del último pedido de verdad.
+  const pedidos = pedidosVigentes(await cargarMisSolicitudesSOM(medplum, patient));
   const [ultimo] = pedidos;
-  // Sin el informe, la llegada igual se muestra («Listo», nunca «Firmado»).
-  const informe =
-    ultimo?.status === 'completed'
-      ? (await cargarInformeSOM(medplum, ultimo).catch(() => undefined))?.report
-      : undefined;
-  return { pedidos, informe };
+  if (ultimo?.status !== 'completed') {
+    return { pedidos };
+  }
+  try {
+    // Sin el informe, la llegada igual se muestra («Listo», sin afirmar nada de la firma).
+    return { pedidos, informe: (await cargarInformeSOM(medplum, ultimo)).report };
+  } catch (err) {
+    console.warn('No se pudo leer el informe de la Segunda Opinión del tablero.', err);
+    return { pedidos, incompleto: true };
+  }
 }
 
-/** Las cinco consultas del tablero, en paralelo; ninguna tumba a las demás. */
+/** Opciones de una carga del tablero. */
+export interface OpcionesCarga extends OpcionesTablero {
+  /**
+   * true en una recarga por tiempo real: los PDFs se piden de nuevo (sin compartir la consulta
+   * en vuelo); las búsquedas que usan la caché del cliente las invalida antes el efecto.
+   */
+  readonly recarga?: boolean;
+}
+
+/** Las seis consultas del tablero, en paralelo; ninguna tumba a las demás. */
 export async function cargarTablero(
   medplum: MedplumClient,
   patient: Patient,
-  opciones: OpcionesTablero
+  opciones: OpcionesCarga
 ): Promise<CargaTablero> {
   const ref = getReferenceString(patient) ?? '';
-  const [estudios, segundaOpinion, cuestionarios, mediciones, novedades] = await Promise.allSettled([
-    cargarEstudios(medplum, patient),
+  const [estudios, segundaOpinion, cuestionarios, mediciones, laboratorioManual, novedades] = await Promise.allSettled([
+    cargarEstudios(medplum, patient, opciones.recarga ?? false),
     cargarSegundaOpinion(medplum, patient),
     medplum.searchResources(
       'QuestionnaireResponse',
@@ -104,9 +140,25 @@ export async function cargarTablero(
       { subject: ref, code: CODIGOS_CASA.join(','), _sort: '-date', _count: '30' },
       { cache: 'no-cache' }
     ),
+    // El laboratorio cargado a mano: el portal lo guarda `preliminary`; el bot que lee los PDFs,
+    // `final` (y esos ya son la llegada de su PDF).
+    medplum.searchResources(
+      'Observation',
+      {
+        subject: ref,
+        category: `${CATEGORIA_OBSERVACION_SYSTEM}|laboratory`,
+        status: 'preliminary',
+        _sort: '-_lastUpdated',
+        _count: '30',
+      },
+      { cache: 'no-cache' }
+    ),
     cargarNotificaciones(medplum, ref),
   ]);
-  return filasTablero({ estudios, segundaOpinion, cuestionarios, mediciones, novedades }, opciones);
+  return filasTablero(
+    { estudios, segundaOpinion, cuestionarios, mediciones, laboratorioManual, novedades },
+    { producto: opciones.producto, ahora: opciones.ahora }
+  );
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────────────
@@ -129,11 +181,17 @@ export function useTableroHomeD(): TableroHomeD {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const patient = useMemo(() => perfilPaciente, [ref]);
 
-  // Cada aviso en tiempo real suma una versión: el efecto vuelve a cargar.
+  // Cada tanda de avisos en tiempo real suma una versión: el efecto vuelve a cargar. Los avisos
+  // seguidos se juntan (ESPERA_TIEMPO_REAL_MS después del último) en una sola recarga.
   const [version, setVersion] = useState(0);
+  const espera = useRef<number>(undefined);
+  useEffect(() => () => window.clearTimeout(espera.current), []);
   useSubscription(
     tiempoRealHabilitado() && ref ? criteriaNotificaciones(ref) : undefined,
-    () => setVersion((v) => v + 1),
+    () => {
+      window.clearTimeout(espera.current);
+      espera.current = window.setTimeout(() => setVersion((v) => v + 1), ESPERA_TIEMPO_REAL_MS);
+    },
     { onError: (err) => console.warn('Tablero sin tiempo real; se actualiza al volver a entrar.', err) }
   );
 
@@ -159,7 +217,7 @@ export function useTableroHomeD(): TableroHomeD {
       medplum.invalidateSearches('DiagnosticReport');
     }
     let cancelado = false;
-    cargarTablero(medplum, patient, { producto: MARCA.producto })
+    cargarTablero(medplum, patient, { producto: MARCA.producto, recarga: version > 0 })
       .then((carga) => {
         if (cancelado) {
           return;

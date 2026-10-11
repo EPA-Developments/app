@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import type { HitoBienestar, PlanBienestar } from '../../fhir/bienestar';
+import { NOTA_COSTO_TELECONSULTA } from './caminos';
 import { paraHoy } from './paraHoy';
 import { ABAJO_VES, BAJADA_AL_DIA, BAJADA_NO_PACIENTE, OVERLINE_PUERTA, puertaDe, TITULO_NO_PACIENTE } from './puerta';
 import type { DatosHomeE, Le8Domain, ParaHoy, ResultadoLe8, SegundaOpinionHome } from './tipos';
@@ -111,6 +112,19 @@ describe('puertaDe', () => {
     );
   });
 
+  test('ingreso de quien recién entra (sin nada mandado): sin «Abajo ves…», el tablero está vacío', () => {
+    const nada = LE8_DOMINIOS.slice();
+    const resultado = puerta(datos({ ingresoPendiente: true, le8: le8(nada) }));
+    expect(resultado.paso.clave).toBe('ingreso');
+    expect(resultado.bajada).toBe('Con tus antecedentes, tu equipo médico te conoce mejor.');
+    expect(resultado.bajada).not.toContain(ABAJO_VES);
+    // Con un PDF (aunque esté demorado) o un pedido, sí hay qué mirar abajo.
+    const conPdf = puerta(
+      datos({ ingresoPendiente: true, le8: le8(nada), laboratorio: { estado: 'demorado', revisionMedica: false } })
+    );
+    expect(conPdf.bajada.endsWith(ABAJO_VES)).toBe(true);
+  });
+
   test('informe: llegó tu informe (sin decir firmado si no hay firma médica)', () => {
     const resultado = puerta(datos({ segundaOpinion: SOM_COMPLETADA }));
     expect(resultado.titulo).toBe('Jorge, llegó tu informe.');
@@ -128,6 +142,14 @@ describe('puertaDe', () => {
     expect(resultado.titulo).toBe('Jorge, tus datos ya llegaron. Revisémoslos juntos.');
     expect(resultado.bajada).toContain('un profesional de nuestro equipo');
     expect(resultado.bajada.endsWith(ABAJO_VES)).toBe(true);
+    // El botón reserva una teleconsulta: la nota dice qué tiene costo, ahí mismo.
+    expect(resultado.nota).toBe(NOTA_COSTO_TELECONSULTA);
+  });
+
+  test('solo el botón que reserva una teleconsulta lleva la nota del costo', () => {
+    expect(puerta(datos()).nota).toBeUndefined();
+    expect(puerta(datos({ ingresoPendiente: true })).nota).toBeUndefined();
+    expect(puerta(datos({ consentimiento: 'falta' })).nota).toBeUndefined();
   });
 
   test('hito del plan: hoy te queda un paso, y la bajada es el hito con su para qué', () => {
