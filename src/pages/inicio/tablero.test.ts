@@ -91,7 +91,11 @@ function pedido(id: string, status: ServiceRequest['status'], authoredOn: string
   };
 }
 
-function respuesta(id: string, questionnaire: string, cambios: Partial<QuestionnaireResponse> = {}): QuestionnaireResponse {
+function respuesta(
+  id: string,
+  questionnaire: string,
+  cambios: Partial<QuestionnaireResponse> = {}
+): QuestionnaireResponse {
   return {
     resourceType: 'QuestionnaireResponse',
     id,
@@ -103,7 +107,12 @@ function respuesta(id: string, questionnaire: string, cambios: Partial<Questionn
   };
 }
 
-function medicion(id: string, code: string, effectiveDateTime: string, cambios: Partial<Observation> = {}): Observation {
+function medicion(
+  id: string,
+  code: string,
+  effectiveDateTime: string,
+  cambios: Partial<Observation> = {}
+): Observation {
   return {
     resourceType: 'Observation',
     id,
@@ -298,7 +307,11 @@ describe('filasDeSegundaOpinion: los pedidos y la llegada del informe', () => {
       issued: '2026-10-05T10:00:00.000Z',
       resultsInterpreter: [{ reference: 'Practitioner/m1' }],
     };
-    const [, llegada] = filasDeSegundaOpinion([pedido('s1', 'completed', '2026-09-28T13:00:00.000Z')], firmado, PRODUCTO);
+    const [, llegada] = filasDeSegundaOpinion(
+      [pedido('s1', 'completed', '2026-09-28T13:00:00.000Z')],
+      firmado,
+      PRODUCTO
+    );
     expect(llegada).toMatchObject({ estado: 'Firmado', tono: 'listo' });
     expect(llegada?.nota).toBeUndefined();
     // Un Organization como intérprete no es una firma médica.
@@ -312,7 +325,10 @@ describe('filasDeSegundaOpinion: los pedidos y la llegada del informe', () => {
   });
 
   test('completada sin poder leer el informe: «Listo», con la fecha de la orden', () => {
-    const sr = { ...pedido('s1', 'completed', '2026-09-28T13:00:00.000Z'), meta: { lastUpdated: '2026-10-05T09:00:00Z' } };
+    const sr = {
+      ...pedido('s1', 'completed', '2026-09-28T13:00:00.000Z'),
+      meta: { lastUpdated: '2026-10-05T09:00:00Z' },
+    };
     const [, llegada] = filasDeSegundaOpinion([sr], undefined, PRODUCTO);
     expect(llegada).toMatchObject({
       id: 'ServiceRequest/s1#llegada',

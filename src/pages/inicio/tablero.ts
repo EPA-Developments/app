@@ -22,11 +22,12 @@ import type {
 } from '@medplum/fhirtypes';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
 import { estadoEstudio } from '../../fhir/estudios';
-import { hoyArgentina, ZONA_HORARIA } from '../../fhir/glp1';
+import { hoyArgentina } from '../../fhir/glp1';
 import { destinoNotificacion, esNoLeida, tipoNotificacion } from '../../fhir/notificaciones';
 import { ESTADO_SOM } from '../../fhir/som';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { INTAKE_QUESTIONNAIRE_URL } from '../intake.questionnaire';
+import { aInstante, fechaCorta, mayuscula, minuscula, plural } from './formato';
 import { RUTA_MI_SEGUNDA_OPINION } from './rutas';
 import type { FilaTablero, TableroHomeD, TonoEstado } from './tipos';
 import { informeFirmado, laboratorioHome } from './useDatosHomeE';
@@ -59,38 +60,24 @@ const RUTA_SIGNOS_VITALES = '/health-record/vitals';
 
 // ─── Fechas (hora de Argentina) ──────────────────────────────────────────────────────
 
-const FECHA_SOLA = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Un instante de una fecha FHIR. Una fecha sin hora es un día de Argentina: va al mediodía de allá. */
-export function aInstante(valor: string | undefined): Date | undefined {
-  if (!valor) {
-    return undefined;
-  }
-  const ms = Date.parse(FECHA_SOLA.test(valor) ? `${valor}T12:00:00-03:00` : valor);
-  return Number.isFinite(ms) ? new Date(ms) : undefined;
+/** El instante de una fecha FHIR (formato.ts: una fecha sin hora es el mediodía de Argentina). */
+function instante(valor: string | undefined): Date | undefined {
+  return valor ? aInstante(valor) : undefined;
 }
 
 /** Milisegundos de una fecha FHIR, o undefined si no la hay o no se entiende. */
 function ms(valor: string | undefined): number | undefined {
-  return aInstante(valor)?.getTime();
+  return instante(valor)?.getTime();
 }
 
 /** El día de Argentina (AAAA-MM-DD) de una fecha FHIR. */
-export function diaArgentina(valor: string | undefined): string | undefined {
-  const instante = aInstante(valor);
-  return instante ? hoyArgentina(instante) : undefined;
+function diaArgentina(valor: string | undefined): string | undefined {
+  const cuando = instante(valor);
+  return cuando ? hoyArgentina(cuando) : undefined;
 }
 
 /** Abreviaturas fijas (Intl cambia «sep» / «sept» según la versión de ICU). */
 const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'] as const;
-
-const FORMATO_LARGO = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA_HORARIA, day: 'numeric', month: 'long' });
-const FORMATO_LARGO_CON_ANIO = new Intl.DateTimeFormat('es-AR', {
-  timeZone: ZONA_HORARIA,
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
 
 /** Cómo se muestra la fecha de una fila. */
 export interface FechaTablero {
@@ -104,32 +91,24 @@ export interface FechaTablero {
 
 /** La fecha de una fila en hora de Argentina: «03 OCT» en pantalla y «3 de octubre» para leer. */
 export function fechaDelTablero(valor: string | undefined, hoy: string): FechaTablero {
-  const instante = aInstante(valor);
-  const dia = instante ? hoyArgentina(instante) : undefined;
-  if (!instante || !dia) {
+  const dia = diaArgentina(valor);
+  // fechaCorta (formato.ts) ya pone el año solo si no es el de hoy: «30 de diciembre de 2025».
+  const larga = fechaCorta(valor, hoy);
+  if (!dia || !larga) {
     return { corta: '—', larga: 'Sin fecha todavía' };
   }
   const [anio, mes, diaDelMes] = dia.split('-');
   const corta = `${diaDelMes} ${MESES[Number(mes) - 1]}`;
-  if (anio === hoy.slice(0, 4)) {
-    return { corta, larga: FORMATO_LARGO.format(instante) };
-  }
-  return { corta, anio, larga: FORMATO_LARGO_CON_ANIO.format(instante) };
+  return anio === hoy.slice(0, 4) ? { corta, larga } : { corta, anio, larga };
 }
 
 // ─── Textos ──────────────────────────────────────────────────────────────────────────
 
 /** Minúscula natural: «Calidad del sueño» → «calidad del sueño»; una sigla («LE8») queda igual. */
 export function minusculaNatural(texto: string): string {
-  const [primera = '', segunda = ''] = texto;
-  if (segunda && segunda === segunda.toLocaleUpperCase('es-AR') && segunda !== segunda.toLocaleLowerCase('es-AR')) {
-    return texto;
-  }
-  return primera.toLocaleLowerCase('es-AR') + texto.slice(1);
-}
-
-function mayuscula(texto: string): string {
-  return texto.charAt(0).toLocaleUpperCase('es-AR') + texto.slice(1);
+  const segunda = texto.charAt(1);
+  const esSigla = segunda !== segunda.toLocaleLowerCase('es-AR');
+  return esSigla ? texto : minuscula(texto);
 }
 
 /** «a», «a y b», «a, b y c». */
@@ -199,7 +178,7 @@ export function filasDeEstudios(
     }
     let estadoLlegada = 'Listo';
     if (lab.valores !== undefined) {
-      estadoLlegada = lab.valores === 0 ? 'Listo: sin valores' : `Listo: ${lab.valores} ${lab.valores === 1 ? 'valor' : 'valores'}`;
+      estadoLlegada = lab.valores === 0 ? 'Listo: sin valores' : `Listo: ${plural(lab.valores, 'valor', 'valores')}`;
     }
     filas.push({
       id: `DiagnosticReport/${estado.informeId}`,
@@ -326,7 +305,12 @@ export function filasDeCuestionarios(respuestas: readonly QuestionnaireResponse[
         estado: 'Sumado a tu LE8',
       });
     } else if (url === INTAKE_QUESTIONNAIRE_URL) {
-      filas.push({ ...comun, que: 'Cuestionario de ingreso', ruta: 'Tu app → Tu historia clínica', estado: 'Guardado' });
+      filas.push({
+        ...comun,
+        que: 'Cuestionario de ingreso',
+        ruta: 'Tu app → Tu historia clínica',
+        estado: 'Guardado',
+      });
     }
   }
   return filas;
@@ -336,8 +320,9 @@ export function filasDeCuestionarios(respuestas: readonly QuestionnaireResponse[
 
 /**
  * Nombre corto de cada código de CODIGOS_CASA (src/fhir/datosDeSalud.ts; si suma uno, que tenga
- * nombre: lo prueba tablero.test.ts), en el orden en que se nombran: la presión (el panel 85354-9 con sistólica y diastólica), el peso, la altura, la
- * cintura (CAMPOS_CASA) y el IMC, que el portal calcula con el peso y la altura.
+ * nombre: lo prueba tablero.test.ts), en el orden en que se nombran: la presión (el panel
+ * 85354-9, con la sistólica y la diastólica de CAMPOS_CASA), el peso, la altura, la cintura y el
+ * IMC, que el portal calcula con el peso y la altura.
  */
 export const NOMBRE_MEDICION: Readonly<Record<string, string>> = {
   '85354-9': 'presión',

@@ -1,5 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { MantineProvider } from '@mantine/core';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { JSX } from 'react';
@@ -265,8 +267,11 @@ describe('TableroSalidasLlegadas: lo nuevo (paletas)', () => {
       expect(p.closest('[aria-hidden="true"]')).not.toBeNull();
     }
     // Una paleta por carácter (los espacios también): «03 OCT» y «Listo: 14 valores».
-    const letras = [...paletas].map((p) => [...p.querySelectorAll(':scope > span > span')].map((l) => l.textContent).join(''));
-    expect(letras).toEqual(['03 OCT', 'Listo: 14 valores']);
+    const letras = [...paletas].map((p) =>
+      [...p.querySelectorAll(':scope > span > span')].map((l) => l.textContent).join('')
+    );
+    // Los espacios van duros (U+00A0) para que la placa no se colapse.
+    expect(letras).toEqual(['03\u00a0OCT', 'Listo:\u00a014\u00a0valores']);
     expect(within(nueva).getByText('Nuevo')).toBeInTheDocument();
     // Las demás, sin paletas ni chip.
     const vieja = screen.getByRole('link', { name: /PDF de laboratorio/ });
@@ -413,5 +418,23 @@ describe('TableroSalidasLlegadas: pestañas y estados', () => {
     expect(texto).not.toMatch(/\[/);
     expect(texto).not.toMatch(/bienvenida|inscripta|\blista\b|\bsola\b|la paciente/i);
     expect(texto).not.toMatch(/vuelo|pasajer|embarque|despegue/i);
+  });
+});
+
+describe('TableroSalidasLlegadas.module.css', () => {
+  const css = readFileSync(join(process.cwd(), 'src/pages/inicio/TableroSalidasLlegadas.module.css'), 'utf8').replace(
+    /\/\*[\s\S]*?\*\//g,
+    ''
+  );
+
+  test('solo tokens var(--d-…) de la Home D: ningún color suelto', () => {
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i);
+    expect((css.match(/var\(--[\w-]+/g) ?? []).filter((v) => !v.startsWith('var(--d-'))).toEqual([]);
+  });
+
+  test('con prefers-reduced-motion no giran las paletas ni late el esqueleto', () => {
+    const quieto = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(quieto).toMatch(/\.animar \.letra[^{]*\{\s*animation: none/);
+    expect(quieto).toMatch(/\.huesoPestanias\s*\{\s*animation: none/);
   });
 });

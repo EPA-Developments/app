@@ -21,7 +21,7 @@ import { criteriaNotificaciones, NOTIFICACION_SYSTEM } from '../../fhir/notifica
 import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM } from '../../fhir/som';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { MARCA } from '../../marca';
-import type { TableroHomeD } from './tipos';
+import type { FilaTablero, TableroHomeD } from './tipos';
 import { claveVisita, guardarVisita, leerUltimaVisita, useTableroHomeD } from './useTableroHomeD';
 
 const ESPERA = { timeout: 5000 };
@@ -214,7 +214,7 @@ describe('useTableroHomeD con el MockClient', () => {
     expect(leerUltimaVisita(`Patient/${patient.id}`)).toBeUndefined();
   });
 
-  test('si una consulta falla: el resto se muestra, queda incompleto y no se guarda la visita', async () => {
+  test('si una consulta falla: el resto se muestra, queda incompleto y la visita se guarda igual', async () => {
     const medplum = new MockClient();
     const patient = await paciente(medplum);
     const ids = await cargarDatosDeJorge(medplum, patient);
@@ -228,8 +228,8 @@ describe('useTableroHomeD con el MockClient', () => {
     expect(result.current.incompleto).toBe(true);
     expect(result.current.filas.some((f) => f.recurso === 'Observation')).toBe(false);
     expect(result.current.filas.map((f) => f.id)).toContain(`DocumentReference/${ids.documento}`);
-    // Lo que no se pudo traer tiene que poder verse como nuevo la próxima vez.
-    expect(window.localStorage.getItem(claveVisita(`Patient/${patient.id}`))).toBeNull();
+    // Si una consulta fallara siempre (permisos), la visita tiene que avanzar igual.
+    expect(window.localStorage.getItem(claveVisita(`Patient/${patient.id}`))).not.toBeNull();
   });
 
   test('con MEDPLUM_TIEMPO_REAL, una novedad que llega entra al tablero como nueva', async () => {
@@ -255,6 +255,47 @@ describe('useTableroHomeD con el MockClient', () => {
     expect(hook.result.current.nuevas.has(`Communication/${nueva.id}`)).toBe(true);
     // Mientras recarga no vuelve al skeleton.
     expect(hook.result.current.cargando).toBe(false);
+  });
+
+  test('en tiempo real, la Segunda Opinión que se completó no queda vieja por la caché de búsquedas', async () => {
+    vi.stubEnv('MEDPLUM_TIEMPO_REAL', 'true');
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const { pedido } = await cargarDatosDeJorge(medplum, patient);
+    const hook = await montar(medplum);
+    const llegada = (): FilaTablero | undefined =>
+      hook.result.current.filas.find((f) => f.que === `Informe de ${MARCA.producto}`);
+    expect(llegada()?.estado).toBe('En camino');
+
+    // El bot completa la orden y arma el informe del lado del servidor (no por este cliente,
+    // así que su caché no se entera) y avisa con una novedad.
+    const orden = await medplum.readResource('ServiceRequest', pedido as string);
+    await medplum.repo.updateResource<ServiceRequest>({ ...orden, status: 'completed' });
+    const informe = await medplum.repo.createResource<DiagnosticReport>({
+      resourceType: 'DiagnosticReport',
+      status: 'final',
+      code: { text: 'Informe' },
+      subject: referencia(patient),
+      basedOn: [{ reference: `ServiceRequest/${pedido}` }],
+      issued: new Date().toISOString(),
+    });
+    const aviso = await medplum.createResource(
+      novedad(patient, 'documento-nuevo', { about: [{ reference: `ServiceRequest/${pedido}` }] })
+    );
+    const evento: Bundle = { resourceType: 'Bundle', type: 'history', entry: [{ resource: aviso }] };
+    await act(async () => {
+      (medplum.getSubscriptionManager() as MockSubscriptionManager).emitEventForCriteria(
+        criteriaNotificaciones(`Patient/${patient.id}`),
+        { type: 'message', payload: evento }
+      );
+    });
+    // «Listo» (sin la firma médica registrada, nunca «Firmado») y nuevo.
+    await waitFor(
+      () => expect(llegada()).toMatchObject({ id: `DiagnosticReport/${informe.id}`, estado: 'Listo' }),
+      ESPERA
+    );
+    expect(hook.result.current.nuevas.has(`DiagnosticReport/${informe.id}`)).toBe(true);
+    expect(hook.result.current.filas.find((f) => f.id === `ServiceRequest/${pedido}`)?.estado).toBe('Completada');
   });
 });
 

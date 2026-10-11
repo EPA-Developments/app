@@ -8,11 +8,11 @@
 // QuestionnaireResponse, Observation y Communication.
 //
 // «Nuevo»: lo que cambió desde la última visita en este dispositivo
-// (`localStorage['home-d-visita:Patient/{id}']`). Al terminar de cargar se guarda «ahora»
-// (solo si se pudo traer todo: si no, lo que faltó tiene que poder verse como nuevo la
-// próxima vez); las nuevas de esta sesión no cambian por eso.
+// (`localStorage['home-d-visita:Patient/{id}']`). Al terminar de cargar se guarda «ahora»,
+// aunque alguna consulta haya fallado (si una falla siempre, por ejemplo por permisos, la
+// visita igual tiene que avanzar); las nuevas de esta sesión no cambian por eso.
 // Tiempo real: como la campanita, con la misma Subscription de las novedades; lo que llega
-// así se recarga y entra como nuevo.
+// así se recarga (sin las búsquedas que el cliente tiene en caché) y entra como nuevo.
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { DiagnosticReport, Patient } from '@medplum/fhirtypes';
@@ -24,13 +24,7 @@ import { cargarNotificaciones, criteriaNotificaciones } from '../../fhir/notific
 import { cargarInformeSOM, cargarMisSolicitudesSOM } from '../../fhir/som';
 import { MARCA } from '../../marca';
 import { tiempoRealHabilitado } from '../../utils/tiempoReal';
-import type {
-  CargaTablero,
-  EstudiosTablero,
-  OpcionesTablero,
-  SegundaOpinionTablero,
-  TableroCargado,
-} from './tablero';
+import type { CargaTablero, EstudiosTablero, OpcionesTablero, SegundaOpinionTablero, TableroCargado } from './tablero';
 import { filasTablero, informesALeer, MAX_PEDIDOS_SOM, siguienteTablero } from './tablero';
 import type { TableroHomeD } from './tipos';
 
@@ -84,7 +78,9 @@ async function cargarSegundaOpinion(medplum: MedplumClient, patient: Patient): P
   const [ultimo] = pedidos;
   // Sin el informe, la llegada igual se muestra («Listo», nunca «Firmado»).
   const informe =
-    ultimo?.status === 'completed' ? (await cargarInformeSOM(medplum, ultimo).catch(() => undefined))?.report : undefined;
+    ultimo?.status === 'completed'
+      ? (await cargarInformeSOM(medplum, ultimo).catch(() => undefined))?.report
+      : undefined;
   return { pedidos, informe };
 }
 
@@ -116,6 +112,7 @@ export async function cargarTablero(
 // ─── Hook ────────────────────────────────────────────────────────────────────────────
 
 const SIN_NUEVAS: ReadonlySet<string> = new Set();
+const SIN_FILAS: TableroCargado = { filas: [], nuevas: SIN_NUEVAS, incompleto: false };
 
 /** Con un perfil que no es Patient no hay tablero (ni consultas). */
 const SIN_PACIENTE: TableroHomeD = { cargando: false, filas: [], nuevas: SIN_NUEVAS, incompleto: false };
@@ -154,6 +151,13 @@ export function useTableroHomeD(): TableroHomeD {
       visita.current = { ref: paraRef, cuando: leerUltimaVisita(paraRef) };
     }
     const ultimaVisita = visita.current.cuando;
+    if (version > 0) {
+      // Lo que avisa el tiempo real lo cambió un bot del lado del servidor: las búsquedas de la
+      // Segunda Opinión y de su informe (que no piden `no-cache`) pueden estar viejas en la
+      // caché del cliente (hasta un minuto) y seguirían diciendo «En camino».
+      medplum.invalidateSearches('ServiceRequest');
+      medplum.invalidateSearches('DiagnosticReport');
+    }
     let cancelado = false;
     cargarTablero(medplum, patient, { producto: MARCA.producto })
       .then((carga) => {
@@ -164,11 +168,19 @@ export function useTableroHomeD(): TableroHomeD {
           ref: paraRef,
           tablero: siguienteTablero(previo?.ref === paraRef ? previo.tablero : undefined, carga, ultimaVisita),
         }));
-        if (!carga.incompleto) {
-          guardarVisita(paraRef, new Date().toISOString());
-        }
+        guardarVisita(paraRef, new Date().toISOString());
       })
-      .catch(console.error); // por las dudas: allSettled no falla y la traducción es pura
+      .catch((err: unknown) => {
+        // Por las dudas (allSettled no falla y la traducción es pura): nunca un skeleton eterno.
+        // Lo que ya se veía queda, avisando que no está completo.
+        console.error(err);
+        if (!cancelado) {
+          setEstado((previo) => ({
+            ref: paraRef,
+            tablero: { ...(previo?.ref === paraRef ? previo.tablero : SIN_FILAS), incompleto: true },
+          }));
+        }
+      });
     return () => {
       cancelado = true;
     };

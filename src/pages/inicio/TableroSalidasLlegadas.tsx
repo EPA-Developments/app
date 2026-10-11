@@ -46,6 +46,8 @@ export const PALETA_MS = 70;
 export const VUELTAS_PALETA = 4;
 export const MAX_PALETAS_MS = 900;
 const PASO_MAXIMO_MS = 28;
+/** El espacio de una paleta: duro, para que la placa no se colapse a ancho cero. */
+const ESPACIO_DURO = '\u00a0';
 
 /**
  * Cuánto se escalona cada carácter (ms) para que la última paleta de la fila termine dentro
@@ -323,7 +325,7 @@ function Paletas({
                 className={classes.letra}
                 style={animar ? { animationDelay: `${((inicios[i] ?? 0) + k) * paso}ms` } : undefined}
               >
-                {letra === ' ' ? ' ' : letra}
+                {letra === ' ' ? ESPACIO_DURO : letra}
               </span>
             ))}
           </span>
@@ -406,7 +408,9 @@ function useAnuncioDeLlegadas(tablero: TableroHomeD): string {
     if (!antes) {
       return;
     }
-    const llegadas = tablero.filas.filter((f) => f.sentido === 'llegada' && tablero.nuevas.has(f.id) && !antes.has(f.id));
+    const llegadas = tablero.filas.filter(
+      (f) => f.sentido === 'llegada' && tablero.nuevas.has(f.id) && !antes.has(f.id)
+    );
     if (llegadas.length > 0) {
       setAnuncio(llegadas.map((f) => `Llegó: ${f.que}.`).join(' '));
     }
