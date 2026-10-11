@@ -16,8 +16,7 @@
 // presentacional y se prueba con datos de ejemplo. Es un solo árbol responsive: el orden del
 // DOM es el del celular y desde 62em el escenario pasa a 3 columnas por CSS, sin secciones
 // duplicadas por breakpoint (duplicarían las consultas). Todos los accesos son links reales.
-import { bandaAscvd, categoriaLe8, LE8_DOMINIO_LABEL, LE8_DOMINIOS } from '@epa/careplan-menopausia';
-import type { PreventBanda } from '@epa/careplan-menopausia';
+import { categoriaLe8, LE8_DOMINIO_LABEL, LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import { Anchor, Skeleton, UnstyledButton } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { ResourceAvatar, ResourceName } from '@medplum/react';
@@ -52,18 +51,19 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
-import { RUTA_DATOS_DE_SALUD } from '../../fhir/datosDeSalud';
 import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
 import { SeguimientoGlp1Card } from '../../components/SeguimientoGlp1Card';
 import type { HitoBienestar, PlanBienestar } from '../../fhir/bienestar';
 import type { RefProfesional } from '../../fhir/equipo';
 import { esCentro } from '../../fhir/equipo';
-import { hoyArgentina, ZONA_HORARIA } from '../../fhir/glp1';
 import { MARCA } from '../../marca';
 import { RUTA_SALUD } from '../health-record/Salud.data';
 import { caminosDe, fechaHoraTurno, pidioSegundaOpinion, puedeOfrecerTeleconsulta } from './caminos';
+import { conSigno, fechaConDia, fechaCorta, mayuscula, minuscula, plural } from './formato';
 import classes from './HomeEstiloE.module.css';
 import { paraHoy } from './paraHoy';
+import { preventDe } from './prevent';
+import type { AccionPrevent, ModeloPrevent } from './prevent';
 import { dominioConMasMargen, puntajeDe } from './rosa';
 import { RosaLe8 } from './RosaLe8';
 import {
@@ -83,7 +83,6 @@ import type {
   Le8Domain,
   ModoColorPetalos,
   NodoEquipo,
-  PreventFirmado,
   ProximoTurno,
   PuntajeDominio,
   SegundaOpinionHome,
@@ -162,80 +161,7 @@ export function HomeEstiloE(): JSX.Element {
   return <VistaHomeE datos={datos} modoColor={modoColorDe(searchParams.get('petalos'))} />;
 }
 
-// ─── Textos y formatos ───────────────────────────────────────────────────────────────
-
-const FECHA_SOLA = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Un instante de una fecha FHIR. Una fecha sin hora es un día de Argentina: va al mediodía de allá. */
-function aInstante(valor: string): Date | undefined {
-  const ms = Date.parse(FECHA_SOLA.test(valor) ? `${valor}T12:00:00-03:00` : valor);
-  return Number.isFinite(ms) ? new Date(ms) : undefined;
-}
-
-const FORMATO_DIA = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA_HORARIA, day: 'numeric', month: 'long' });
-const FORMATO_DIA_Y_ANIO = new Intl.DateTimeFormat('es-AR', {
-  timeZone: ZONA_HORARIA,
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
-const FORMATO_CON_SEMANA = new Intl.DateTimeFormat('es-AR', {
-  timeZone: ZONA_HORARIA,
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-});
-const FORMATO_PORCENTAJE = new Intl.NumberFormat('es-AR', {
-  style: 'percent',
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-
-/** «3 de octubre» (con el año si no es el de hoy), en hora de Argentina. */
-function fechaCorta(valor: string | undefined, hoy: string): string | undefined {
-  const instante = valor ? aInstante(valor) : undefined;
-  if (!instante) {
-    return undefined;
-  }
-  const mismoAnio = hoyArgentina(instante).slice(0, 4) === hoy.slice(0, 4);
-  return (mismoAnio ? FORMATO_DIA : FORMATO_DIA_Y_ANIO).format(instante);
-}
-
-/** «sábado 10 de octubre» (Intl pone una coma después del día de la semana: acá no va). */
-function fechaConDia(hoy: string): string {
-  const instante = aInstante(hoy);
-  if (!instante) {
-    return '';
-  }
-  const partes = FORMATO_CON_SEMANA.formatToParts(instante);
-  const parte = (tipo: Intl.DateTimeFormatPartTypes): string => partes.find((p) => p.type === tipo)?.value ?? '';
-  return `${parte('weekday')} ${parte('day')} de ${parte('month')}`;
-}
-
-/** Una probabilidad 0-1 como porcentaje con un decimal y coma: «4,2%». */
-function porcentaje(probabilidad: number): string {
-  return FORMATO_PORCENTAJE.format(probabilidad);
-}
-
-/** «+6», «−3» o «0». */
-function conSigno(diferencia: number): string {
-  if (diferencia > 0) {
-    return `+${diferencia}`;
-  }
-  return diferencia < 0 ? `−${Math.abs(diferencia)}` : '0';
-}
-
-function plural(n: number, uno: string, varios: string): string {
-  return `${n} ${n === 1 ? uno : varios}`;
-}
-
-function mayuscula(texto: string): string {
-  return texto.charAt(0).toLocaleUpperCase('es-AR') + texto.slice(1);
-}
-
-function minuscula(texto: string): string {
-  return texto.charAt(0).toLocaleLowerCase('es-AR') + texto.slice(1);
-}
+// ─── Textos (los formatos de fechas y números están en formato.ts) ───────────────────
 
 function clases(...nombres: (string | false | undefined)[]): string {
   return nombres.filter(Boolean).join(' ');
@@ -276,23 +202,6 @@ const ETAPAS_CKM: readonly string[] = [
   'Señales tempranas en el corazón o riñón',
   'Cuidado activo',
 ];
-
-const RIESGOS_PREVENT: readonly {
-  readonly clave: keyof PreventFirmado;
-  readonly nombre: string;
-  readonly detalle: string;
-}[] = [
-  { clave: 'ascvd10', nombre: 'ASCVD a 10 años', detalle: 'Infarto o ACV' },
-  { clave: 'hf10', nombre: 'IC a 10 años', detalle: 'Insuficiencia cardíaca' },
-  { clave: 'total30', nombre: 'ECV total a 30 años', detalle: 'Enfermedad cardiovascular total' },
-];
-
-const BANDA_PREVENT: Readonly<Record<PreventBanda, string>> = {
-  bajo: 'Riesgo bajo',
-  limite: 'Riesgo límite',
-  intermedio: 'Riesgo intermedio',
-  alto: 'Riesgo alto',
-};
 
 /**
  * El hábito con más margen: el de menor puntaje, solo si hay al menos 2 con dato (con uno solo no
@@ -1009,197 +918,107 @@ function LecturaCkm({ ckm }: { readonly ckm: EstadioCkmHome | undefined }): JSX.
 }
 
 /**
- * PREVENT: el del informe firmado de la Segunda Opinión, si lo hay; si no, la estimación con
- * sus datos (la misma que muestra la Home clásica), rotulada como estimación sin revisión
- * médica; si no alcanzan los datos, qué falta. Abajo, qué hacer con eso (AccionesPrevent).
+ * PREVENT, dibujado desde el modelo compartido con la Home D (prevent.ts): el del informe de la
+ * Segunda Opinión («firmado» solo con la firma médica registrada; si no, preparado con IA), si
+ * no la estimación con sus datos, rotulada como estimación sin revisión médica, y si no
+ * alcanzan los datos, qué falta. Abajo, qué hacer con eso (AccionesPrevent).
  */
 function LecturaPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
-  const { prevent: delInforme, preventEstimado: estimado } = datos;
-  // «Firmado» solo con la firma médica registrada; si no, es el cálculo del informe preparado con IA.
-  const firmado = delInforme !== undefined && (datos.segundaOpinion?.firmada ?? false);
-  const fechaInforme = delInforme?.fecha ? fechaCorta(delInforme.fecha, datos.hoy) : undefined;
-  const valores: PreventFirmado | undefined = delInforme ?? estimado;
+  const modelo = preventDe(datos, { producto: MARCA.producto });
+  const firmado = modelo.procedencia === 'firmado';
   return (
     <article aria-labelledby={ID.prevent} className={classes.tarjeta}>
       <div className={classes.tarjetaCabecera}>
-        <p className={classes.etiquetaTarjeta}>PREVENT · AHA 2023</p>
+        <p className={classes.etiquetaTarjeta}>{modelo.etiqueta}</p>
         <h3 id={ID.prevent} className={classes.tituloTarjeta}>
-          Tu riesgo cardiovascular
+          {modelo.titulo}
         </h3>
       </div>
-      {firmado && (
-        <p className={classes.texto}>
-          Del informe firmado por tu equipo médico{fechaInforme ? ` el ${fechaInforme}` : ''}.
-        </p>
-      )}
-      {delInforme && !firmado && (
-        <>
-          <p className={classes.chipEstimado}>Del informe de tu {MARCA.producto} · preparado con IA</p>
-          <p className={classes.texto}>
-            Lo calculamos con la fórmula PREVENT de la AHA para tu informe{fechaInforme ? ` del ${fechaInforme}` : ''}.
-            Es orientativo: no es un diagnóstico.
-          </p>
-        </>
-      )}
-      {!delInforme && estimado && (
-        <>
-          <p className={classes.chipEstimado}>Estimado con tus datos · sin revisión médica</p>
-          <p className={classes.texto}>
-            Lo calculamos con la fórmula PREVENT de la AHA. Es orientativo: no es un diagnóstico.
-          </p>
-        </>
-      )}
-      {!valores && (
-        <p className={classes.texto}>
-          <strong>Todavía no podemos estimar tu riesgo.</strong>{' '}
-          {datos.preventFaltantes?.length
-            ? `Para calcularlo nos falta: ${datos.preventFaltantes.join(', ')}.`
-            : 'Nos faltan algunos datos de tu laboratorio.'}
-        </p>
-      )}
-      {valores && (
-        <ul className={clases(classes.riesgos)}>
-          {RIESGOS_PREVENT.map(({ clave, nombre, detalle }) => {
-            const valor = valores[clave];
-            const conValor = typeof valor === 'number' && Number.isFinite(valor);
-            const banda = conValor && clave === 'ascvd10' ? bandaAscvd(valor * 100) : undefined;
-            return (
-              <li key={clave} className={clases(classes.riesgo, firmado && classes.riesgoFirmado)}>
-                <span className={classes.riesgoNombre}>
-                  <span>{nombre}</span> <span>{detalle}</span>
+      {modelo.chip && <p className={classes.chipEstimado}>{modelo.chip}</p>}
+      <p className={classes.texto}>
+        {modelo.destacado && (
+          <>
+            <strong>{modelo.destacado}</strong>{' '}
+          </>
+        )}
+        {modelo.texto}
+      </p>
+      {modelo.riesgos.length > 0 && (
+        <ul className={classes.riesgos}>
+          {modelo.riesgos.map((riesgo) => (
+            <li key={riesgo.clave} className={clases(classes.riesgo, firmado && classes.riesgoFirmado)}>
+              <span className={classes.riesgoNombre}>
+                <span>{riesgo.nombre}</span> <span>{riesgo.detalle}</span>
+              </span>
+              {riesgo.porcentaje ? (
+                <span className={classes.riesgoValor}>
+                  <span className={classes.riesgoPorcentaje}>{riesgo.porcentaje}</span>
+                  {riesgo.banda && (
+                    <span className={classes.riesgoBanda} data-banda={riesgo.banda}>
+                      {riesgo.textoBanda}
+                    </span>
+                  )}
                 </span>
-                {conValor ? (
-                  <span className={classes.riesgoValor}>
-                    <span className={classes.riesgoPorcentaje}>{porcentaje(valor)}</span>
-                    {banda && (
-                      <span className={classes.riesgoBanda} data-banda={banda}>
-                        {BANDA_PREVENT[banda]}
-                      </span>
-                    )}
-                  </span>
-                ) : (
-                  <span className={classes.riesgoPendiente}>Sin dato</span>
-                )}
-              </li>
-            );
-          })}
+              ) : (
+                <span className={classes.riesgoPendiente}>Sin dato</span>
+              )}
+            </li>
+          ))}
         </ul>
       )}
-      {!delInforme && estimado && estimado.faltantes.length > 0 && (
-        <p className={classes.nota}>Para afinarlo nos falta: {estimado.faltantes.join(', ')}.</p>
-      )}
-      <AccionesPrevent datos={datos} />
+      {modelo.notaFaltantes && <p className={classes.nota}>{modelo.notaFaltantes}</p>}
+      <AccionesPrevent modelo={modelo} />
     </article>
   );
 }
 
 /**
- * Qué hacer con el PREVENT, según de dónde sale:
- * - firmado: ver el informe y, si no tiene turno, revisarlo en una teleconsulta;
- * - estimado: es un cálculo automático, que se revisa con un médico: en una teleconsulta (o en
- *   el turno que ya tiene) y con la Segunda Opinión, que trae el riesgo revisado y firmado;
- * - sin datos: mandar el laboratorio en PDF o cargar sus datos.
+ * Qué hacer con el PREVENT (las reglas están en prevent.ts). Un cálculo automático lleva el
+ * recuadro «Es un cálculo automático» con sus acciones adentro; el resto, un pie con links.
  */
-function AccionesPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
-  const { prevent: delInforme, preventEstimado: estimado, segundaOpinion: som, proximoTurno: turno } = datos;
-  const enAnalisis = som?.estado === 'en-analisis';
-  const ofrecer = puedeOfrecerTeleconsulta(datos);
-  const traeElRiesgo = <p className={classes.nota}>Tu {MARCA.producto} va a traer tu riesgo en su informe.</p>;
-
-  if (delInforme) {
-    return (
-      <div className={classes.preventPie}>
-        <Anchor component={Link} to={RUTA_MI_SEGUNDA_OPINION} underline="always" className={classes.link}>
-          Ver mi informe
-          <Flecha tamano={18} />
-        </Anchor>
-        {ofrecer && (
-          <Anchor component={Link} to={RUTA_RESERVAR_TELECONSULTA} underline="always" className={classes.link}>
-            Revisarlo en una teleconsulta
-          </Anchor>
-        )}
-      </div>
-    );
+function AccionesPrevent({ modelo }: { readonly modelo: ModeloPrevent }): JSX.Element {
+  const acciones = modelo.acciones.map((accion) => <AccionDePrevent key={accion.texto} accion={accion} />);
+  if (!modelo.recuadro) {
+    return <div className={classes.preventPie}>{acciones}</div>;
   }
-
-  if (estimado) {
-    let segundaOpinion: JSX.Element;
-    if (enAnalisis) {
-      segundaOpinion = (
-        <>
-          {traeElRiesgo}
-          <Anchor component={Link} to={RUTA_MI_SEGUNDA_OPINION} underline="always" className={classes.link}>
-            Ver mi {MARCA.producto}
-          </Anchor>
-        </>
-      );
-    } else if (pidioSegundaOpinion(datos)) {
-      segundaOpinion = (
-        <Anchor component={Link} to={RUTA_MI_SEGUNDA_OPINION} underline="always" className={classes.link}>
-          Ver mi {MARCA.producto}
-        </Anchor>
-      );
-    } else {
-      segundaOpinion = (
-        <Anchor component={Link} to={RUTA_SOLICITAR_SEGUNDA_OPINION} underline="always" className={classes.link}>
-          Pedir mi {MARCA.producto}: un informe de tu caso y tu riesgo
-        </Anchor>
-      );
-    }
-    let teleconsulta: JSX.Element | undefined;
-    if (turno) {
-      teleconsulta = <TurnoReservado turno={turno} frase="Podés llevarlo a" />;
-    } else if (ofrecer) {
-      teleconsulta = (
-        <UnstyledButton component={Link} to={RUTA_RESERVAR_TELECONSULTA} className={classes.boton}>
-          Reservar mi teleconsulta
-          <Flecha />
-        </UnstyledButton>
-      );
-    } else if (!enAnalisis) {
-      // Ya tuvo una consulta después de sus datos: se lo deja a mano, sin empujar.
-      teleconsulta = (
-        <Anchor component={Link} to={RUTA_RESERVAR_TELECONSULTA} underline="always" className={classes.link}>
-          Reservar otra teleconsulta
-        </Anchor>
-      );
-    }
-    return (
-      <div className={classes.revisalo}>
-        <div className={classes.revisaloTexto}>
-          <p className={classes.revisaloTitulo}>Es un cálculo automático</p>
-          <p className={classes.texto}>Para saber qué significa para vos y qué hacer, revisalo con un médico.</p>
-        </div>
-        {teleconsulta}
-        {segundaOpinion}
-      </div>
-    );
-  }
-
   return (
-    <div className={classes.preventPie}>
-      {enAnalisis && traeElRiesgo}
-      <UnstyledButton component={Link} to={RUTA_ENVIAR_ESTUDIOS} className={classes.boton}>
-        Enviar mi laboratorio en PDF
-        <Flecha />
-      </UnstyledButton>
-      <Anchor component={Link} to={RUTA_DATOS_DE_SALUD} underline="always" className={classes.link}>
-        Cargar mis datos de salud
-      </Anchor>
+    <div className={classes.revisalo}>
+      <div className={classes.revisaloTexto}>
+        <p className={classes.revisaloTitulo}>{modelo.recuadro.titulo}</p>
+        <p className={classes.texto}>{modelo.recuadro.texto}</p>
+      </div>
+      {acciones}
     </div>
   );
 }
 
-/** «Lo revisan en tu turno del sábado 17 de octubre…» (zona clara). */
-function TurnoReservado({ turno, frase }: { readonly turno: ProximoTurno; readonly frase: string }): JSX.Element {
-  return (
-    <p className={classes.turnoClaro}>
-      <IconCalendarEvent size={20} stroke={1.75} aria-hidden="true" />
-      <span>
-        {frase} tu turno del {fechaHoraTurno(turno.inicio)}.
-      </span>
-    </p>
-  );
+/** Una acción de la tarjeta PREVENT en la zona clara: botón, link, nota o el turno reservado. */
+function AccionDePrevent({ accion }: { readonly accion: AccionPrevent }): JSX.Element {
+  switch (accion.tipo) {
+    case 'boton':
+      return (
+        <UnstyledButton component={Link} to={accion.href} className={classes.boton}>
+          {accion.texto}
+          <Flecha />
+        </UnstyledButton>
+      );
+    case 'link':
+      return (
+        <Anchor component={Link} to={accion.href} underline="always" className={classes.link}>
+          {accion.texto}
+          {accion.principal && <Flecha tamano={18} />}
+        </Anchor>
+      );
+    case 'nota':
+      return <p className={classes.nota}>{accion.texto}</p>;
+    case 'turno':
+      return (
+        <p className={classes.turnoClaro}>
+          <IconCalendarEvent size={20} stroke={1.75} aria-hidden="true" />
+          <span>{accion.texto}</span>
+        </p>
+      );
+  }
 }
 
 /**

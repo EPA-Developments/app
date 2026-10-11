@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Rutas del portal que usa la Home E (las que no exporta ya otro módulo).
+// Rutas del portal que usan las Homes E y D (las que no exporta ya otro módulo).
 
 export const RUTA_PLAN_BIENESTAR = '/care-plan/plan-100-dias';
 export const RUTA_TABLERO_LE8 = '/care-plan/plan-100-dias/tablero';

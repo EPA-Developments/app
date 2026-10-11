@@ -3,10 +3,10 @@
 //
 // Tipos compartidos de la Home por estilos (ver docs/home-propuestas.md).
 //
-// La Home tiene dos estilos según la paciente: el E («Vos en el centro»: la rosa de los 8
+// La Home tiene dos estilos según la persona: el E («Vos en el centro»: la rosa de los 8
 // hábitos rodeada por los anillos de los agentes de IA y del equipo médico) para mujeres de 45
-// a 55 años, y el D («Salidas y llegadas») para el resto. Mientras el D no esté construido,
-// el resto ve la Home clásica.
+// a 55 años, y el D («Salidas y llegadas»: el tablero de lo que mandó y lo que le vuelve, y la
+// ruta de ida y vuelta de sus datos) para el resto. Los dos usan los mismos datos (DatosHomeE).
 import type { CategoriaLe8, Le8Domain, PuntajeDominio, ResultadoLe8 } from '@epa/careplan-menopausia';
 import type { EquipoDeSalud } from '../../fhir/equipo';
 import type { PlanBienestar } from '../../fhir/bienestar';
@@ -206,3 +206,114 @@ export interface RosaLe8Props {
 }
 
 export type { CategoriaLe8, Le8Domain, PuntajeDominio, ResultadoLe8 };
+
+// ─── Estilo D («Salidas y llegadas») ─────────────────────────────────────────────────
+// La ve todo el que no ve el E: hombres, mujeres fuera de 45-55 y quien no cargó sexo o fecha
+// de nacimiento. Por eso sus textos son neutros (nada de «bienvenida», «inscripta», «lista»).
+
+/** Tema de la Home D: oscuro (el diseño aprobado) o su equivalente claro. */
+export type TemaHomeD = 'oscuro' | 'claro';
+
+/** Una fila del tablero es algo que mandó la persona (salida) o algo que le vuelve (llegada). */
+export type SentidoFila = 'salida' | 'llegada';
+
+/**
+ * Tono del estado de una fila (siempre acompaña a un texto, nunca solo color):
+ * `en-curso` (en proceso, en análisis, en camino), `listo` (procesado, registrado, listo),
+ * `atencion` (sin revisión médica, para leer), `demorado` y `neutro`.
+ */
+export type TonoEstado = 'en-curso' | 'listo' | 'atencion' | 'demorado' | 'neutro';
+
+/** Recurso FHIR del que sale cada fila (cada fila es un recurso real con su estado real). */
+export type RecursoFila =
+  | 'DocumentReference'
+  | 'DiagnosticReport'
+  | 'ServiceRequest'
+  | 'QuestionnaireResponse'
+  | 'Observation'
+  | 'Communication';
+
+/** Una fila del tablero «Salidas y llegadas de tus datos». */
+export interface FilaTablero {
+  /** Estable y único: `Tipo/id` del recurso (o `Tipo/id#llegada` si un recurso da dos filas). */
+  readonly id: string;
+  readonly sentido: SentidoFila;
+  readonly recurso: RecursoFila;
+  /** ISO del recurso (cuándo se mandó o llegó). Undefined para lo que todavía no llegó: «—». */
+  readonly fecha?: string;
+  /** meta.lastUpdated: si es posterior a la última visita, la fila «cambió» (Nuevo + paletas). */
+  readonly actualizada?: string;
+  /** Qué es, en palabras de la persona: «PDF de laboratorio», «Resultados de laboratorio». */
+  readonly que: string;
+  /** Origen → destino: «Tu app → Agente de laboratorio», «Llegada → Biomarcadores». */
+  readonly ruta: string;
+  /** Estado corto, en castellano normal (la pantalla lo pasa a mayúsculas): «Procesado: 14 valores». */
+  readonly estado: string;
+  readonly tono: TonoEstado;
+  /** Aclaración honesta debajo, si hace falta: «Estos valores los leyó un agente de IA de tu PDF…». */
+  readonly nota?: string;
+  /** El detalle en el portal (ruta real). Sin él, la fila no es un link (no se inventa un destino). */
+  readonly href?: string;
+}
+
+/** Lo que muestra el tablero. */
+export interface TableroHomeD {
+  /** true hasta que terminaron todas las consultas del tablero. */
+  readonly cargando: boolean;
+  /** Las filas, de la más nueva a la más vieja; las que todavía no llegaron (sin fecha), al final. */
+  readonly filas: readonly FilaTablero[];
+  /** Ids de las filas que cambiaron desde la última visita en este dispositivo. */
+  readonly nuevas: ReadonlySet<string>;
+  /** true si alguna consulta falló: el tablero lo dice en vez de mostrarse completo. */
+  readonly incompleto: boolean;
+}
+
+/** Estaciones de la ruta de ida y vuelta, en orden: la ida (5) y la vuelta (3). */
+export type ClaveEstacion = 'app' | 'historia' | 'consentimiento' | 'ia' | 'equipo' | 'informe' | 'avisos' | 'vos';
+
+/**
+ * `recorrida` (ya pasó por ahí), `activa` (está ahí ahora), `por-recorrer` y `cerrada` (el
+ * control de consentimiento sin firma: la línea se corta ahí).
+ */
+export type EstadoEstacion = 'recorrida' | 'activa' | 'por-recorrer' | 'cerrada';
+
+export interface EstacionRuta {
+  readonly clave: ClaveEstacion;
+  /** «Tu app», «Tu historia clínica», «Agentes de IA»… */
+  readonly nombre: string;
+  /** Debajo del nombre: «FHIR R4», «firmado el 8 de agosto», «ordenan y calculan»… */
+  readonly detalle?: string;
+  readonly estado: EstadoEstacion;
+}
+
+/** La ruta en U del hero: de tu app a tu equipo y de vuelta a vos. */
+export interface RutaHomeD {
+  /** «Tu {producto}, ida y vuelta» o «Tus datos, ida y vuelta». */
+  readonly titulo: string;
+  /** «Pedida el 28 de septiembre», «Laboratorio del 3 de octubre»… */
+  readonly subtitulo?: string;
+  /** Las 8, en el orden de ClaveEstacion. */
+  readonly estaciones: readonly EstacionRuta[];
+  /** Rótulo del tramo activo («En análisis · desde el 28 de septiembre»), si hay uno. */
+  readonly etiquetaActiva?: string;
+  /** true mientras algo está en curso (Segunda Opinión en análisis o PDF en proceso): pulso de luz. */
+  readonly enCurso: boolean;
+  /** Una frase que explica qué pasa ahora, sin prometer plazos ni revisiones que no hubo. */
+  readonly explicacion: string;
+  /** El control de consentimiento: su estado y su texto. */
+  readonly control: { readonly estado: EstadoConsentimiento; readonly texto: string };
+  /** El link de la tarjeta («Ver mi {producto}», «Pedir mi {producto}», «Firmar mi consentimiento»…). */
+  readonly accion?: { readonly texto: string; readonly href: string };
+}
+
+/** La «puerta» del hero: un solo próximo paso. */
+export interface PuertaHomeD {
+  /** «Tu próximo paso». */
+  readonly overline: string;
+  /** El H1, con el nombre si lo hay: «Jorge, tu equipo tiene tus datos. Hoy te queda un paso.» */
+  readonly titulo: string;
+  /** La bajada: qué hacer y por qué, en una o dos frases. */
+  readonly bajada: string;
+  /** La acción (de `paraHoy`): su `cta` y su `href` son el botón principal. */
+  readonly paso: ParaHoy;
+}
