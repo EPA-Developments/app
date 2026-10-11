@@ -37,8 +37,11 @@ export const INTAKE_QUESTIONNAIRE_URL = 'https://segundaopinionmedica.org/Questi
  */
 export const INGRESO_SALUD_MUJER = false;
 
-/** Sistema de los códigos de las opciones del grupo «Salud de la mujer». */
-export const INGRESO_SALUD_MUJER_SYSTEM = 'https://segundaopinionmedica.org/CodeSystem/intake-salud-mujer';
+/**
+ * Sistema de los códigos de las opciones del grupo «Salud de la mujer», bajo `…/fhir/CodeSystem/`
+ * como los demás CodeSystem del portal. Con el grupo apagado nunca se escribió con otro sistema.
+ */
+export const INGRESO_SALUD_MUJER_SYSTEM = 'https://segundaopinionmedica.org/fhir/CodeSystem/intake-salud-mujer';
 
 /**
  * Códigos de las opciones de `etapa-menstrual`. El texto de cada opción está a firmar; la
