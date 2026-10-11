@@ -17,6 +17,7 @@ import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
 import { EXT_AGENDA, V3_ACT_CODE } from '../../fhir/agenda';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM, CONSENT_VERSION_SYSTEM } from '../../fhir/consentimiento';
+import { CATEGORIA_LABORATORIO, DOCUMENTO_CATEGORY_SYSTEM } from '../../fhir/estudios';
 import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM } from '../../fhir/som';
 import { VERSION_CONSENTIMIENTO } from '../health-record/InformedConsent.data';
 import { INTAKE_QUESTIONNAIRE_URL } from '../intake.questionnaire';
@@ -27,6 +28,8 @@ import {
   cargasHomeE,
   estadioCkmHome,
   estadoConsentimiento,
+  estudiosEnviadosCompartidos,
+  estudioVigente,
   informeFirmado,
   laboratorioHome,
   preventEstimado,
@@ -188,6 +191,50 @@ describe('useDatosHomeE con el MockClient', () => {
     const patient = await paciente(medplum);
     await medplum.createResource(consentimiento(patient, '2020-01'));
     expect((await datosDe(medplum)).consentimiento).toBe('desactualizado');
+  });
+
+  test('un PDF cargado por error no es su último laboratorio (el tablero tampoco lo muestra)', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const pdf = (date: string, cambios: Partial<DocumentReference> = {}): DocumentReference => ({
+      resourceType: 'DocumentReference',
+      status: 'current',
+      subject: { reference: `Patient/${patient.id}` },
+      date,
+      category: [{ coding: [{ system: DOCUMENTO_CATEGORY_SYSTEM, code: CATEGORIA_LABORATORIO }] }],
+      content: [{ attachment: { contentType: 'application/pdf' } }],
+      ...cambios,
+    });
+    const informe = await medplum.createResource<DiagnosticReport>({
+      resourceType: 'DiagnosticReport',
+      status: 'final',
+      code: { text: 'Laboratorio' },
+      subject: { reference: `Patient/${patient.id}` },
+      result: [{ reference: 'Observation/a' }],
+    });
+    await medplum.createResource(
+      pdf('2026-10-01T12:00:00.000Z', { context: { related: [{ reference: `DiagnosticReport/${informe.id}` }] } })
+    );
+    // El más nuevo, sin procesar y marcado por error: no queda «en proceso» ni «demorado».
+    await medplum.createResource(pdf(new Date().toISOString(), { status: 'entered-in-error' }));
+    const { laboratorio } = await datosDe(medplum);
+    expect(laboratorio).toMatchObject({ estado: 'procesado', informeId: informe.id, valores: 1 });
+  });
+
+  test('los PDFs se piden una sola vez si otra carga ya los está pidiendo (sin respuestas viejas)', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const buscar = vi.spyOn(medplum, 'searchResources');
+    const [a, b] = await Promise.all([
+      estudiosEnviadosCompartidos(medplum, patient),
+      estudiosEnviadosCompartidos(medplum, patient),
+    ]);
+    expect(a).toBe(b);
+    const pdfs = (): number => buscar.mock.calls.filter(([tipo]) => tipo === 'DocumentReference').length;
+    expect(pdfs()).toBe(1);
+    // Terminada la consulta, la siguiente vuelve a pedir (nunca devuelve una respuesta vieja).
+    await estudiosEnviadosCompartidos(medplum, patient);
+    expect(pdfs()).toBe(2);
   });
 
   test('si una consulta falla, la Home sigue sin ese dato', async () => {
@@ -368,6 +415,13 @@ describe('cargasHomeE: cada fallo, sin ese dato', () => {
 });
 
 describe('traducciones para la Home', () => {
+  test('estudioVigente: uno cargado por error (o sin id) no es un envío', () => {
+    const doc: DocumentReference = { resourceType: 'DocumentReference', id: 'd1', status: 'current', content: [] };
+    expect(estudioVigente(doc)).toBe(true);
+    expect(estudioVigente({ ...doc, status: 'entered-in-error' })).toBe(false);
+    expect(estudioVigente({ ...doc, id: undefined })).toBe(false);
+  });
+
   test('estadoConsentimiento: falta, desactualizado o firmado', () => {
     const p: Patient = PACIENTE;
     expect(estadoConsentimiento(undefined)).toBe('falta');

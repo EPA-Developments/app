@@ -9,7 +9,11 @@
  *    del giro. Los rótulos de la ida alternan arriba y abajo de la línea: cada uno tiene el
  *    ancho de dos estaciones y entran aun en la columna angosta del hero a 62em.
  *  - Vertical (celular): la ida baja con sus rótulos a la izquierda y la vuelta sube con los
- *    suyos a la derecha; el giro abajo. A 320px los nombres más largos («Consentimiento») entran.
+ *    suyos a la derecha; el giro abajo. Las columnas no crecen con la letra del navegador (el
+ *    mínimo de la vuelta va en px) y a 320px la tarjeta y los rótulos ajustan sus rellenos para
+ *    que «Consentimiento» (113px) y «Novedades» (81px) entren enteros. Si con letra grande o más
+ *    espaciado un nombre no entra, parte dentro de la palabra (por la sílaba que marca
+ *    RutaIdaVuelta.tsx, o donde haga falta) en vez de salirse de la tarjeta.
  *
  * Contrastes medidos (oscuro / claro): --d-acento sobre --d-elevada 5,4 / 5,5; --d-atencion sobre
  * --d-elevada 7,6 / 5,3; --d-texto-2 sobre --d-fila 9,1 / 8,1; --d-borde (los puntos de lo que
@@ -69,8 +73,8 @@
 
 .dibujo[data-orientacion='vertical'] {
   grid-template-columns:
-    [ida-rotulo] minmax(0, 1fr) [ida-via] 24px [medio] 8px [vuelta-via] 24px
-    [vuelta-rotulo] minmax(5.5rem, 0.8fr);
+    [ida-rotulo] minmax(0, 1.33fr) [ida-via] 24px [medio] 8px [vuelta-via] 24px
+    [vuelta-rotulo] minmax(88px, 1fr);
   grid-template-rows: repeat(15, auto) [giro] 18px;
 }
 
@@ -219,6 +223,26 @@
   align-items: flex-start;
   padding-inline-start: 14px;
   text-align: start;
+}
+/* `anywhere` (y no `break-word`) baja el ancho mínimo: el nombre parte antes de desbordar. */
+.dibujo[data-orientacion='vertical'] .nombre,
+.dibujo[data-orientacion='vertical'] .detalle {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  -webkit-hyphens: manual;
+  hyphens: manual;
+}
+/* En la tarjeta más angosta (celular de 320px): menos relleno, y los rótulos más cerca de la vía. */
+@media (max-width: 22em) {
+  .tarjeta {
+    padding-inline: 10px;
+  }
+  .dibujo[data-orientacion='vertical'] .rotulo[data-tramo='ida'] {
+    padding-inline-end: 6px;
+  }
+  .dibujo[data-orientacion='vertical'] .rotulo[data-tramo='vuelta'] {
+    padding-inline-start: 8px;
+  }
 }
 
 /* ─── La vía (SVG) ──────────────────────────────────────────────────────────────────── */
@@ -454,8 +478,10 @@
 }
 
 /* El pulso de luz: solo con algo en curso. Cada media línea lo cruza en 500ms, una después de
- * la otra (el retraso va en línea), así parece una sola luz que recorre la ruta; después espera
- * hasta completar los 6s. data-recorrido dice de dónde a dónde cruza la pieza, en %. */
+ * la otra (el retraso va en línea), así parece una sola luz que recorre la ruta. Una sola
+ * pasada (como mucho 8 medias líneas: 4s) y se apaga: un movimiento en loop de más de 5s sin
+ * forma de pausarlo no cumple WCAG 2.2.2. data-recorrido dice de dónde a dónde cruza la pieza,
+ * en %; fuera de su medio segundo (antes y después), la pieza queda apagada (opacity 0). */
 .pulso {
   position: absolute;
   border-radius: 999px;
@@ -463,9 +489,9 @@
   box-shadow: 0 0 8px 2px var(--d-acento);
   opacity: 0;
   pointer-events: none;
-  animation-duration: 6s;
+  animation-duration: 500ms;
   animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  animation-iteration-count: 1;
 }
 .pulso[data-eje='x'] {
   top: calc(50% - 1.5px);
@@ -505,123 +531,83 @@
 }
 
 @keyframes pulso-x-0-50 {
-  0% {
+  from {
     left: 0%;
     opacity: 1;
   }
-  8.33% {
+  to {
     left: 50%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    left: 50%;
-    opacity: 0;
   }
 }
 @keyframes pulso-x-50-100 {
-  0% {
+  from {
     left: 50%;
     opacity: 1;
   }
-  8.33% {
+  to {
     left: 100%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    left: 100%;
-    opacity: 0;
   }
 }
 @keyframes pulso-x-100-50 {
-  0% {
+  from {
     left: 100%;
     opacity: 1;
   }
-  8.33% {
+  to {
     left: 50%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    left: 50%;
-    opacity: 0;
   }
 }
 @keyframes pulso-x-50-0 {
-  0% {
+  from {
     left: 50%;
     opacity: 1;
   }
-  8.33% {
+  to {
     left: 0%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    left: 0%;
-    opacity: 0;
   }
 }
 @keyframes pulso-y-0-50 {
-  0% {
+  from {
     top: 0%;
     opacity: 1;
   }
-  8.33% {
+  to {
     top: 50%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    top: 50%;
-    opacity: 0;
   }
 }
 @keyframes pulso-y-50-100 {
-  0% {
+  from {
     top: 50%;
     opacity: 1;
   }
-  8.33% {
+  to {
     top: 100%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    top: 100%;
-    opacity: 0;
   }
 }
 @keyframes pulso-y-100-50 {
-  0% {
+  from {
     top: 100%;
     opacity: 1;
   }
-  8.33% {
+  to {
     top: 50%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    top: 50%;
-    opacity: 0;
   }
 }
 @keyframes pulso-y-50-0 {
-  0% {
+  from {
     top: 50%;
     opacity: 1;
   }
-  8.33% {
+  to {
     top: 0%;
     opacity: 1;
-  }
-  8.34%,
-  100% {
-    top: 0%;
-    opacity: 0;
   }
 }
 
@@ -741,6 +727,13 @@
 .accion:focus-visible {
   outline: 3px solid var(--d-foco);
   outline-offset: 2px;
+}
+
+.notaAccion {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--d-texto-2);
 }
 
 /* Para lectores de pantalla: la lista de estaciones, fuera de la vista. */

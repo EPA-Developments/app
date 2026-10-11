@@ -76,7 +76,8 @@ export interface PreventFirmado {
 
 /**
  * PREVENT estimado en el portal con los datos de la paciente (la fórmula de la AHA, sin
- * revisión médica): lo que muestra hoy la Home clásica. Probabilidades 0-1, como el firmado.
+ * revisión médica): el mismo cálculo que mostraba la Home clásica; hoy lo muestran E y D con el
+ * modelo de prevent.ts. Probabilidades 0-1, como el firmado.
  */
 export interface PreventEstimado extends PreventFirmado {
   /** Datos que faltan o que limitan la estimación (en español, del vendor). */
@@ -247,7 +248,7 @@ export interface FilaTablero {
   readonly que: string;
   /** Origen → destino: «Tu app → Agente de laboratorio», «Llegada → Biomarcadores». */
   readonly ruta: string;
-  /** Estado corto, en castellano normal (la pantalla lo pasa a mayúsculas): «Procesado: 14 valores». */
+  /** Estado corto, en castellano normal (la pantalla lo pasa a mayúsculas): «Listo: 14 valores». */
   readonly estado: string;
   readonly tono: TonoEstado;
   /** Aclaración honesta debajo, si hace falta: «Estos valores los leyó un agente de IA de tu PDF…». */
@@ -302,18 +303,23 @@ export interface RutaHomeD {
   readonly explicacion: string;
   /** El control de consentimiento: su estado y su texto. */
   readonly control: { readonly estado: EstadoConsentimiento; readonly texto: string };
-  /** El link de la tarjeta («Ver mi {producto}», «Pedir mi {producto}», «Firmar mi consentimiento»…). */
-  readonly accion?: { readonly texto: string; readonly href: string };
+  /**
+   * El link de la tarjeta («Ver mi {producto}», «Reservar mi teleconsulta», «Firmar mi
+   * consentimiento»…) y, si hace falta, una aclaración debajo (qué tiene costo la teleconsulta).
+   */
+  readonly accion?: { readonly texto: string; readonly href: string; readonly nota?: string };
 }
 
 /** La «puerta» del hero: un solo próximo paso. */
 export interface PuertaHomeD {
   /** «Tu próximo paso». */
   readonly overline: string;
-  /** El H1, con el nombre si lo hay: «Jorge, tu equipo tiene tus datos. Hoy te queda un paso.» */
+  /** El H1, con el nombre si lo hay: «Jorge, hoy te queda un paso.» (nunca sugiere una revisión que no hubo). */
   readonly titulo: string;
   /** La bajada: qué hacer y por qué, en una o dos frases. */
   readonly bajada: string;
   /** La acción (de `paraHoy`): su `cta` y su `href` son el botón principal. */
   readonly paso: ParaHoy;
+  /** Una aclaración debajo del botón: qué tiene costo, si el botón lleva a reservar una teleconsulta. */
+  readonly nota?: string;
 }

@@ -51,15 +51,20 @@
   box-shadow: inset 0 0 0 1px var(--d-ruta);
 }
 
+/* En el celular la etiqueta parte en vez de cortarse (con la letra del navegador agrandada o
+   más espaciado, «Llegadas» no entra en un tercio de 288px): Mantine la deja en una línea. */
 .tablero .segmentoEtiqueta {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 4px 8px;
   font-size: 1rem;
   line-height: 1.375rem;
   font-weight: 500;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--d-texto-2);
 }
 
@@ -87,6 +92,11 @@
   .tablero .segmento {
     width: auto;
     min-width: 22rem;
+  }
+
+  .tablero .segmentoEtiqueta {
+    padding: 0 16px;
+    white-space: nowrap;
   }
 }
 
@@ -329,8 +339,12 @@ a.fila:focus-visible {
   gap: 2px 0;
 }
 
+/* Si una palabra no entra en la columna del estado (letra grande en un celular angosto), sus
+   paletas parten dentro de la columna en vez de montarse sobre la fecha. */
 .palabra {
   display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 /* En el celular, letras sueltas que giran (sin la placa): el estado entra en la fila. */

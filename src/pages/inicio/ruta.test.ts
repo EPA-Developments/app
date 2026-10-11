@@ -3,9 +3,11 @@
 import { LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
 import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
+import { NOTA_COSTO_TELECONSULTA } from './caminos';
 import {
   dibujoDe,
   EXPLICACION_EN_ANALISIS,
+  EXPLICACION_HABITOS_OTRA_CONSULTA,
   EXPLICACION_HABITOS_SIN_REVISION,
   EXPLICACION_NO_PACIENTE,
   EXPLICACION_PDF_DEMORADO,
@@ -18,7 +20,7 @@ import {
   TEXTO_CONTROL_NEUTRO,
   tramoEntre,
 } from './ruta';
-import { RUTA_MI_SEGUNDA_OPINION, RUTA_MIS_TURNOS, RUTA_RESERVAR_TELECONSULTA, RUTA_TABLERO_LE8 } from './rutas';
+import { RUTA_MI_SEGUNDA_OPINION, RUTA_MIS_TURNOS, RUTA_RESERVAR_TELECONSULTA } from './rutas';
 import type {
   ClaveEstacion,
   DatosHomeE,
@@ -248,7 +250,7 @@ describe('rutaDe: la Segunda Opinión', () => {
     expect(ruta.subtitulo).toBeUndefined();
   });
 
-  test('completada sin firma médica: todo recorrido, Vos activa y el informe «listo» (nunca «firmado»)', () => {
+  test('completada sin firma médica: todo recorrido, Vos activa, el informe «listo» (nunca «firmado») y el equipo sin firma', () => {
     const ruta = rutaDe(datos({ segundaOpinion: som('completada') }), OPCIONES);
     expect(estados(ruta)).toEqual({
       app: 'recorrida',
@@ -261,6 +263,8 @@ describe('rutaDe: la Segunda Opinión', () => {
       vos: 'activa',
     });
     expect(detalle(ruta, 'informe')).toBe('listo');
+    // El dibujo y la lista leída dicen lo mismo que la explicación: no hay firma médica registrada.
+    expect(detalle(ruta, 'equipo')).toBe('sin firma registrada');
     expect(ruta.accion).toEqual({ texto: 'Ver mi informe', href: RUTA_MI_SEGUNDA_OPINION });
     expect(ruta.enCurso).toBe(false);
     // Lo único «firmado» es el consentimiento.
@@ -271,6 +275,7 @@ describe('rutaDe: la Segunda Opinión', () => {
   test('completada con firma médica registrada: el informe «firmado»', () => {
     const ruta = rutaDe(datos({ segundaOpinion: som('completada', { firmada: true }) }), OPCIONES);
     expect(detalle(ruta, 'informe')).toBe('firmado');
+    expect(detalle(ruta, 'equipo')).toBeUndefined();
     expect(ruta.explicacion).toBe('Tu informe volvió con firma médica.');
   });
 
@@ -337,7 +342,12 @@ describe('rutaDe: el PDF de laboratorio', () => {
       'Un agente de IA leyó tus datos y te los devolvió. Falta una estación: revisarlos con un profesional de nuestro equipo.'
     );
     expect(ruta.explicacion).toBe(EXPLICACION_SIN_REVISION);
-    expect(ruta.accion).toEqual({ texto: 'Reservar mi teleconsulta', href: RUTA_RESERVAR_TELECONSULTA });
+    // La reserva avisa qué tiene costo, junto a la acción.
+    expect(ruta.accion).toEqual({
+      texto: 'Reservar mi teleconsulta',
+      href: RUTA_RESERVAR_TELECONSULTA,
+      nota: NOTA_COSTO_TELECONSULTA,
+    });
     expect(ruta.enCurso).toBe(false);
   });
 
@@ -398,9 +408,31 @@ describe('rutaDe: el PDF de laboratorio', () => {
     expect(ruta.accion?.href).toBe(RUTA_RESERVAR_TELECONSULTA);
   });
 
-  test('solo hábitos y una consulta: ver los resultados lleva a los 8 hábitos', () => {
-    const ruta = rutaDe(datos({ le8: le8(3), ultimaConsulta: { inicio: '2026-10-05T14:00:00.000Z' } }), OPCIONES);
-    expect(ruta.accion).toEqual({ texto: 'Ver mis resultados', href: RUTA_TABLERO_LE8 });
+  test('solo hábitos y una consulta: no se afirma que esa consulta los revisó (no hay fecha de los datos)', () => {
+    // Jorge tuvo una consulta el 10 de marzo y en octubre respondió sus cuestionarios.
+    const ruta = rutaDe(datos({ le8: le8(4), ultimaConsulta: { inicio: '2026-03-10T14:00:00.000Z' } }), OPCIONES);
+    expect(estados(ruta)).toMatchObject({ ia: 'recorrida', equipo: 'por-recorrer', informe: 'recorrida' });
+    expect(detalle(ruta, 'equipo')).toBe('en una teleconsulta');
+    expect(ruta.explicacion).toBe(EXPLICACION_HABITOS_OTRA_CONSULTA);
+    expect(ruta.explicacion).not.toMatch(/después|consulta del/i);
+    expect(ruta.estaciones.map((e) => e.detalle ?? '').join(' ')).not.toContain('en tu consulta');
+    expect(ruta.accion).toEqual({
+      texto: 'Reservar otra teleconsulta',
+      href: RUTA_RESERVAR_TELECONSULTA,
+      nota: NOTA_COSTO_TELECONSULTA,
+    });
+  });
+
+  test('un PDF leído sin fecha y una consulta: tampoco se dice «después»', () => {
+    const ruta = rutaDe(
+      datos({
+        laboratorio: { ...LAB_SIN_REVISAR, fecha: undefined },
+        ultimaConsulta: { inicio: '2026-10-05T14:00:00.000Z' },
+      }),
+      OPCIONES
+    );
+    expect(estados(ruta).equipo).toBe('por-recorrer');
+    expect(ruta.explicacion).not.toMatch(/después/i);
   });
 });
 

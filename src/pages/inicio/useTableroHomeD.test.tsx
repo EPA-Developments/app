@@ -16,13 +16,20 @@ import { MedplumProvider } from '@medplum/react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { JSX, ReactNode } from 'react';
 import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
+import { CATEGORIA_OBSERVACION_SYSTEM } from '../../fhir/biomarkers';
 import { CATEGORIA_LABORATORIO, DOCUMENTO_CATEGORY_SYSTEM } from '../../fhir/estudios';
 import { criteriaNotificaciones, NOTIFICACION_SYSTEM } from '../../fhir/notificaciones';
 import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM } from '../../fhir/som';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { MARCA } from '../../marca';
 import type { FilaTablero, TableroHomeD } from './tipos';
-import { claveVisita, guardarVisita, leerUltimaVisita, useTableroHomeD } from './useTableroHomeD';
+import {
+  claveVisita,
+  ESPERA_TIEMPO_REAL_MS,
+  guardarVisita,
+  leerUltimaVisita,
+  useTableroHomeD,
+} from './useTableroHomeD';
 
 const ESPERA = { timeout: 5000 };
 
@@ -296,6 +303,136 @@ describe('useTableroHomeD con el MockClient', () => {
     );
     expect(hook.result.current.nuevas.has(`DiagnosticReport/${informe.id}`)).toBe(true);
     expect(hook.result.current.filas.find((f) => f.id === `ServiceRequest/${pedido}`)?.estado).toBe('Completada');
+  });
+});
+
+describe('useTableroHomeD: lecturas honestas y livianas', () => {
+  test('los informes de todos los PDFs procesados llegan en una sola búsqueda (sin leerlos de a uno)', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const ids: string[] = [];
+    for (const dia of [1, 2, 3, 4]) {
+      const informe = await medplum.createResource<DiagnosticReport>({
+        resourceType: 'DiagnosticReport',
+        status: 'final',
+        code: { text: 'Laboratorio' },
+        subject: referencia(patient),
+        result: [{ reference: 'Observation/a' }],
+        // El más viejo (el 4.º), revisado por un médico.
+        ...(dia === 1 ? { resultsInterpreter: [{ reference: 'Practitioner/m1' }] } : {}),
+      });
+      ids.push(informe.id as string);
+      await medplum.createResource<DocumentReference>({
+        resourceType: 'DocumentReference',
+        status: 'current',
+        subject: referencia(patient),
+        date: `2026-10-0${dia}T12:00:00.000Z`,
+        category: [{ coding: [{ system: DOCUMENTO_CATEGORY_SYSTEM, code: CATEGORIA_LABORATORIO }] }],
+        content: [{ attachment: { contentType: 'application/pdf' } }],
+        context: { related: [{ reference: `DiagnosticReport/${informe.id}` }] },
+      });
+    }
+    const buscar = vi.spyOn(medplum, 'searchResources');
+    const leer = vi.spyOn(medplum, 'readResource');
+    const { result } = await montar(medplum);
+    expect(buscar.mock.calls.filter(([tipo]) => tipo === 'DiagnosticReport')).toHaveLength(1);
+    expect(leer.mock.calls.filter(([tipo]) => tipo === 'DiagnosticReport')).toHaveLength(0);
+    const viejo = result.current.filas.find((f) => f.id === `DiagnosticReport/${ids[0]}`);
+    // El 4.º PDF también trae su informe: revisado, sin la nota de «todavía no lo revisó un médico».
+    expect(viejo).toMatchObject({ estado: 'Listo: 1 valor', tono: 'listo' });
+    expect(viejo?.nota).toBeUndefined();
+  });
+
+  test('si no se pueden leer los informes: las llegadas no afirman nada de la revisión y el tablero avisa', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const ids = await cargarDatosDeJorge(medplum, patient);
+    const original = medplum.searchResources.bind(medplum);
+    vi.spyOn(medplum, 'searchResources').mockImplementation(((tipo: string, ...resto: unknown[]) =>
+      tipo === 'DiagnosticReport'
+        ? Promise.reject(new Error('sin conexión'))
+        : (original as (...a: unknown[]) => unknown)(tipo, ...resto)) as never);
+    const { result } = await montar(medplum);
+    expect(result.current.incompleto).toBe(true);
+    const llegada = result.current.filas.find((f) => f.id === `DiagnosticReport/${ids.informe}`);
+    expect(llegada).toMatchObject({ estado: 'Listo', tono: 'neutro' });
+    expect(llegada?.nota).toBeUndefined();
+  });
+
+  test('si no se puede leer el informe de la Segunda Opinión completada: «Listo» neutro, sin afirmar la firma', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const { pedido } = await cargarDatosDeJorge(medplum, patient);
+    const orden = await medplum.readResource('ServiceRequest', pedido as string);
+    await medplum.updateResource<ServiceRequest>({ ...orden, status: 'completed' });
+    const original = medplum.searchResources.bind(medplum);
+    vi.spyOn(medplum, 'searchResources').mockImplementation(((tipo: string, ...resto: unknown[]) =>
+      tipo === 'DiagnosticReport' && String(resto[0]).startsWith('based-on=')
+        ? Promise.reject(new Error('sin permiso'))
+        : (original as (...a: unknown[]) => unknown)(tipo, ...resto)) as never);
+    const { result } = await montar(medplum);
+    const llegada = result.current.filas.find((f) => f.que === `Informe de ${MARCA.producto}`);
+    expect(llegada).toMatchObject({ estado: 'Listo', tono: 'neutro' });
+    expect(llegada?.nota).toBeUndefined();
+    expect(result.current.incompleto).toBe(true);
+  });
+
+  test('el laboratorio cargado a mano es una salida; lo que leyó el bot de un PDF, no', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const laboratorio = (cambios: Partial<Observation>): Observation => ({
+      resourceType: 'Observation',
+      status: 'preliminary',
+      category: [{ coding: [{ system: CATEGORIA_OBSERVACION_SYSTEM, code: 'laboratory' }] }],
+      code: { coding: [{ system: 'http://loinc.org', code: '2093-3' }] },
+      subject: referencia(patient),
+      effectiveDateTime: '2026-09-15',
+      valueQuantity: { value: 190, unit: 'mg/dL' },
+      ...cambios,
+    });
+    const manual = await medplum.createResource(laboratorio({}));
+    await medplum.createResource(
+      laboratorio({ status: 'final', derivedFrom: [{ reference: 'DocumentReference/d1' }] })
+    );
+    const { result } = await montar(medplum);
+    expect(result.current.filas).toEqual([
+      expect.objectContaining({
+        id: `Observation/${manual.id}`,
+        que: 'Laboratorio cargado a mano',
+        href: '/health-record/biomarkers',
+      }),
+    ]);
+  });
+
+  test('en tiempo real, varios avisos seguidos («Leer todas») son una sola recarga', async () => {
+    vi.stubEnv('MEDPLUM_TIEMPO_REAL', 'true');
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    await cargarDatosDeJorge(medplum, patient);
+    const hook = await montar(medplum);
+    const buscar = vi.spyOn(medplum, 'searchResources');
+    const novedades = (): number => buscar.mock.calls.filter(([tipo]) => tipo === 'Communication').length;
+    const nueva = await medplum.createResource(novedad(patient, 'mensaje-nuevo'));
+    const evento: Bundle = { resourceType: 'Bundle', type: 'history', entry: [{ resource: nueva }] };
+    // Llegan de a uno (cada PATCH de «Leer todas» dispara su aviso), con un respiro entre uno y otro.
+    for (let i = 0; i < 6; i++) {
+      await act(async () => {
+        (medplum.getSubscriptionManager() as MockSubscriptionManager).emitEventForCriteria(
+          criteriaNotificaciones(`Patient/${patient.id}`),
+          { type: 'message', payload: evento }
+        );
+      });
+      await act(() => new Promise((r) => setTimeout(r, 40)));
+    }
+    await waitFor(
+      () => expect(hook.result.current.filas.some((f) => f.id === `Communication/${nueva.id}`)).toBe(true),
+      {
+        timeout: ESPERA_TIEMPO_REAL_MS + 4000,
+      }
+    );
+    // Una sola recarga, aunque llegaron seis avisos.
+    await new Promise((r) => setTimeout(r, ESPERA_TIEMPO_REAL_MS + 200));
+    expect(novedades()).toBe(1);
   });
 });
 

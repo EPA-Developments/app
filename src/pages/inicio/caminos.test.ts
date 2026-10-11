@@ -314,6 +314,14 @@ describe('caminosDe: los tres caminos, en orden', () => {
       );
     });
 
+    test('en análisis desde otro año: la fecha lleva el año (formato.ts, como el resto de la Home)', () => {
+      const d = datos({
+        hoy: '2026-01-05',
+        segundaOpinion: som('en-analisis', { pedida: '2025-12-28T13:00:00.000Z' }),
+      });
+      expect(camino(d, 'segunda-opinion').estado).toBe('En análisis desde el 28 de diciembre de 2025');
+    });
+
     test('en análisis sin fecha de pedido (o ilegible): solo la etiqueta', () => {
       for (const pedida of [undefined, 'no-es-fecha']) {
         const c = camino(datos({ segundaOpinion: som('en-analisis', { pedida }) }), 'segunda-opinion');
@@ -422,6 +430,13 @@ describe('la devolución: una vez revisados los datos, no se le vuelve a pedir q
     const tele = camino(d, 'teleconsulta');
     expect(tele.estado).toBe('Tu última consulta: 5 de octubre');
     expect(tele.cta).toBe('Reservar otra teleconsulta');
+    // Una consulta de otro año lleva el año.
+    const anterior = datos({
+      hoy: '2026-01-05',
+      laboratorio: { ...LAB_SIN_REVISAR, fecha: '2025-12-01T12:00:00.000Z' },
+    });
+    const conConsulta = { ...anterior, ultimaConsulta: { inicio: '2025-12-15T13:00:00.000Z' } };
+    expect(camino(conConsulta, 'teleconsulta').estado).toBe('Tu última consulta: 15 de diciembre de 2025');
   });
 
   test('con la Segunda Opinión en análisis: la devolución llega con su informe, no se empuja la teleconsulta', () => {

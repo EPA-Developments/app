@@ -74,6 +74,14 @@ const PESTANIA_VACIA: Record<Exclude<Pestania, 'todo'>, string> = {
 };
 
 export const TEXTO_INCOMPLETO = 'No pudimos traer todo tu recorrido. Probá de nuevo en un rato.';
+/** El tablero vacío de quien todavía no mandó nada. */
+export const TEXTO_VACIO = 'Todavía no mandaste nada. Tu ruta empieza en tu celular.';
+/**
+ * El tablero vacío de quien sí tiene datos (su puntaje de hábitos los usa) que el tablero no
+ * muestra como envíos: no se le dice que no mandó nada.
+ */
+export const TEXTO_VACIO_CON_DATOS =
+  'Tus datos ya están en tu historia clínica. Acá vas a ver lo próximo que mandes y lo que vuelva a vos.';
 
 function clases(...nombres: (string | false | undefined)[]): string {
   return nombres.filter(Boolean).join(' ');
@@ -86,9 +94,19 @@ export interface TableroSalidasLlegadasProps {
   readonly idTitulo: string;
   /** Hoy en Argentina, AAAA-MM-DD (para mostrar el año solo si no es el de hoy); por defecto, hoy. */
   readonly hoy?: string;
+  /**
+   * true si la persona ya tiene datos (`subioDatos`): con el tablero vacío, no se le dice que no
+   * mandó nada.
+   */
+  readonly conDatos?: boolean;
 }
 
-export function TableroSalidasLlegadas({ tablero, idTitulo, hoy }: TableroSalidasLlegadasProps): JSX.Element {
+export function TableroSalidasLlegadas({
+  tablero,
+  idTitulo,
+  hoy,
+  conDatos = false,
+}: TableroSalidasLlegadasProps): JSX.Element {
   // Se lee al primer render (no hay SSR): en escritorio se ven 6 filas desde el principio.
   const escritorio = useMediaQuery('(min-width: 62em)', undefined, { getInitialValueInEffect: false });
   const [pestania, setPestania] = useState<Pestania>('todo');
@@ -117,7 +135,7 @@ export function TableroSalidasLlegadas({ tablero, idTitulo, hoy }: TableroSalida
     contenido = <Esqueleto />;
   } else if (tablero.filas.length === 0) {
     // Si algo falló, no se afirma que no mandó nada.
-    contenido = tablero.incompleto ? <AvisoIncompleto /> : <Vacio />;
+    contenido = tablero.incompleto ? <AvisoIncompleto /> : <Vacio conDatos={conDatos} />;
   } else {
     contenido = (
       <>
@@ -132,7 +150,6 @@ export function TableroSalidasLlegadas({ tablero, idTitulo, hoy }: TableroSalida
             classNames={{
               root: classes.segmento,
               indicator: classes.segmentoIndicador,
-              control: classes.segmentoControl,
               input: classes.segmentoEntrada,
               label: classes.segmentoEtiqueta,
             }}
@@ -364,11 +381,11 @@ function Esqueleto(): JSX.Element {
   );
 }
 
-/** Nada mandado todavía: por dónde empezar. */
-function Vacio(): JSX.Element {
+/** Nada mandado todavía (o nada que el tablero muestre como envío): por dónde empezar. */
+function Vacio({ conDatos }: { readonly conDatos: boolean }): JSX.Element {
   return (
     <div className={classes.vacio}>
-      <p className={classes.vacioTexto}>Todavía no mandaste nada. Tu ruta empieza en tu celular.</p>
+      <p className={classes.vacioTexto}>{conDatos ? TEXTO_VACIO_CON_DATOS : TEXTO_VACIO}</p>
       <div className={classes.vacioAcciones}>
         <Link to={RUTA_ENVIAR_ESTUDIOS} className={classes.boton}>
           Enviar mi laboratorio en PDF

@@ -605,7 +605,8 @@ describe('HomePage elige la Home E', () => {
     // Cuando termina de cargar, «Para hoy» le pide el consentimiento (todavía no lo firmó).
     const hoy = screen.getByRole('region', { name: 'Para hoy' });
     expect(await within(hoy).findByText('Firmá tu consentimiento informado', {}, ESPERA)).toBeInTheDocument();
-    expect(screen.queryByText('Ver mi Plan Bienestar')).not.toBeInTheDocument();
+    // La otra Home (la D, con su tablero) no se monta.
+    expect(screen.queryByRole('heading', { name: 'Salidas y llegadas de tus datos' })).not.toBeInTheDocument();
     const fuentes = document.head.querySelectorAll('link#fuentes-home-e');
     expect(fuentes).toHaveLength(1);
     expect(fuentes[0]).toHaveAttribute('href', URL_FUENTES_HOME_E);

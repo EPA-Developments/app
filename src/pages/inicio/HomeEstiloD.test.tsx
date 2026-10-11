@@ -22,6 +22,7 @@ import { paraHoy } from './paraHoy';
 import { preventDe } from './prevent';
 import { puertaDe } from './puerta';
 import { rutaDe } from './ruta';
+import { TEXTO_VACIO, TEXTO_VACIO_CON_DATOS } from './TableroSalidasLlegadas';
 import {
   RUTA_MI_SEGUNDA_OPINION,
   RUTA_PLAN_BIENESTAR,
@@ -297,6 +298,23 @@ describe('VistaHomeD: la puerta para cada próximo paso', () => {
     expect(boton).toHaveAttribute('href', paso.href);
   });
 
+  test('el botón que reserva la teleconsulta dice ahí mismo qué tiene costo (y solo ese)', async () => {
+    await mostrar(jorge({ segundaOpinion: undefined }));
+    const region = puerta();
+    const [boton] = within(region).getAllByRole('link', { name: 'Reservar mi teleconsulta' });
+    expect(boton).toHaveAccessibleDescription(NOTA_COSTO_TELECONSULTA);
+    // La nota va justo después del botón (antes del ancla al tablero).
+    const nota = document.getElementById(boton.getAttribute('aria-describedby') ?? '');
+    expect(nota).toHaveTextContent(NOTA_COSTO_TELECONSULTA);
+    expect(boton.nextElementSibling).toBe(nota);
+  });
+
+  test('con otro próximo paso, el botón no lleva la nota del costo', async () => {
+    await mostrar(jorge());
+    const [boton] = within(puerta()).getAllByRole('link', { name: 'Hacerlo ahora' });
+    expect(boton).not.toHaveAttribute('aria-describedby');
+  });
+
   test('la bajada de un hábito sin dato no habla de pétalos', async () => {
     await mostrar(jorge({ plan: undefined, le8: le8([undefined, ...PUNTAJES_HOY.slice(1)], 64) }));
     expect(puerta()).not.toHaveTextContent(/pétalo/i);
@@ -514,8 +532,27 @@ describe('VistaHomeD: los tres instrumentos', () => {
     expect(hrefDe(`Pedir mi ${MARCA.producto}: un informe de tu caso y tu riesgo`, tarjeta)).toBe(
       RUTA_SOLICITAR_SEGUNDA_OPINION
     );
+    // Qué tiene costo, justo debajo del botón de la teleconsulta.
+    expect(reservar.nextElementSibling).toHaveTextContent(NOTA_COSTO_TELECONSULTA);
     expect(tarjeta).not.toHaveTextContent(/firmad/i);
     tieneLasAccionesDelModelo(datos, tarjeta);
+  });
+
+  test('PREVENT del informe: «Revisarlo en una teleconsulta» también avisa qué tiene costo', async () => {
+    const datos = jorge({
+      segundaOpinion: {
+        id: 'som-1',
+        estado: 'completada',
+        etiqueta: 'Completada',
+        pedida: '2026-08-20',
+        actualizada: '2026-08-30T12:00:00.000Z',
+        firmada: false,
+      },
+      prevent: { ascvd10: 0.082, hf10: 0.031, total30: 0.187 },
+    });
+    await mostrar(datos);
+    const revisar = within(tarjetaPrevent()).getByRole('link', { name: 'Revisarlo en una teleconsulta' });
+    expect(revisar.nextElementSibling).toHaveTextContent(NOTA_COSTO_TELECONSULTA);
   });
 
   test('PREVENT estimado con turno: se revisa en el turno y no ofrece reservar otro', async () => {
@@ -552,6 +589,22 @@ describe('VistaHomeD: los tres instrumentos', () => {
     expect(hrefDe('Enviar mi laboratorio en PDF', tarjeta)).toBe(RUTA_ENVIAR_ESTUDIOS);
     expect(hrefDe('Cargar mis datos de salud', tarjeta)).toBe(RUTA_DATOS_DE_SALUD);
     tieneLasAccionesDelModelo(datos, tarjeta);
+  });
+});
+
+describe('VistaHomeD: el tablero vacío', () => {
+  test('sin nada mandado: «Todavía no mandaste nada»', async () => {
+    await mostrar(jorge({ laboratorio: undefined, segundaOpinion: undefined, le8: le8(Array(8).fill(undefined)) }), {
+      tablero: TABLERO_VACIO,
+    });
+    expect(within(seccion('Salidas y llegadas de tus datos')).getByText(TEXTO_VACIO)).toBeInTheDocument();
+  });
+
+  test('con datos que el tablero no muestra como envíos: no se le dice que no mandó nada', async () => {
+    await mostrar(jorge({ laboratorio: undefined, segundaOpinion: undefined }), { tablero: TABLERO_VACIO });
+    const tablero = seccion('Salidas y llegadas de tus datos');
+    expect(within(tablero).getByText(TEXTO_VACIO_CON_DATOS)).toBeInTheDocument();
+    expect(within(tablero).queryByText(TEXTO_VACIO)).not.toBeInTheDocument();
   });
 });
 
@@ -677,29 +730,29 @@ describe('VistaHomeD: mientras carga y con un perfil que no es Patient', () => {
 });
 
 describe('VistaHomeD: el tema', () => {
-  test('el botón «Modo claro» es un interruptor con aria-pressed', async () => {
+  test('el tema se elige entre dos opciones a la vista: Oscuro y Claro', async () => {
     const alCambiarTema = vi.fn();
     await mostrar(jorge(), { alCambiarTema });
     expect(raiz()).toHaveAttribute('data-tema', 'oscuro');
-    const boton = screen.getByRole('button', { name: 'Modo claro' });
-    expect(boton).toHaveAttribute('aria-pressed', 'false');
-    fireEvent.click(boton);
+    const grupo = screen.getByRole('radiogroup', { name: 'Tema de la página' });
+    expect(within(grupo).getByRole('radio', { name: 'Oscuro' })).toBeChecked();
+    expect(within(grupo).getByRole('radio', { name: 'Claro' })).not.toBeChecked();
+    fireEvent.click(within(grupo).getByRole('radio', { name: 'Claro' }));
     expect(alCambiarTema).toHaveBeenCalledWith('claro');
   });
 
-  test('en claro está presionado y vuelve al oscuro', async () => {
+  test('en claro, la opción marcada es Claro y se vuelve al oscuro', async () => {
     const alCambiarTema = vi.fn();
     await mostrar(jorge(), { tema: 'claro', alCambiarTema });
     expect(raiz()).toHaveAttribute('data-tema', 'claro');
-    const boton = screen.getByRole('button', { name: 'Modo claro' });
-    expect(boton).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(boton);
+    expect(screen.getByRole('radio', { name: 'Claro' })).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', { name: 'Oscuro' }));
     expect(alCambiarTema).toHaveBeenCalledWith('oscuro');
   });
 
-  test('sin alCambiarTema (el visor de capturas), no hay botón', async () => {
+  test('sin alCambiarTema (el visor de capturas), no hay selector', async () => {
     await mostrar(jorge());
-    expect(screen.queryByRole('button', { name: 'Modo claro' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Tema de la página' })).not.toBeInTheDocument();
   });
 
   test('temaDe acepta claro y oscuro; cualquier otro valor no fuerza nada', () => {
@@ -721,12 +774,12 @@ describe('HomeEstiloD: el tema elegido, guardado y forzado', () => {
     });
   }
 
-  test('arranca en oscuro; el botón cambia a claro y lo guarda en este dispositivo', async () => {
+  test('arranca en oscuro; elegir Claro lo cambia y lo guarda en este dispositivo', async () => {
     await montar();
     expect(raiz()).toHaveAttribute('data-tema', 'oscuro');
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Modo claro' })));
+    await act(async () => fireEvent.click(screen.getByRole('radio', { name: 'Claro' })));
     expect(raiz()).toHaveAttribute('data-tema', 'claro');
-    expect(screen.getByRole('button', { name: 'Modo claro' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'Claro' })).toBeChecked();
     expect(window.localStorage.getItem(CLAVE_TEMA_HOME_D)).toBe('claro');
   });
 
@@ -736,7 +789,7 @@ describe('HomeEstiloD: el tema elegido, guardado y forzado', () => {
     expect(raiz()).toHaveAttribute('data-tema', 'claro');
   });
 
-  test('si el almacenamiento falla, el botón igual cambia el tema', async () => {
+  test('si el almacenamiento falla, el selector igual cambia el tema', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('bloqueado');
     });
@@ -745,7 +798,7 @@ describe('HomeEstiloD: el tema elegido, guardado y forzado', () => {
     });
     await montar();
     expect(raiz()).toHaveAttribute('data-tema', 'oscuro');
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Modo claro' })));
+    await act(async () => fireEvent.click(screen.getByRole('radio', { name: 'Claro' })));
     expect(raiz()).toHaveAttribute('data-tema', 'claro');
   });
 

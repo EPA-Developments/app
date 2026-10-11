@@ -13,13 +13,21 @@
 //     estado intermedio registrado), completada (vuelve el informe) u otro estado.
 //  4. Sin Segunda Opinión, el último PDF de laboratorio: en proceso o demorado.
 //  5. Datos que ya volvieron (PDF leído o hábitos cargados): si nadie del equipo los revisó, el
-//     dibujo lo muestra (la estación del equipo queda por recorrer) y propone la teleconsulta.
+//     dibujo lo muestra (la estación del equipo queda por recorrer) y propone la teleconsulta,
+//     avisando qué tiene costo. Una consulta cuenta como revisión solo si fue después del
+//     laboratorio: con solo hábitos no hay fecha con qué compararla.
 //  6. Sin datos: la ruta empieza en tu app.
 // Con el consentimiento desactualizado, el control queda activo (hay una versión nueva) y la
 // línea sigue según lo demás; mientras se consulta, no se cierra nada.
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
 import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
-import { devolucionDada, pidioSegundaOpinion, puedeOfrecerTeleconsulta, subioDatos } from './caminos';
+import {
+  devolucionDada,
+  NOTA_COSTO_TELECONSULTA,
+  pidioSegundaOpinion,
+  puedeOfrecerTeleconsulta,
+  subioDatos,
+} from './caminos';
 import { fechaCorta } from './formato';
 import { RUTA_MI_SEGUNDA_OPINION, RUTA_MIS_TURNOS, RUTA_RESERVAR_TELECONSULTA, RUTA_TABLERO_LE8 } from './rutas';
 import type {
@@ -31,6 +39,7 @@ import type {
   RutaHomeD,
   SegundaOpinionHome,
 } from './tipos';
+import { NOTA_PDF_DEMORADO } from './useDatosHomeE';
 
 /** Los resultados de laboratorio en la historia clínica (el detalle es `/{id del informe}`). */
 const RUTA_RESULTADOS_LABORATORIO = '/health-record/lab-results';
@@ -87,11 +96,16 @@ export const EXPLICACION_SIN_REVISION =
  */
 export const EXPLICACION_HABITOS_SIN_REVISION =
   'Tus datos volvieron a vos como puntajes calculados automáticamente. Falta una estación: revisarlos con un profesional de nuestro equipo.';
+/**
+ * Solo hábitos y una consulta que ya pasó: no hay fecha de los datos con qué compararla, así que
+ * no se afirma que esa consulta los revisó (ni que no): se deja a mano otra teleconsulta.
+ */
+export const EXPLICACION_HABITOS_OTRA_CONSULTA =
+  'Tus datos volvieron a vos como puntajes calculados automáticamente. Si querés revisarlos con un profesional de nuestro equipo, podés reservar otra teleconsulta.';
 export const EXPLICACION_PDF_EN_PROCESO =
   'Un agente de IA está leyendo tu PDF para pasar los valores a tus biomarcadores.';
-/** La misma frase que la Home E: el bot le escribe por Mensajes si no pudo leer el PDF. */
-export const EXPLICACION_PDF_DEMORADO =
-  'Tu PDF se está demorando. Lo estamos revisando. Si no pudimos leerlo, te escribimos por Mensajes.';
+/** La misma frase que la Home E (NOTA_PDF_DEMORADO): el bot le escribe por Mensajes si no pudo leer el PDF. */
+export const EXPLICACION_PDF_DEMORADO = `Tu PDF se está demorando. ${NOTA_PDF_DEMORADO}`;
 export const EXPLICACION_SIN_DATOS = 'Cuando mandes tu laboratorio o tus datos, vas a ver acá su recorrido.';
 export const EXPLICACION_NO_PACIENTE = 'Esta ruta muestra el recorrido de los datos de cada paciente.';
 
@@ -105,7 +119,7 @@ interface Recorrido {
   readonly etiquetaActiva?: string;
   readonly enCurso?: boolean;
   readonly explicacion: string;
-  readonly accion?: { readonly texto: string; readonly href: string };
+  readonly accion?: RutaHomeD['accion'];
 }
 
 /** Las claves dadas, todas con el mismo estado. */
@@ -115,7 +129,8 @@ function todas(claves: readonly ClaveEstacion[], estado: EstadoEstacion): Estado
 
 const HASTA_EL_CONTROL: readonly ClaveEstacion[] = ['app', 'historia', 'consentimiento'];
 
-function detalleConsentimiento(datos: DatosHomeE): string | undefined {
+/** «firmado el 8 de agosto», «falta tu firma» o «hay una versión nueva» (también lo usa «También en tu portal»). */
+export function detalleConsentimiento(datos: DatosHomeE): string | undefined {
   switch (datos.consentimiento) {
     case 'firmado': {
       const fecha = fechaCorta(datos.fechaConsentimiento, datos.hoy);
@@ -159,8 +174,9 @@ function conSegundaOpinion(datos: DatosHomeE, som: SegundaOpinionHome, producto:
   if (som.estado === 'completada') {
     return {
       estados: { ...todas(ORDEN_ESTACIONES, 'recorrida'), vos: 'activa' },
-      // «Firmado» solo con la firma médica registrada (ver SegundaOpinionHome.firmada).
-      detalles: { informe: som.firmada ? 'firmado' : 'listo' },
+      // «Firmado» solo con la firma médica registrada (ver SegundaOpinionHome.firmada). Sin ella,
+      // la estación del equipo lo dice (el dibujo y la lista leída dicen lo mismo que el texto).
+      detalles: som.firmada ? { informe: 'firmado' } : { equipo: 'sin firma registrada', informe: 'listo' },
       explicacion: som.firmada
         ? 'Tu informe volvió con firma médica.'
         : 'Tu informe está listo. Lo preparamos con IA y no tiene firma médica registrada: si te surgen dudas, revisalo con un profesional de nuestro equipo en una teleconsulta.',
@@ -199,12 +215,18 @@ function datosQueVolvieron(datos: DatosHomeE): Recorrido {
     };
   }
 
-  // Volvieron sin pasar por un médico: el equipo queda por recorrer (salvo que ya haya habido consulta).
+  // Volvieron sin pasar por un médico: el equipo queda por recorrer (salvo que ya haya habido
+  // una consulta DESPUÉS del laboratorio; con solo hábitos no hay fecha con qué compararla).
   const informe = pdfLeido ? 'leídos por IA' : 'calculados';
   const primera = pdfLeido
     ? 'Un agente de IA leyó tus datos y te los devolvió.'
     : 'Tus datos volvieron a vos como puntajes calculados automáticamente.';
-  if (devolucionDada(datos)) {
+  const reservar = {
+    texto: 'Reservar mi teleconsulta',
+    href: RUTA_RESERVAR_TELECONSULTA,
+    nota: NOTA_COSTO_TELECONSULTA,
+  };
+  if (pdfLeido && lab.fecha && devolucionDada(datos)) {
     const consulta = fechaCorta(datos.ultimaConsulta?.inicio, hoy);
     return {
       estados: { ...ida, equipo: 'recorrida', ...vuelta },
@@ -224,13 +246,19 @@ function datosQueVolvieron(datos: DatosHomeE): Recorrido {
         : { texto: 'Ver mis turnos', href: RUTA_MIS_TURNOS },
     };
   }
+  if (!pdfLeido && devolucionDada(datos)) {
+    return {
+      estados: { ...ida, ...vuelta },
+      detalles: { equipo: 'en una teleconsulta', informe },
+      explicacion: EXPLICACION_HABITOS_OTRA_CONSULTA,
+      accion: { ...reservar, texto: 'Reservar otra teleconsulta' },
+    };
+  }
   return {
     estados: { ...ida, ...vuelta },
     detalles: { equipo: 'en una teleconsulta', informe },
     explicacion: pdfLeido ? EXPLICACION_SIN_REVISION : EXPLICACION_HABITOS_SIN_REVISION,
-    accion: puedeOfrecerTeleconsulta(datos)
-      ? { texto: 'Reservar mi teleconsulta', href: RUTA_RESERVAR_TELECONSULTA }
-      : verResultados,
+    accion: puedeOfrecerTeleconsulta(datos) ? reservar : verResultados,
   };
 }
 

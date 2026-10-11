@@ -87,7 +87,7 @@ import type {
   PuntajeDominio,
   SegundaOpinionHome,
 } from './tipos';
-import { useDatosHomeE } from './useDatosHomeE';
+import { ETAPAS_CKM, NOTA_PDF_DEMORADO, useDatosHomeE } from './useDatosHomeE';
 
 const RUTA_CUESTIONARIOS = '/health-record/cuestionarios';
 const RUTA_BIOMARCADORES = '/health-record/biomarkers';
@@ -193,15 +193,6 @@ const FUENTE_HABITO: Readonly<Record<Le8Domain, string>> = {
   glucemia: 'Laboratorio',
   'presion-arterial': 'Tus signos vitales',
 };
-
-/** Las etapas CKM, de 0 a 4, como las lee la paciente. */
-const ETAPAS_CKM: readonly string[] = [
-  'Zona saludable',
-  'Primeras señales',
-  'Factores de riesgo activos',
-  'Señales tempranas en el corazón o riñón',
-  'Cuidado activo',
-];
 
 /**
  * El hábito con más margen: el de menor puntaje, solo si hay al menos 2 con dato (con uno solo no
@@ -534,7 +525,7 @@ function NovedadLaboratorio({
     nota = 'Un agente de IA leyó tu PDF y pasó los valores a tus biomarcadores.';
   } else if (demorado) {
     titulo = 'Tu PDF necesita una revisión';
-    nota = 'Lo estamos revisando. Si no pudimos leerlo, te escribimos por Mensajes.';
+    nota = NOTA_PDF_DEMORADO;
   }
   const fecha = fechaCorta(laboratorio.fecha, hoy);
   const resumen = [fecha ? `Laboratorio del ${fecha}` : 'Tu laboratorio'];

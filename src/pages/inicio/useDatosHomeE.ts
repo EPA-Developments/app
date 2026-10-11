@@ -7,7 +7,7 @@
 //  - LE8 (hoy y día 0) y el estadio CKM del plan: hook `useTableroLe8` del vendor.
 //  - El estadio CKM estimado con sus datos, si el plan no trae uno: hook `useCkm`.
 //  - PREVENT estimado con sus datos (sin revisión médica): hook `useRiesgoPrevent`, el mismo
-//    cálculo que muestra la Home clásica.
+//    cálculo que mostraba la Home clásica; hoy lo muestran E y D con el modelo de prevent.ts.
 //  - El resto, en un solo efecto con `Promise.allSettled`: el Plan Bienestar, la Segunda
 //    Opinión más reciente (y su PREVENT si está firmada), el último PDF de laboratorio, el
 //    equipo, las novedades sin leer, el consentimiento y el cuestionario de ingreso. Si una
@@ -16,7 +16,7 @@
 import type { CkmStage, EstadioCkm } from '@epa/careplan-menopausia';
 import { useCkm, useRiesgoPrevent, useTableroLe8 } from '@epa/plan-bienestar-react';
 import type { Ckm, RiesgoPrevent, TableroLe8Estado } from '@epa/plan-bienestar-react';
-import type { MedplumClient, ProfileResource } from '@medplum/core';
+import type { MedplumClient, ProfileResource, WithId } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type {
   Appointment,
@@ -57,6 +57,15 @@ import type {
 // ─── Traducciones puras ──────────────────────────────────────────────────────────────
 
 const ESTADIO_NUMERO: Record<EstadioCkm, EstadioCkmHome['estadio']> = { '0': 0, '1': 1, '2': 2, '3': 3, '4': 4 };
+
+/** Las etapas CKM, de 0 a 4, como las lee la persona (las mismas en las Homes E y D). */
+export const ETAPAS_CKM: readonly string[] = [
+  'Zona saludable',
+  'Primeras señales',
+  'Factores de riesgo activos',
+  'Señales tempranas en el corazón o riñón',
+  'Cuidado activo',
+];
 
 /** El estadio CKM de la Home: el del plan (lo registró el equipo) o, si no hay, el estimado. */
 export function estadioCkmHome(
@@ -153,6 +162,17 @@ export function laboratorioHome(
 /** Después de cuántas horas sin resultado un PDF de laboratorio se da por demorado. */
 export const HORAS_PARA_DEMORA = 24;
 
+/**
+ * Qué se le dice de un PDF demorado (las Homes E y D, y el tablero de D): el bot le escribe por
+ * Mensajes si no pudo leerlo.
+ */
+export const NOTA_PDF_DEMORADO = 'Lo estamos revisando. Si no pudimos leerlo, te escribimos por Mensajes.';
+
+/** Un PDF que cuenta (uno cargado por error no es un envío): el mismo criterio en la ruta, la puerta y el tablero. */
+export function estudioVigente(doc: DocumentReference): boolean {
+  return Boolean(doc.id) && doc.status !== 'entered-in-error';
+}
+
 // ─── Cargas ──────────────────────────────────────────────────────────────────────────
 
 interface SegundaOpinionYPrevent {
@@ -175,9 +195,39 @@ async function cargarSegundaOpinion(medplum: MedplumClient, patient: Patient): P
   };
 }
 
+/** Los pedidos en vuelo de `estudiosEnviadosCompartidos`, por cliente y por paciente. */
+const ESTUDIOS_EN_VUELO = new WeakMap<MedplumClient, Map<string, Promise<WithId<DocumentReference>[]>>>();
+
+/**
+ * Los PDFs enviados (`cargarEstudiosEnviados`, sin caché), compartiendo la consulta que ya esté
+ * en vuelo para la misma persona: al montar la Home D, sus datos (useDatosHomeE) y su tablero
+ * (useTableroHomeD) piden lo mismo a la vez y sale una sola consulta. Solo se comparte mientras
+ * la consulta no terminó: nunca devuelve una respuesta vieja.
+ */
+export function estudiosEnviadosCompartidos(
+  medplum: MedplumClient,
+  patient: Patient
+): Promise<WithId<DocumentReference>[]> {
+  const ref = getReferenceString(patient) ?? '';
+  let enVuelo = ESTUDIOS_EN_VUELO.get(medplum);
+  if (!enVuelo) {
+    enVuelo = new Map();
+    ESTUDIOS_EN_VUELO.set(medplum, enVuelo);
+  }
+  const pendiente = enVuelo.get(ref);
+  if (pendiente) {
+    return pendiente;
+  }
+  const delCliente = enVuelo;
+  const consulta = cargarEstudiosEnviados(medplum, patient).finally(() => delCliente.delete(ref));
+  delCliente.set(ref, consulta);
+  return consulta;
+}
+
 /** El último PDF de laboratorio; si ya está procesado, con el DiagnosticReport que creó el bot. */
 async function cargarLaboratorio(medplum: MedplumClient, patient: Patient): Promise<LaboratorioHome | undefined> {
-  const [ultimo] = await cargarEstudiosEnviados(medplum, patient);
+  // Uno cargado por error no cuenta (el tablero tampoco lo muestra).
+  const ultimo = (await estudiosEnviadosCompartidos(medplum, patient)).find(estudioVigente);
   if (!ultimo) {
     return undefined;
   }

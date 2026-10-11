@@ -5,11 +5,12 @@
 // que trae `useTableroHomeD` a las filas que se muestran. Cada fila es un recurso real con
 // su estado real (no se inventan pasos, fechas ni revisiones):
 //  - PDFs de laboratorio (DocumentReference): una salida por documento y, si el bot ya sumó
-//    su DiagnosticReport, una llegada con los valores que leyó (con o sin revisión médica).
+//    su DiagnosticReport, una llegada con los valores que leyó (con o sin revisión médica; si
+//    el informe no se pudo leer, no se afirma ni una cosa ni la otra).
 //  - La Segunda Opinión (ServiceRequest): una salida por pedido y la llegada del informe del
 //    más nuevo (en camino, listo o firmado: firmado solo con la firma médica registrada).
 //  - Los cuestionarios de hábitos y el de ingreso (QuestionnaireResponse).
-//  - Lo que se mide en casa (Observation), agrupado por día de Argentina.
+//  - Lo que se mide en casa y el laboratorio cargado a mano (Observation), por día de Argentina.
 //  - Las novedades (Communication), como llegadas.
 // Todo es puro y se prueba sin red (tablero.test.ts).
 import type {
@@ -37,19 +38,17 @@ import {
 } from './formato';
 import { RUTA_MI_SEGUNDA_OPINION } from './rutas';
 import type { FilaTablero, TableroHomeD, TonoEstado } from './tipos';
-import { informeFirmado, laboratorioHome } from './useDatosHomeE';
+import { estudioVigente, informeFirmado, laboratorioHome, NOTA_PDF_DEMORADO } from './useDatosHomeE';
+
+export { estudioVigente, NOTA_PDF_DEMORADO };
 
 // ─── Límites y textos ────────────────────────────────────────────────────────────────
 
-/** Cuántas filas muestra el tablero como mucho (las más nuevas). */
+/** Cuántas filas muestra el tablero como mucho (las más nuevas y lo que sigue en curso). */
 export const MAX_FILAS = 20;
-/** De cuántos PDFs procesados se lee el DiagnosticReport (los más nuevos); el resto dice «Listo». */
-export const MAX_INFORMES_LABORATORIO = 3;
 /** Cuántos pedidos de la Segunda Opinión entran (los más nuevos). */
 export const MAX_PEDIDOS_SOM = 5;
 
-/** La misma frase que la Home E para un PDF demorado (el bot le escribe si no pudo leerlo). */
-export const NOTA_PDF_DEMORADO = 'Lo estamos revisando. Si no pudimos leerlo, te escribimos por Mensajes.';
 /** Valores que leyó un agente de IA y que ningún médico revisó todavía. */
 export const NOTA_LABORATORIO_SIN_REVISION =
   'Estos valores los leyó un agente de IA de tu PDF. Todavía no los revisó un médico.';
@@ -64,6 +63,7 @@ export const NOTA_INFORME_SIN_FIRMA = 'Preparado con IA. Todavía no tiene la fi
 const RUTA_RESULTADOS_LABORATORIO = '/health-record/lab-results';
 const RUTA_RESPUESTAS = '/health-record/questionnaire-responses';
 const RUTA_SIGNOS_VITALES = '/health-record/vitals';
+const RUTA_BIOMARCADORES = '/health-record/biomarkers';
 
 // ─── Fechas (hora de Argentina) ──────────────────────────────────────────────────────
 
@@ -113,24 +113,23 @@ function enumerar(partes: readonly string[]): string {
 
 // ─── PDFs de laboratorio ─────────────────────────────────────────────────────────────
 
-/** Un PDF que cuenta (uno cargado por error no es un envío). */
-export function estudioVigente(doc: DocumentReference): boolean {
-  return Boolean(doc.id) && doc.status !== 'entered-in-error';
-}
-
-/** Los ids de los DiagnosticReport que vale la pena leer: los de los PDFs procesados más nuevos. */
+/**
+ * Los ids de los DiagnosticReport de todos los PDFs procesados (sin repetir): se traen en una
+ * sola búsqueda (useTableroHomeD), así ninguna llegada queda sin su informe por un tope.
+ */
 export function informesALeer(documentos: readonly DocumentReference[]): string[] {
-  return documentos
+  const ids = documentos
     .filter(estudioVigente)
     .map((doc) => estadoEstudio(doc))
-    .flatMap((estado) => (estado.estado === 'procesado' ? [estado.informeId] : []))
-    .slice(0, MAX_INFORMES_LABORATORIO);
+    .flatMap((estado) => (estado.estado === 'procesado' ? [estado.informeId] : []));
+  return [...new Set(ids)];
 }
 
 /**
  * Una salida por PDF («En proceso», «Demorado» o «Procesado», con la regla de demora de la Home
  * E) y, por cada PDF procesado, la llegada de sus valores. `informes` son los DiagnosticReport
- * que se pudieron leer, por id; sin el informe, la llegada dice «Listo» (sin cantidad).
+ * que se pudieron leer, por id. Sin el informe, la llegada dice «Listo» en tono neutro y sin
+ * nota: no se afirma que lo revisó un médico ni que no lo revisó (no se pudo leer).
  */
 export function filasDeEstudios(
   documentos: readonly DocumentReference[],
@@ -172,6 +171,12 @@ export function filasDeEstudios(
     if (lab.valores !== undefined) {
       estadoLlegada = lab.valores === 0 ? 'Listo: sin valores' : `Listo: ${plural(lab.valores, 'valor', 'valores')}`;
     }
+    // El mismo criterio que la Home E: sin `final` + `resultsInterpreter`, sin revisión médica.
+    // Sin el informe no se sabe: ni la nota ni el tono de «atención».
+    let tonoLlegada: TonoEstado = 'neutro';
+    if (informe) {
+      tonoLlegada = lab.revisionMedica ? 'listo' : 'atencion';
+    }
     filas.push({
       id: `DiagnosticReport/${estado.informeId}`,
       sentido: 'llegada',
@@ -182,9 +187,8 @@ export function filasDeEstudios(
       que: 'Resultados de laboratorio',
       ruta: 'Llegada → Biomarcadores',
       estado: estadoLlegada,
-      // El mismo criterio que la Home E: sin `final` + `resultsInterpreter`, sin revisión médica.
-      tono: lab.revisionMedica ? 'listo' : 'atencion',
-      ...(lab.revisionMedica ? {} : { nota: NOTA_LABORATORIO_SIN_REVISION }),
+      tono: tonoLlegada,
+      ...(tonoLlegada === 'atencion' ? { nota: NOTA_LABORATORIO_SIN_REVISION } : {}),
       href: `${RUTA_RESULTADOS_LABORATORIO}/${estado.informeId}`,
     });
   }
@@ -200,18 +204,24 @@ function tonoPedido(status: ServiceRequest['status']): TonoEstado {
   return status === 'completed' ? 'listo' : 'neutro';
 }
 
+/** Los pedidos que cuentan, del más nuevo al más viejo: uno cargado por error no es un pedido. */
+export function pedidosVigentes(pedidos: readonly ServiceRequest[]): ServiceRequest[] {
+  return pedidos.filter((p) => p.id && p.status !== 'entered-in-error').slice(0, MAX_PEDIDOS_SOM);
+}
+
 /**
  * Una salida por pedido (los MAX_PEDIDOS_SOM más nuevos, que llegan ordenados por fecha de
- * pedido) y la llegada del informe del más nuevo: «En camino» mientras está en análisis (sin
- * fecha ni plazo) y, completado, «Firmado» solo con la firma médica registrada; si no, «Listo».
- * `informe` es el DiagnosticReport del más nuevo, si está completado y se pudo leer.
+ * pedido; los cargados por error no van) y la llegada del informe del más nuevo: «En camino»
+ * mientras está en análisis (sin fecha ni plazo) y, completado, «Firmado» solo con la firma
+ * médica registrada; si no, «Listo». `informe` es el DiagnosticReport del más nuevo, si está
+ * completado y se pudo leer: sin él, «Listo» en tono neutro, sin afirmar nada de la firma.
  */
 export function filasDeSegundaOpinion(
   pedidos: readonly ServiceRequest[],
   informe: DiagnosticReport | undefined,
   producto: string
 ): FilaTablero[] {
-  const recientes = pedidos.filter((p) => p.id).slice(0, MAX_PEDIDOS_SOM);
+  const recientes = pedidosVigentes(pedidos);
   const filas: FilaTablero[] = recientes.map((p) => ({
     id: `ServiceRequest/${p.id}`,
     sentido: 'salida',
@@ -243,6 +253,10 @@ export function filasDeSegundaOpinion(
     });
   } else if (ultimo?.status === 'completed') {
     const firmado = informeFirmado(informe);
+    let tono: TonoEstado = 'neutro';
+    if (informe) {
+      tono = firmado ? 'listo' : 'atencion';
+    }
     filas.push({
       ...base,
       ...(informe?.id
@@ -251,8 +265,8 @@ export function filasDeSegundaOpinion(
       fecha: informe?.issued ?? informe?.meta?.lastUpdated ?? ultimo.meta?.lastUpdated,
       actualizada: informe?.meta?.lastUpdated ?? ultimo.meta?.lastUpdated,
       estado: firmado ? 'Firmado' : 'Listo',
-      tono: firmado ? 'listo' : 'atencion',
-      ...(firmado ? {} : { nota: NOTA_INFORME_SIN_FIRMA }),
+      tono,
+      ...(tono === 'atencion' ? { nota: NOTA_INFORME_SIN_FIRMA } : {}),
     });
   }
   return filas;
@@ -357,6 +371,11 @@ function masNueva(a: string | undefined, b: string | undefined): string | undefi
   return ma === undefined || mb > ma ? b : a;
 }
 
+/** Una medición o un valor que cuenta: no cargado por error ni cancelado, y medido por la persona. */
+function observacionVigente(o: Observation): boolean {
+  return Boolean(o.id) && o.status !== 'entered-in-error' && o.status !== 'cancelled' && laMidioLaPersona(o);
+}
+
 /** Una salida por día de Argentina con lo que se midió en casa ese día. */
 export function filasDeMediciones(observaciones: readonly Observation[]): FilaTablero[] {
   interface Dia {
@@ -367,7 +386,7 @@ export function filasDeMediciones(observaciones: readonly Observation[]): FilaTa
   }
   const dias = new Map<string, Dia>();
   for (const o of observaciones) {
-    if (!o.id || o.status === 'entered-in-error' || o.status === 'cancelled' || !laMidioLaPersona(o)) {
+    if (!o.id || !observacionVigente(o)) {
       continue;
     }
     const fecha = fechaObservacion(o);
@@ -400,6 +419,41 @@ export function filasDeMediciones(observaciones: readonly Observation[]): FilaTa
     estado: 'Registrado',
     tono: 'listo',
     href: RUTA_SIGNOS_VITALES,
+  }));
+}
+
+// ─── Laboratorio cargado a mano ──────────────────────────────────────────────────────
+
+/**
+ * El laboratorio que la persona cargó a mano («Tus datos de salud» o Biomarcadores): una salida
+ * por día de Argentina en que lo cargó (`meta.lastUpdated`; si no está, la fecha del estudio).
+ * Lo que leyó el bot de un PDF (`derivedFrom` el documento) no va: ya es la llegada de ese PDF.
+ */
+export function filasDeLaboratorioManual(observaciones: readonly Observation[]): FilaTablero[] {
+  const dias = new Map<string, { id: string; fecha: string; actualizada?: string }>();
+  for (const o of observaciones) {
+    const fecha = o.meta?.lastUpdated ?? fechaObservacion(o);
+    const dia = diaArgentinaDe(fecha);
+    if (!o.id || !observacionVigente(o) || (o.derivedFrom?.length ?? 0) > 0 || !fecha || !dia) {
+      continue;
+    }
+    const previo = dias.get(dia);
+    if (!previo || masNueva(previo.fecha, fecha) !== previo.fecha) {
+      // La fila lleva el id del valor cargado último ese día.
+      dias.set(dia, { id: o.id, fecha, actualizada: o.meta?.lastUpdated });
+    }
+  }
+  return [...dias.values()].map((d) => ({
+    id: `Observation/${d.id}`,
+    sentido: 'salida',
+    recurso: 'Observation',
+    fecha: d.fecha,
+    actualizada: d.actualizada,
+    que: 'Laboratorio cargado a mano',
+    ruta: 'Tu app → Tus biomarcadores',
+    estado: 'Registrado',
+    tono: 'listo',
+    href: RUTA_BIOMARCADORES,
   }));
 }
 
@@ -440,42 +494,60 @@ export function filasDeNovedades(novedades: readonly Communication[], idsFilas: 
 
 // ─── El tablero ──────────────────────────────────────────────────────────────────────
 
+/** Lo que sigue en marcha (en proceso, en análisis, en camino, demorado o sin fecha todavía). */
+function sigueEnCurso(fila: FilaTablero): boolean {
+  return fila.tono === 'en-curso' || fila.tono === 'demorado' || ms(fila.fecha) === undefined;
+}
+
 /**
  * De la más nueva a la más vieja; las que todavía no llegaron (sin fecha), al final. Con la
  * misma fecha, primero la llegada (vuelve después de salir) y después por id, para que el orden
- * sea estable. Como mucho `max`.
+ * sea estable. Como mucho `max`: lo que sigue en curso (un pedido en análisis y su informe en
+ * camino, un PDF en proceso o demorado) entra siempre, aunque haya muchas filas más nuevas; el
+ * resto del lugar es para las más nuevas.
  */
 export function ordenarFilas(filas: readonly FilaTablero[], max: number = MAX_FILAS): FilaTablero[] {
-  return [...filas]
-    .sort((a, b) => {
-      const [ma, mb] = [ms(a.fecha), ms(b.fecha)];
-      if (ma !== mb) {
-        if (ma === undefined) {
-          return 1;
-        }
-        if (mb === undefined) {
-          return -1;
-        }
-        return mb - ma;
+  const ordenadas = [...filas].sort((a, b) => {
+    const [ma, mb] = [ms(a.fecha), ms(b.fecha)];
+    if (ma !== mb) {
+      if (ma === undefined) {
+        return 1;
       }
-      if (a.sentido !== b.sentido) {
-        return a.sentido === 'llegada' ? -1 : 1;
+      if (mb === undefined) {
+        return -1;
       }
-      return a.id.localeCompare(b.id);
-    })
-    .slice(0, max);
+      return mb - ma;
+    }
+    if (a.sentido !== b.sentido) {
+      return a.sentido === 'llegada' ? -1 : 1;
+    }
+    return a.id.localeCompare(b.id);
+  });
+  const enCurso = new Set(ordenadas.filter(sigueEnCurso).slice(0, max));
+  let lugar = max - enCurso.size;
+  return ordenadas.filter((f) => {
+    if (enCurso.has(f)) {
+      return true;
+    }
+    lugar -= 1;
+    return lugar >= 0;
+  });
 }
 
 /** Lo que traen las cargas de los PDFs (con los informes que se pudieron leer, por id). */
 export interface EstudiosTablero {
   readonly documentos: readonly DocumentReference[];
   readonly informes: ReadonlyMap<string, DiagnosticReport>;
+  /** true si la búsqueda de los informes falló: el tablero avisa que no trajo todo. */
+  readonly incompleto?: boolean;
 }
 
 /** Los pedidos de la Segunda Opinión (del más nuevo al más viejo) y el informe del más nuevo. */
 export interface SegundaOpinionTablero {
   readonly pedidos: readonly ServiceRequest[];
   readonly informe?: DiagnosticReport;
+  /** true si no se pudo leer el informe del más nuevo (completado): el tablero avisa que no trajo todo. */
+  readonly incompleto?: boolean;
 }
 
 /** Cada consulta del tablero, tal como la deja `Promise.allSettled`. */
@@ -484,6 +556,8 @@ export interface FuentesTablero {
   readonly segundaOpinion: PromiseSettledResult<SegundaOpinionTablero>;
   readonly cuestionarios: PromiseSettledResult<readonly QuestionnaireResponse[]>;
   readonly mediciones: PromiseSettledResult<readonly Observation[]>;
+  /** El laboratorio cargado a mano; si no se pidió, el tablero no tiene esas filas. */
+  readonly laboratorioManual?: PromiseSettledResult<readonly Observation[]>;
   readonly novedades: PromiseSettledResult<readonly Communication[]>;
 }
 
@@ -514,12 +588,14 @@ export function filasTablero(fuentes: FuentesTablero, opciones: OpcionesTablero)
     ...(som ? filasDeSegundaOpinion(som.pedidos, som.informe, opciones.producto) : []),
     ...filasDeCuestionarios(valor(fuentes.cuestionarios) ?? []),
     ...filasDeMediciones(valor(fuentes.mediciones) ?? []),
+    ...filasDeLaboratorioManual((fuentes.laboratorioManual && valor(fuentes.laboratorioManual)) ?? []),
   ];
   const ids = new Set(filas.map((f) => f.id));
   filas.push(...filasDeNovedades(valor(fuentes.novedades) ?? [], ids));
+  const fallo = Object.values(fuentes).some((r: PromiseSettledResult<unknown> | undefined) => r?.status === 'rejected');
   return {
     filas: ordenarFilas(filas),
-    incompleto: Object.values(fuentes).some((r: PromiseSettledResult<unknown>) => r.status === 'rejected'),
+    incompleto: fallo || Boolean(estudios?.incompleto) || Boolean(som?.incompleto),
   };
 }
 
