@@ -194,6 +194,7 @@ un DocumentReference) dispare el bot.
 | CodeSystem | Código | Uso |
 |---|---|---|
 | `https://segundaopinionmedica.org/fhir/CodeSystem/documento` | `resultado-laboratorio` | `DocumentReference.category` del PDF de laboratorio. |
+| `https://segundaopinionmedica.org/fhir/CodeSystem/documento` | `adjunto-turno` | `DocumentReference.category` de un estudio adjunto a un turno (`context.related` → `Appointment/<id>`). **No** dispara a este bot: ver `../adjuntos-turno.md`. |
 | `https://segundaopinionmedica.org/fhir/CodeSystem/consentimiento` | `procesamiento-datos-salud` | `Consent.policyRule` (Ley 25.326). |
 
 ---

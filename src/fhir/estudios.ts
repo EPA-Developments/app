@@ -37,6 +37,10 @@ export const CONSENTIMIENTO_PROCESAMIENTO = 'procesamiento-datos-salud';
 export const TEXTO_AUTORIZACION = `Autorizo a ${MARCA.nombre} a procesar este documento, con apoyo de inteligencia artificial, e incorporar sus resultados a mi historia clínica. Sé que puedo revocar esta autorización cuando quiera.`;
 
 export const PDF = 'application/pdf';
+export const JPEG = 'image/jpeg';
+export const PNG = 'image/png';
+/** Los tipos que reconoce `detectarTipoArchivo` (por la firma del archivo). */
+export type TipoArchivo = typeof PDF | typeof JPEG | typeof PNG;
 export const MAX_MB = 15;
 const MAX_BYTES = MAX_MB * 1024 * 1024;
 /**
@@ -73,20 +77,56 @@ function leerComo<T extends ArrayBuffer | string>(blob: Blob, modo: 'buffer' | '
   });
 }
 
+const FIRMA_JPEG = [0xff, 0xd8, 0xff];
+const FIRMA_PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+function empiezaCon(bytes: Uint8Array, firma: readonly number[]): boolean {
+  return firma.every((b, i) => bytes[i] === b);
+}
+
 /**
- * Valida que el archivo sea un PDF enviable. Devuelve el mensaje para el paciente, o
- * undefined si está OK. Mira la firma `%PDF-` (en el primer KB, como dice la norma) y
- * no el `type`: en muchos celulares el selector de archivos no lo informa.
+ * El tipo del archivo según su firma, no según el `type`: en muchos celulares el selector
+ * de archivos no lo informa (o informa cualquier cosa). PDF: `%PDF-` en el primer KB, como
+ * dice la norma; JPEG: `FF D8 FF`; PNG: los 8 bytes de su firma. Undefined si no es ninguno.
  */
-export async function validarPdf(file: File): Promise<string | undefined> {
+export async function detectarTipoArchivo(file: Blob): Promise<TipoArchivo | undefined> {
+  const inicio = new Uint8Array(await leerComo<ArrayBuffer>(file.slice(0, 1024), 'buffer'));
+  if (String.fromCharCode(...inicio).includes('%PDF-')) {
+    return PDF;
+  }
+  if (empiezaCon(inicio, FIRMA_JPEG)) {
+    return JPEG;
+  }
+  if (empiezaCon(inicio, FIRMA_PNG)) {
+    return PNG;
+  }
+  return undefined;
+}
+
+/**
+ * El tamaño, para cualquier archivo que se manda: vacío o de más de `MAX_MB`, el mensaje
+ * para la persona; si está bien, undefined.
+ */
+export function validarTamano(file: Blob, que = 'el PDF'): string | undefined {
   if (file.size === 0) {
-    return 'El archivo está vacío. Elegí el PDF de nuevo.';
+    return `El archivo está vacío. Elegí ${que} de nuevo.`;
   }
   if (file.size > MAX_BYTES) {
     return `El archivo supera los ${MAX_MB} MB. Comprimilo o dividilo e intentá de nuevo.`;
   }
-  const inicio = new Uint8Array(await leerComo<ArrayBuffer>(file.slice(0, 1024), 'buffer'));
-  if (!String.fromCharCode(...inicio).includes('%PDF-')) {
+  return undefined;
+}
+
+/**
+ * Valida que el archivo sea un PDF enviable. Devuelve el mensaje para el paciente, o
+ * undefined si está OK. Mira la firma `%PDF-` (`detectarTipoArchivo`) y no el `type`.
+ */
+export async function validarPdf(file: File): Promise<string | undefined> {
+  const tamano = validarTamano(file);
+  if (tamano) {
+    return tamano;
+  }
+  if ((await detectarTipoArchivo(file)) !== PDF) {
     return 'El archivo no es un PDF. Subí el informe del laboratorio en PDF.';
   }
   return undefined;
@@ -97,16 +137,28 @@ function esProhibido(err: unknown): boolean {
 }
 
 /**
- * Sube el PDF como `Binary` y devuelve el Attachment. Si la AccessPolicy del server
- * todavía no deja crear el Binary, un PDF chico viaja embebido en el Attachment (así
- * el envío funciona desde ya); uno grande explica cómo seguir.
+ * El archivo no se puede mandar por el portal (hoy: demasiado grande para viajar embebido).
+ * Su `message` es para la persona: dice cómo seguir.
  */
-export async function subirPdf(medplum: MedplumClient, patient: Patient, file: File): Promise<Attachment> {
+export class ArchivoNoEnviable extends Error {}
+
+/**
+ * Sube el archivo como `Binary` (con el `contentType` ya detectado por su firma) y devuelve
+ * el Attachment. Si la AccessPolicy del server todavía no deja crear el Binary, un archivo
+ * chico viaja embebido en el Attachment (así el envío funciona desde ya); uno grande
+ * explica cómo seguir (`ArchivoNoEnviable`).
+ */
+export async function subirArchivo(
+  medplum: MedplumClient,
+  patient: Patient,
+  file: File,
+  contentType: TipoArchivo
+): Promise<Attachment> {
   const creation = new Date().toISOString();
   try {
     const attachment = await medplum.createAttachment({
       data: file,
-      contentType: PDF,
+      contentType,
       filename: file.name,
       securityContext: createReference(patient),
     });
@@ -116,20 +168,26 @@ export async function subirPdf(medplum: MedplumClient, patient: Patient, file: F
       throw err;
     }
     if (file.size > MAX_INLINE_BYTES) {
-      throw new Error(
-        `Por ahora podemos recibir PDFs de hasta ${Math.floor(MAX_INLINE_BYTES / 1024)} KB. Mandanos este por Mensajes y lo sumamos nosotros.`,
+      const que = contentType === PDF ? 'PDFs' : 'archivos';
+      throw new ArchivoNoEnviable(
+        `Por ahora podemos recibir ${que} de hasta ${Math.floor(MAX_INLINE_BYTES / 1024)} KB. Mandanos este por Mensajes y lo sumamos nosotros.`,
         { cause: err }
       );
     }
     const dataUrl = await leerComo<string>(file, 'dataUrl');
     return {
-      contentType: PDF,
+      contentType,
       title: file.name,
       size: file.size,
       creation,
       data: dataUrl.slice(dataUrl.indexOf(',') + 1),
     };
   }
+}
+
+/** Sube el PDF de laboratorio (`subirArchivo` con `application/pdf`). */
+export function subirPdf(medplum: MedplumClient, patient: Patient, file: File): Promise<Attachment> {
+  return subirArchivo(medplum, patient, file, PDF);
 }
 
 /** DocumentReference del informe de laboratorio (lo que dispara al bot). */

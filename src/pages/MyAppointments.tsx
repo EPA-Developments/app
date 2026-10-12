@@ -8,6 +8,9 @@
 // - Teleconsultas (v3-ActCode `VR`): Entrar a la videollamada, Pagar la seña y Cancelar
 //   (R-14). Esas acciones pasan por los bots de SOM `som-teleconsulta-*`; el portal nunca
 //   escribe el turno directo.
+// - Próximos (las dos modalidades): «Adjuntar estudios (N)», plegado, para que el profesional
+//   vea los estudios antes de la consulta. El vínculo vive en el DocumentReference, no en el
+//   turno (src/fhir/adjuntosTurno.ts).
 import { Alert, Badge, Button, Card, Group, Stack, Text } from '@mantine/core';
 import { formatDateTime, getReferenceString } from '@medplum/core';
 import type { Appointment, Patient } from '@medplum/fhirtypes';
@@ -16,6 +19,8 @@ import { IconCalendarEvent, IconCircleCheck, IconCreditCard } from '@tabler/icon
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { AccionesTeleconsulta } from '../components/teleconsulta/AccionesTeleconsulta';
+import { AdjuntosDelTurnoPlegables } from '../components/turnos/AdjuntosDelTurno';
+import { puedeAdjuntar } from '../fhir/adjuntosTurno';
 import { estadoReservaPortal, fmtHoraArg, modalidadesDe, type EstadoReservaPortal } from '../fhir/agenda';
 import { esTeleconsulta } from '../fhir/teleconsulta';
 import { ESTADOS_TURNO } from '../fhir/turnos';
@@ -50,7 +55,14 @@ function serviceLabel(appt: Appointment): string {
   );
 }
 
-function AppointmentCard({ appt, onCambio }: { appt: Appointment; onCambio?: (mensaje: string) => void }): JSX.Element {
+interface AppointmentCardProps {
+  readonly appt: Appointment;
+  /** Solo los próximos traen acciones (`onCambio`) y estudios adjuntos (`patient`). */
+  readonly onCambio?: (mensaje: string) => void;
+  readonly patient?: Patient;
+}
+
+function AppointmentCard({ appt, onCambio, patient }: AppointmentCardProps): JSX.Element {
   const modalidad = modalidadesDe(appt)[0];
   const reserva = estadoReservaPortal(appt);
   return (
@@ -72,7 +84,9 @@ function AppointmentCard({ appt, onCambio }: { appt: Appointment; onCambio?: (me
       {reserva?.estado === 'tentativo' && (
         <Group mt="sm" justify="space-between" wrap="wrap">
           <Text size="sm">
-            {reserva.expira ? `Te guardamos el horario hasta las ${fmtHoraArg.format(reserva.expira)} h.` : 'Falta pagar la seña.'}
+            {reserva.expira
+              ? `Te guardamos el horario hasta las ${fmtHoraArg.format(reserva.expira)} h.`
+              : 'Falta pagar la seña.'}
           </Text>
           {reserva.linkPago && (
             <Button
@@ -93,7 +107,14 @@ function AppointmentCard({ appt, onCambio }: { appt: Appointment; onCambio?: (me
           Se pasó la hora sin la seña: el horario se libera. Podés elegir otro.
         </Text>
       )}
-      {onCambio && appt.id && esTeleconsulta(appt) && <AccionesTeleconsulta appt={{ ...appt, id: appt.id }} onCambio={onCambio} />}
+      {onCambio && appt.id && esTeleconsulta(appt) && (
+        <AccionesTeleconsulta appt={{ ...appt, id: appt.id }} onCambio={onCambio} />
+      )}
+      {patient && appt.id && puedeAdjuntar(appt) && (
+        <Stack mt="sm">
+          <AdjuntosDelTurnoPlegables appointment={{ ...appt, id: appt.id }} patient={patient} nivel={3} />
+        </Stack>
+      )}
     </Card>
   );
 }
@@ -106,7 +127,9 @@ export function MyAppointments({ patient, version = 0 }: { patient: Patient; ver
 
   const cargar = useCallback(() => {
     medplum
-      .searchResources('Appointment', `patient=${getReferenceString(patient)}&_sort=-date&_count=100`, { cache: 'no-cache' })
+      .searchResources('Appointment', `patient=${getReferenceString(patient)}&_sort=-date&_count=100`, {
+        cache: 'no-cache',
+      })
       .then(setAppointments)
       .catch(showErrorNotification);
   }, [medplum, patient]);
@@ -146,7 +169,7 @@ export function MyAppointments({ patient, version = 0 }: { patient: Patient; ver
   const upcoming = appointments
     .filter(isUpcoming)
     .sort(porInicio)
-    .map((a) => <AppointmentCard key={a.id} appt={a} onCambio={alCambiar} />);
+    .map((a) => <AppointmentCard key={a.id} appt={a} onCambio={alCambiar} patient={patient} />);
   const past = appointments
     .filter((a) => !isUpcoming(a))
     .sort(porInicio)
