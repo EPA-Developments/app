@@ -20,7 +20,7 @@
 // Con el consentimiento desactualizado, el control queda activo (hay una versión nueva) y la
 // línea sigue según lo demás; mientras se consulta, no se cierra nada.
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
-import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
+import { RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import {
   devolucionDada,
   NOTA_COSTO_TELECONSULTA,

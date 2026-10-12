@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
-import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
+import { RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import { NOTA_COSTO_TELECONSULTA } from './caminos';
 import {
   dibujoDe,

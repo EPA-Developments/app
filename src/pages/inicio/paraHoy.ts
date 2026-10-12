@@ -17,7 +17,7 @@
 // MARCA.producto (`paraHoy(datos, { producto: MARCA.producto })`).
 import { LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
-import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
+import { RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import { RUTA_DATOS_DE_SALUD } from '../../fhir/datosDeSalud';
 import { diasEntre, hoyArgentina } from '../../fhir/glp1';
 import type { LE8QuestionnaireSlug } from '../../le8';

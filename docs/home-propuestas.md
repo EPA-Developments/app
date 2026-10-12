@@ -31,7 +31,10 @@ A, B, C y E y el escritorio de A.
   Home clásica) rotulada «Estimado con tus datos · sin revisión médica», con la teleconsulta y la Segunda Opinión
   como próximos pasos. Las reglas viven en un modelo que comparten E y D (`src/pages/inicio/prevent.ts`).
 - **La Home clásica ya no está**: la reemplazó el D. Su test «ninguna opción ofrece la Segunda Opinión» ya no mira
-  el Inicio (el camino 2 es pedirla); sigue para el menú inferior y la guía CKM.
+  el Inicio (el camino 2 es pedirla); sigue para el menú inferior y la guía CKM. Sus dos avisos (el consentimiento
+  firmado en una versión anterior y el cuestionario de ingreso sin responder) también se borraron: los dos pasos los
+  propone la puerta (`paraHoy`), y los tests del consentimiento en el Inicio miran la Home
+  (`src/pages/health-record/InformedConsent.test.tsx`).
 - **El estilo D** («Salidas y llegadas», `src/pages/inicio/HomeEstiloD.tsx`), en este orden: la puerta (un solo
   próximo paso, la tira de pase del Plan Bienestar y la ruta de ida y vuelta de sus datos, con el consentimiento
   como control), el tablero «Salidas y llegadas de tus datos», los tres caminos, sus tres instrumentos (LE8, CKM y
