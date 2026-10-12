@@ -464,7 +464,9 @@ describe('Estudios adjuntos al turno', () => {
     const zona = await seccion();
     await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar orden-vieja.pdf' })));
     const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
-    expect(within(dialogo).getByText(/el profesional ya no lo ve en su ficha/)).toBeInTheDocument();
+    // No promete que el profesional deja de verlo: el archivo no se borra (docs/adjuntos-turno.md).
+    expect(within(dialogo).getByText(/El archivo no se borra/)).toBeInTheDocument();
+    expect(within(dialogo).queryByText(/ya no lo ve/)).not.toBeInTheDocument();
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
 
     expect(await within(zona).findByText('Todavía no adjuntaste estudios a esta consulta.')).toBeInTheDocument();
@@ -559,7 +561,13 @@ describe('Estudios adjuntos al turno', () => {
     expect(boton).toHaveAttribute('aria-expanded', 'true');
     expect(panel).toBeVisible();
 
-    const zona = await within(tarjeta).findByRole('region', { name: 'Estudios para esta consulta' });
+    const zona = await within(tarjeta).findByRole('region', { name: /^Estudios para esta consulta/ });
+    // Con varios turnos en pantalla, el botón y la sección dicen de cuál son.
+    expect(boton).toHaveAccessibleDescription(/^Consulta de Cardiología, \d+ de \w+ de \d{4} a las \d{2}:\d{2}$/);
+    expect(zona).toHaveAccessibleName(/Consulta de Cardiología/);
+    // En el centro, el dashboard todavía no muestra los adjuntos antes: no se promete.
+    expect(within(zona).getByText(/Llevalos igual el día de la consulta/)).toBeInTheDocument();
+    expect(within(zona).queryByText(/lo ve el profesional/)).not.toBeInTheDocument();
     await within(zona).findByRole('button', { name: 'Subir un PDF o una foto' });
     await act(async () => elegirArchivo(zona, foto('orden-de-estudio.jpg')));
     expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
@@ -571,6 +579,144 @@ describe('Estudios adjuntos al turno', () => {
       context: { related: [{ reference: `Appointment/${presencial.id}` }] },
       content: [{ attachment: { contentType: 'image/jpeg', title: 'orden-de-estudio.jpg' } }],
     });
+    // Lo adjunto a un turno no aparece en el otro.
+    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(1);
+  });
+
+  test('en Mis turnos: elegir uno ya enviado crea la copia sin tocar el original, y no la duplica aunque toque dos veces', async () => {
+    const { medplum, presencial } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    const original = (await enviarLaboratorioPdf(medplum, patient, pdf('hemograma.pdf')))
+      .documento as WithId<DocumentReference>;
+    await renderEn(medplum, '/get-care');
+
+    const tarjeta = await screen.findByTestId(`turno-${presencial.id}`);
+    await act(async () => fireEvent.click(within(tarjeta).getByRole('button', { name: 'Adjuntar estudios' })));
+    const zona = await within(tarjeta).findByRole('region', { name: /^Estudios para esta consulta/ });
+    await act(async () =>
+      fireEvent.click(await within(zona).findByRole('button', { name: 'Elegir de los que ya mandaste' }))
+    );
+    const adjuntar = await within(zona).findByRole('button', { name: 'Adjuntar hemograma.pdf' });
+    // Dos toques seguidos (antes de que la pantalla llegue a deshabilitar el botón).
+    await act(async () => {
+      fireEvent.click(adjuntar);
+      fireEvent.click(adjuntar);
+    });
+    expect(await within(zona).findByText('Listo: «hemograma.pdf» quedó adjunto a esta consulta.')).toBeInTheDocument();
+    expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
+    expect(within(zona).getByText('Los estudios que mandaste ya están adjuntos a esta consulta.')).toBeInTheDocument();
+
+    const docs = await loQueVeElDashboard(medplum, presencial.id);
+    expect(docs).toHaveLength(1);
+    expect(docs[0].id).not.toBe(original.id);
+    expect(docs[0]).toMatchObject({
+      status: 'current',
+      category: [{ coding: [{ code: CATEGORIA_ADJUNTO_TURNO }] }],
+      context: { related: [{ reference: `Appointment/${presencial.id}` }] },
+      content: [{ attachment: { url: original.content[0].attachment.url, title: 'hemograma.pdf' } }],
+    });
+
+    // El original (lo que procesa el bot de laboratorio) sigue igual.
+    const releido = await medplum.readResource('DocumentReference', original.id);
+    expect(releido.meta?.versionId).toBe(original.meta?.versionId);
+    expect(releido.status).toBe('current');
+    expect(releido.context).toBeUndefined();
+    expect(releido.category?.[0].coding?.[0].code).toBe(CATEGORIA_LABORATORIO);
+  });
+
+  test('en Mis turnos: quitar lo saca de context.related, lo pasa a entered-in-error y baja el contador', async () => {
+    const { medplum, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    const quitar = (await adjuntarArchivo(medplum, patient, confirmada, pdf('orden-vieja.pdf')))
+      .documento as WithId<DocumentReference>;
+    const queda = (await adjuntarArchivo(medplum, patient, confirmada, foto('ecg.jpg')))
+      .documento as WithId<DocumentReference>;
+    await renderEn(medplum, '/get-care');
+
+    const tarjeta = await screen.findByTestId(`turno-${confirmada.id}`);
+    const boton = await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (2)' });
+    await act(async () => fireEvent.click(boton));
+    const zona = await within(tarjeta).findByRole('region', { name: /^Estudios para esta consulta/ });
+    await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar orden-vieja.pdf' })));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
+    await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
+
+    expect(await within(zona).findByText('Quitamos «orden-vieja.pdf» de esta consulta.')).toBeInTheDocument();
+    expect(within(zona).queryByRole('button', { name: 'Quitar orden-vieja.pdf' })).not.toBeInTheDocument();
+    expect(within(zona).getByRole('button', { name: 'Quitar ecg.jpg' })).toBeInTheDocument();
+    expect(within(tarjeta).getByRole('button', { name: 'Adjuntar estudios (1)' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+
+    const quitado = await medplum.readResource('DocumentReference', quitar.id);
+    expect(quitado.status).toBe('entered-in-error');
+    expect(quitado.context?.related).toBeUndefined();
+    expect((await loQueVeElDashboard(medplum, confirmada.id)).map((d) => d.id)).toEqual([queda.id]);
+
+    // Se vuelve a plegar: el panel queda oculto y el botón lo dice.
+    const plegar = within(tarjeta).getByRole('button', { name: 'Adjuntar estudios (1)' });
+    await act(async () => fireEvent.click(plegar));
+    expect(plegar).toHaveAttribute('aria-expanded', 'false');
+    expect(document.getElementById(plegar.getAttribute('aria-controls') as string)).not.toBeVisible();
+  });
+
+  test('si la sala se abre sola en medio de una subida, la subida sigue y su resultado se ve', async () => {
+    const { medplum, confirmada } = await escenario();
+    await firmarConsentimiento(medplum);
+    vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, url: JITSI });
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`, undefined, 20);
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Entrar a la videollamada' }));
+    });
+    expect(await screen.findByText('Ya estás en la sala de espera')).toBeInTheDocument();
+
+    // Una subida lenta, en la sala de espera.
+    const subirDeVerdad = medplum.createAttachment.bind(medplum);
+    let soltar = (): void => undefined;
+    const espera = new Promise<void>((r) => {
+      soltar = r;
+    });
+    type Subir = typeof medplum.createAttachment;
+    vi.spyOn(medplum, 'createAttachment').mockImplementation((async (...args: Parameters<Subir>) => {
+      await espera;
+      return subirDeVerdad(...args);
+    }) as Subir);
+    const zona = await seccion();
+    await within(zona).findByRole('button', { name: 'Subir un PDF o una foto' });
+    await act(async () => elegirArchivo(zona, pdf('eco-doppler.pdf')));
+
+    // Entra el médico: la videollamada se abre y los estudios se pliegan…
+    await act(async () => {
+      await medplum.updateResource<Appointment>({ ...confirmada, status: 'checked-in' });
+    });
+    expect(await screen.findByTitle('Videollamada', {}, { timeout: 2000 })).toBeInTheDocument();
+    const plegado = screen.getByRole('button', { name: /^Adjuntar estudios/ });
+    expect(plegado).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('status')).toHaveTextContent('Subiendo «eco-doppler.pdf»…');
+
+    // …pero la subida no se pierde: termina, el contador sube y el «Listo» se ve junto al botón.
+    await act(async () => soltar());
+    expect(await screen.findByRole('button', { name: 'Adjuntar estudios (1)' })).toBe(plegado);
+    expect(screen.getByRole('status')).toHaveTextContent('Listo: «eco-doppler.pdf» quedó adjunto a esta consulta.');
+    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(1);
+  });
+
+  test('en Mis turnos: una reserva vencida sin la seña no ofrece adjuntar', async () => {
+    const { medplum, tentativa } = await escenario();
+    await firmarConsentimiento(medplum);
+    await medplum.updateResource<Appointment>({
+      ...tentativa,
+      extension: [
+        ...(tentativa.extension ?? []),
+        { url: EXT_AGENDA.reservaExpira, valueDateTime: new Date(Date.now() - 3_600_000).toISOString() },
+      ],
+    });
+    await renderEn(medplum, '/get-care');
+
+    const tarjeta = await screen.findByTestId(`turno-${tentativa.id}`);
+    expect(within(tarjeta).getByText('Venció la reserva')).toBeInTheDocument();
+    expect(within(tarjeta).queryByRole('button', { name: /^Adjuntar estudios/ })).not.toBeInTheDocument();
   });
 });
 

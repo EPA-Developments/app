@@ -132,7 +132,8 @@ export async function validarPdf(file: File): Promise<string | undefined> {
   return undefined;
 }
 
-function esProhibido(err: unknown): boolean {
+/** ¿El server rechazó la escritura por permisos (p. ej. la AccessPolicy no deja crear el Binary)? */
+export function esProhibido(err: unknown): boolean {
   return err instanceof OperationOutcomeError && !!err.outcome.issue?.some((i) => i.code === 'forbidden');
 }
 
@@ -146,13 +147,16 @@ export class ArchivoNoEnviable extends Error {}
  * Sube el archivo como `Binary` (con el `contentType` ya detectado por su firma) y devuelve
  * el Attachment. Si la AccessPolicy del server todavía no deja crear el Binary, un archivo
  * chico viaja embebido en el Attachment (así el envío funciona desde ya); uno grande
- * explica cómo seguir (`ArchivoNoEnviable`).
+ * explica cómo seguir (`ArchivoNoEnviable`). Con `embeber: false` no hay plan B: el error
+ * del server se relanza (lo adjunto a un turno lo tiene que poder abrir el profesional, y el
+ * dashboard solo abre `attachment.url`).
  */
 export async function subirArchivo(
   medplum: MedplumClient,
   patient: Patient,
   file: File,
-  contentType: TipoArchivo
+  contentType: TipoArchivo,
+  opciones: { readonly embeber?: boolean } = {}
 ): Promise<Attachment> {
   const creation = new Date().toISOString();
   try {
@@ -164,7 +168,7 @@ export async function subirArchivo(
     });
     return { ...attachment, title: file.name, size: file.size, creation };
   } catch (err) {
-    if (!esProhibido(err)) {
+    if (!esProhibido(err) || opciones.embeber === false) {
       throw err;
     }
     if (file.size > MAX_INLINE_BYTES) {

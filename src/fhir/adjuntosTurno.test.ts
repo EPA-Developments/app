@@ -20,13 +20,18 @@ import {
   claveDeArchivo,
   cuandoEsElTurno,
   esAdjuntoDeTurno,
+  MENSAJE_EMBEBIDO,
+  MENSAJE_SIN_BINARIO,
   MENSAJE_SIN_CONSENTIMIENTO_ADJUNTO,
   MENSAJE_TIPO_NO_ADMITIDO,
   MENSAJE_TURNO_CERRADO,
+  porQueNoSeAdjunta,
   puedeAdjuntar,
   quitarAdjunto,
+  sePuedeElegir,
   validarAdjunto,
 } from './adjuntosTurno';
+import { EXT_AGENDA } from './agenda';
 import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM } from './consentimiento';
 import {
   cargarEstudiosEnviados,
@@ -178,6 +183,26 @@ describe('puedeAdjuntar', () => {
   test.each(['cancelled', 'noshow', 'entered-in-error', 'fulfilled'] as const)('no si el turno está %s', (status) => {
     expect(puedeAdjuntar({ status, start: '2026-10-20T15:00:00Z' }, ahora)).toBe(false);
   });
+
+  test('no si venció la reserva del portal sin la seña (Recepción libera el horario)', () => {
+    const reserva = (expira: string): Parameters<typeof puedeAdjuntar>[0] => ({
+      status: 'pending',
+      start: '2026-10-15T15:00:00Z',
+      extension: [{ url: EXT_AGENDA.reservaExpira, valueDateTime: expira }],
+    });
+    expect(puedeAdjuntar(reserva('2026-10-12T14:00:00Z'), ahora)).toBe(false);
+    expect(porQueNoSeAdjunta(reserva('2026-10-12T14:00:00Z'), ahora)).toBe('reserva-vencida');
+    // Todavía con tiempo para pagar la seña: se puede.
+    expect(puedeAdjuntar(reserva('2026-10-12T16:00:00Z'), ahora)).toBe(true);
+  });
+
+  test('el motivo, para lo que dice la pantalla', () => {
+    expect(porQueNoSeAdjunta({ status: 'cancelled', start: '2026-10-20T15:00:00Z' }, ahora)).toBe('cancelado');
+    expect(porQueNoSeAdjunta({ status: 'entered-in-error' }, ahora)).toBe('cancelado');
+    expect(porQueNoSeAdjunta({ status: 'fulfilled', start: '2026-10-20T15:00:00Z' }, ahora)).toBe('terminado');
+    expect(porQueNoSeAdjunta({ status: 'booked', start: '2026-10-11T15:00:00Z' }, ahora)).toBe('terminado');
+    expect(porQueNoSeAdjunta({ status: 'booked', start: '2026-10-20T15:00:00Z' }, ahora)).toBeUndefined();
+  });
 });
 
 describe('validarAdjunto', () => {
@@ -274,20 +299,25 @@ describe('adjuntarArchivo', () => {
     ).toHaveLength(0);
   });
 
-  test('si el server no deja crear el Binary, una foto chica viaja embebida y una grande explica cómo seguir', async () => {
+  test('si el server no deja crear el Binary, no lo embebe (el profesional no lo podría abrir): no crea nada y dice cómo seguir', async () => {
     const { medplum, patient, turno } = await escenario();
     vi.spyOn(medplum, 'createAttachment').mockRejectedValue(new OperationOutcomeError(forbidden));
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const crear = vi.spyOn(medplum, 'createResource');
 
+    // Ni la foto chica (que «Enviar estudios» sí mandaría embebida) ni una grande.
     const chica = await adjuntarArchivo(medplum, patient, turno, png());
-    expect(chica.ok).toBe(true);
-    expect(chica.documento?.content[0].attachment).toMatchObject({ contentType: 'image/png', title: 'captura.png' });
-    expect(chica.documento?.content[0].attachment.url).toBeUndefined();
-
-    const grande = archivo('grande.jpg', [0xff, 0xd8, 0xff], MAX_INLINE_BYTES + 1);
-    expect(await adjuntarArchivo(medplum, patient, turno, grande)).toEqual({
-      ok: false,
-      mensaje: expect.stringMatching(/hasta 700 KB.*Mensajes/),
-    });
+    const grande = await adjuntarArchivo(
+      medplum,
+      patient,
+      turno,
+      archivo('grande.jpg', [0xff, 0xd8, 0xff], MAX_INLINE_BYTES + 1)
+    );
+    expect(chica).toEqual({ ok: false, mensaje: MENSAJE_SIN_BINARIO });
+    expect(grande).toEqual({ ok: false, mensaje: MENSAJE_SIN_BINARIO });
+    expect(MENSAJE_SIN_BINARIO).toMatch(/Mensajes/);
+    expect(crear).not.toHaveBeenCalled();
+    expect(await cargarAdjuntosDelTurno(medplum, turno.id)).toEqual([]);
   });
 
   test('un error de red no se lanza: vuelve con un mensaje legible', async () => {
@@ -346,20 +376,35 @@ describe('adjuntarDeMisEstudios', () => {
     expect(await cargarAdjuntosDelTurno(medplum, turno.id)).toHaveLength(1);
   });
 
-  test('un PDF embebido se reconoce por título y tamaño', async () => {
+  test('un PDF que se mandó embebido (sin Binary) no se adjunta: el profesional vería solo el nombre', async () => {
     const { medplum, patient, turno } = await escenario();
-    vi.spyOn(medplum, 'createAttachment').mockRejectedValue(new OperationOutcomeError(forbidden));
+    const subir = vi.spyOn(medplum, 'createAttachment').mockRejectedValue(new OperationOutcomeError(forbidden));
     const { documento } = await enviarLaboratorioPdf(medplum, patient, pdf('glucemia.pdf'));
     const original = documento as WithId<DocumentReference>;
+    // «Enviar estudios» sí lo guardó embebido (el bot de laboratorio lo lee igual).
+    expect(original.content[0].attachment.data).toBeDefined();
+    expect(sePuedeElegir(original)).toBe(false);
+    subir.mockRestore();
+    const crear = vi.spyOn(medplum, 'createResource');
 
-    const r = await adjuntarDeMisEstudios(medplum, patient, turno, original);
-    expect(r.documento?.content[0].attachment).toMatchObject({
-      contentType: 'application/pdf',
-      data: original.content[0].attachment.data,
-      title: 'glucemia.pdf',
+    expect(await adjuntarDeMisEstudios(medplum, patient, turno, original)).toEqual({
+      ok: false,
+      mensaje: MENSAJE_EMBEBIDO,
     });
-    await adjuntarDeMisEstudios(medplum, patient, turno, original);
-    expect(await cargarAdjuntosDelTurno(medplum, turno.id)).toHaveLength(1);
+    expect(crear).not.toHaveBeenCalled();
+    expect(await cargarAdjuntosDelTurno(medplum, turno.id)).toEqual([]);
+  });
+
+  test('sePuedeElegir: vigente y con URL; no uno anulado ni uno embebido', () => {
+    const doc = (status: DocumentReference['status'], attachment: object): DocumentReference => ({
+      resourceType: 'DocumentReference',
+      status,
+      content: [{ attachment }],
+    });
+    expect(sePuedeElegir(doc('current', { url: 'https://example.com/binary/b1' }))).toBe(true);
+    expect(sePuedeElegir(doc('entered-in-error', { url: 'https://example.com/binary/b1' }))).toBe(false);
+    expect(sePuedeElegir(doc('current', { data: 'JVBERi0=', title: 'a.pdf' }))).toBe(false);
+    expect(sePuedeElegir(doc('current', {}))).toBe(false);
   });
 
   test('quitado, se puede volver a adjuntar', async () => {

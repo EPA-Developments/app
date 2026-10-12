@@ -9,8 +9,10 @@
 //   (R-14). Esas acciones pasan por los bots de SOM `som-teleconsulta-*`; el portal nunca
 //   escribe el turno directo.
 // - Próximos (las dos modalidades): «Adjuntar estudios (N)», plegado, para que el profesional
-//   vea los estudios antes de la consulta. El vínculo vive en el DocumentReference, no en el
-//   turno (src/fhir/adjuntosTurno.ts).
+//   vea los estudios antes de la consulta (en los presenciales la sección no lo promete: el
+//   dashboard todavía no los muestra fuera de la teleconsulta). El vínculo vive en el
+//   DocumentReference, no en el turno (src/fhir/adjuntosTurno.ts). Una reserva vencida no
+//   ofrece adjuntar.
 import { Alert, Badge, Button, Card, Group, Stack, Text } from '@mantine/core';
 import { formatDateTime, getReferenceString } from '@medplum/core';
 import type { Appointment, Patient } from '@medplum/fhirtypes';
@@ -20,7 +22,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { AccionesTeleconsulta } from '../components/teleconsulta/AccionesTeleconsulta';
 import { AdjuntosDelTurnoPlegables } from '../components/turnos/AdjuntosDelTurno';
-import { puedeAdjuntar } from '../fhir/adjuntosTurno';
+import { cuandoEsElTurno, puedeAdjuntar } from '../fhir/adjuntosTurno';
 import { estadoReservaPortal, fmtHoraArg, modalidadesDe, type EstadoReservaPortal } from '../fhir/agenda';
 import { esTeleconsulta } from '../fhir/teleconsulta';
 import { ESTADOS_TURNO } from '../fhir/turnos';
@@ -112,7 +114,13 @@ function AppointmentCard({ appt, onCambio, patient }: AppointmentCardProps): JSX
       )}
       {patient && appt.id && puedeAdjuntar(appt) && (
         <Stack mt="sm">
-          <AdjuntosDelTurnoPlegables appointment={{ ...appt, id: appt.id }} patient={patient} nivel={3} />
+          <AdjuntosDelTurnoPlegables
+            appointment={{ ...appt, id: appt.id }}
+            patient={patient}
+            nivel={3}
+            // Con varios turnos en pantalla, el lector de pantalla dice de cuál es cada botón.
+            contexto={`${serviceLabel(appt)}${appt.start ? `, ${cuandoEsElTurno(appt.start)}` : ''}`}
+          />
         </Stack>
       )}
     </Card>

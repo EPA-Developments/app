@@ -1,8 +1,10 @@
 # Estudios adjuntos a un turno
 
 La persona puede **adjuntar estudios a un turno** (PDF o fotos) para que el profesional que
-la atiende los vea **antes de la consulta**. Sirve para teleconsultas y para turnos
-presenciales.
+la atiende los vea **antes de la consulta**. Se puede en teleconsultas y en turnos
+presenciales, pero hoy el dashboard los muestra **solo en su pantalla de teleconsulta** (ver
+«Pendiente del lado del dashboard»): en un turno en el centro la pantalla no promete que el
+profesional los ve antes, dice que quedan guardados con el turno y pide llevarlos igual.
 
 - **Dónde**: en la sala de la teleconsulta (`/teleconsulta/:appointmentId`, debajo de
   «Entrar»/la espera; con la videollamada abierta queda plegado) y en **Mis turnos**, en cada
@@ -44,15 +46,26 @@ Un `DocumentReference` por estudio adjunto, en el compartimento de la persona:
 
 - **Qué se puede subir**: PDF, JPEG y PNG, de hasta 15 MB. El tipo se valida por la **firma**
   del archivo (`%PDF-`, `FF D8 FF`, la firma PNG) y no por el `type` que informa el navegador.
-- **El archivo**: `Binary` con `securityContext` = la persona, igual que «Enviar estudios en
-  PDF». Si el server todavía no deja crear el `Binary`, los de hasta 700 KB viajan embebidos
-  (`attachment.data`) y los más grandes piden mandarlos por Mensajes.
+- **El archivo**: siempre un `Binary` con `securityContext` = la persona (`attachment.url`),
+  igual que «Enviar estudios en PDF», pero **sin su plan B**: si el server no deja crear el
+  `Binary`, no se embebe (`attachment.data`), porque el dashboard solo linkea la URL y el
+  profesional vería el nombre sin poder abrirlo. La pantalla lo dice y pide mandarlo por
+  Mensajes (`MENSAJE_SIN_BINARIO`).
 - **Elegir de los que ya mandó**: para un PDF de laboratorio que ya envió, se crea un
   `DocumentReference` **nuevo** de categoría `adjunto-turno` que apunta al **mismo**
-  attachment (la misma `url` o los mismos `data`). El original no se toca: es un registro
-  clínico que también actualiza el bot de laboratorio. Si ese archivo ya está adjunto y
-  vigente en el turno (mismo `Binary`; si es embebido, mismo título y tamaño), no se crea
-  otro.
+  attachment (la misma `url`). El original no se toca: es un registro clínico que también
+  actualiza el bot de laboratorio. Si ese archivo ya está adjunto y vigente en el turno
+  (mismo `Binary`), no se crea otro. La lista ofrece solo los que todavía no están en el
+  turno, y no los anulados (`entered-in-error`) ni los que se mandaron **embebidos** (cuando
+  el server no dejaba crear el `Binary`): esos no se pueden abrir desde el dashboard, y la
+  pantalla dice que hay que subirlos de nuevo. La URL que se copia es la firmada que devuelve
+  el server al leer; Medplum la vuelve a guardar como `Binary/<id>` al escribir y la firma de
+  nuevo en cada lectura, por eso el «mismo archivo» se compara por el id del `Binary` y no
+  por la URL.
+- **Un toque, una escritura**: mientras se adjunta o se quita algo, la pantalla no arranca
+  otra escritura (un segundo toque rápido crearía una copia antes de que el botón se vea
+  deshabilitado). Mientras se sube un archivo, «Quitar» queda deshabilitado; si el diálogo de
+  quitar ya estaba abierto, dice que hay que esperar.
 
 ## No lo procesa el bot de laboratorio
 
@@ -76,14 +89,34 @@ laboratorio, el consentimiento o lo que haya asociado otro al turno se muestran,
 tocan. El `Binary` no se borra (si vino de «Elegir de los que ya mandaste», el original sigue
 igual).
 
+Por eso el diálogo **no** dice que el profesional deja de verlo: dice que deja de estar entre
+los estudios de la consulta, que el archivo no se borra y que, si lo subió por error, avise por
+Mensajes. Hoy el dashboard lo sigue mostrando en «Su historia de documentos» (ver abajo).
+
 ## Cuándo se puede
 
 - Hace falta el **consentimiento informado** firmado (`buscarConsentimiento`), como para
   enviar estudios: si falta, no se escribe nada y la pantalla lleva a firmarlo. Para quitar
   un adjunto no hace falta.
-- El turno no tiene que estar `cancelled`, `noshow`, `entered-in-error` ni `fulfilled`, y no
-  tiene que haber terminado (`end`, o una hora después de `start` si no dice cuándo termina).
-  Después, la sección muestra lo adjuntado, sin sumar ni quitar.
+- El turno no tiene que estar `cancelled`, `noshow`, `entered-in-error` ni `fulfilled`, ni
+  ser una reserva del portal **vencida** (`pending` con `reservaExpira` pasada: Recepción
+  libera el horario), y no tiene que haber terminado (`end`, o una hora después de `start` si
+  no dice cuándo termina). Después, la sección muestra lo adjuntado, sin sumar ni quitar, y
+  dice por qué (`porQueNoSeAdjunta`: se canceló, venció la reserva o ya pasó).
+
+## La pantalla
+
+- En la sala de la teleconsulta es siempre el mismo componente (`AdjuntosDelTurnoPlegables`,
+  con `plegable` en falso mientras espera). Al abrirse la videollamada se pliega **sin
+  desmontarse**: una subida en curso sigue, el contador se actualiza y, si algo termina o
+  falla con la sección plegada, el aviso aparece junto al botón. Lo mismo en «Mis turnos» si
+  la persona pliega el panel en medio de una subida.
+- Teclado: después de subir, el foco vuelve a «Subir un PDF o una foto»; después de adjuntar
+  uno ya enviado, a «Elegir de los que ya mandaste»; al cancelar el diálogo de quitar, al
+  «Quitar» que lo abrió; y después de quitar, al título de la sección. Nunca queda en `<body>`.
+- En «Mis turnos», el botón «Adjuntar estudios (N)» tiene como descripción el turno (servicio,
+  día y hora) y el título de la sección lo suma oculto: con varios turnos, un lector de
+  pantalla dice de cuál es cada uno.
 
 ## Permisos
 
@@ -91,8 +124,33 @@ Nada nuevo: la AccessPolicy de la persona (`medplum/README.md`) ya le deja escri
 `DocumentReference` y `Binary` en su compartimento y leer sus `Appointment`. No cambia la
 policy ni Recepción.
 
+Un límite: la escritura es `DocumentReference?subject=%patient`, que **no restringe
+`context.related`**. Que el turno sea de la persona lo controla el portal (solo ofrece sus
+turnos, y uno ajeno ni se puede leer), pero no la policy: por API, una persona que conociera
+el id del turno de otra podría crear un documento propio que apunte a ese turno. Por eso el
+dashboard tendría que filtrar también por `subject` (abajo).
+
 ## Pendiente del lado del dashboard
 
-«Su historia de documentos» (`DocumentReference?subject=Patient/<id>`) tampoco filtra por
-status: un adjunto quitado deja de estar en «Adjuntó a este turno», pero ahí se seguiría
-listando (como `entered-in-error`). Conviene que esa búsqueda filtre `status=current`.
+Handoff para `EPA-Developments/dashboard-cardiometabolismo` (su ficha previa,
+`src/teleconsulta/hooks/useFichaPrevia.ts` y `components/FichaPrevia.tsx`):
+
+1. **Turnos presenciales.** La ficha previa (la única pantalla que lee `DocumentReference`) se
+   monta solo en `/teleconsulta/:appointmentId`; la agenda lleva un turno no virtual a
+   `/Patient/<id>`, y esa ficha no tiene vista de documentos. Hace falta mostrar «Adjuntó a
+   este turno» también para los presenciales (en la ficha o en la agenda). Hasta entonces el
+   portal no promete que el profesional los ve antes en esos turnos. A confirmar con el dueño
+   del producto si, mientras tanto, conviene no ofrecer adjuntar en los presenciales.
+2. **Quitados.** «Su historia de documentos» (`DocumentReference?subject=Patient/<id>`) no
+   filtra por status: un adjunto quitado deja de estar en «Adjuntó a este turno», pero ahí
+   se sigue listando, con su link. Conviene que esa búsqueda filtre `status=current`.
+3. **Copias repetidas.** Esa misma lista solo excluye lo del turno que se está mirando: las
+   copias de «Elegir de los que ya mandaste» de otros turnos aparecen junto a su original de
+   laboratorio (mismo nombre, otra fecha, sin badge: el dashboard solo reconoce
+   `…/CodeSystem/documento-paciente`) y ocupan lugar en el recorte de 12. Conviene excluir o
+   rotular la categoría
+   `https://segundaopinionmedica.org/fhir/CodeSystem/documento|adjunto-turno` (ya se ven en
+   «Adjuntó a este turno» de su turno).
+4. **Solo la persona del turno.** Sumar `subject: Patient/<pacienteId>` a la búsqueda
+   `related=Appointment/<id>`, así la ficha previa muestra solo documentos de la persona del
+   turno (ver «Permisos»).

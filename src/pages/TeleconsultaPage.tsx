@@ -16,7 +16,8 @@
 //
 // Debajo, «Estudios para esta consulta»: lo que adjunta para que el profesional lo vea
 // antes de la consulta (src/components/turnos/AdjuntosDelTurno.tsx). Con la videollamada
-// abierta queda plegado, para no estorbar.
+// abierta queda plegado, para no estorbar. Es siempre el mismo componente (solo cambia
+// `plegable`): si la sala se abre sola en medio de una subida, la subida y su resultado siguen.
 import { Alert, Anchor, Box, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
 import { formatDateTime } from '@medplum/core';
 import type { WithId } from '@medplum/core';
@@ -26,7 +27,7 @@ import { IconCreditCard, IconExternalLink, IconVideo } from '@tabler/icons-react
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router';
-import { AdjuntosDelTurno, AdjuntosDelTurnoPlegables } from '../components/turnos/AdjuntosDelTurno';
+import { AdjuntosDelTurnoPlegables } from '../components/turnos/AdjuntosDelTurno';
 import {
   entrarTeleconsulta,
   estadoDeLaEspera,
@@ -207,11 +208,7 @@ export function TeleconsultaPage({
         )}
 
         <Paper withBorder radius="md" p="md">
-          {sala && abierta ? (
-            <AdjuntosDelTurnoPlegables appointment={turno} nivel={3} />
-          ) : (
-            <AdjuntosDelTurno appointment={turno} nivel={3} />
-          )}
+          <AdjuntosDelTurnoPlegables appointment={turno} nivel={3} plegable={!!sala && abierta} />
         </Paper>
         {volver}
       </Stack>

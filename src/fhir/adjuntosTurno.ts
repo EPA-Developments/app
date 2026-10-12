@@ -22,15 +22,21 @@
 // Todo se escribe en el compartimento de la persona (`DocumentReference` y `Binary`), que su
 // AccessPolicy ya permite (docs/medplum/README.md). Sin consentimiento informado firmado no
 // se escribe nada, igual que al enviar estudios.
+//
+// El archivo siempre va como `Binary` (`attachment.url`): el dashboard solo linkea la URL, así
+// que un archivo embebido (`attachment.data`) el profesional no lo podría abrir. Por eso acá no
+// hay el plan B de «Enviar estudios» (embeber los chicos si el server no deja crear el Binary):
+// si no se puede subir, se dice, y un PDF que se mandó embebido no se ofrece para elegir.
 import type { MedplumClient, WithId } from '@medplum/core';
 import { createReference } from '@medplum/core';
 import type { Appointment, Attachment, DocumentReference, Patient } from '@medplum/fhirtypes';
-import { fmtHoraArg, TZ } from './agenda';
+import { estadoReservaPortal, fmtHoraArg, TZ } from './agenda';
 import { buscarConsentimiento } from './consentimiento';
 import {
   ArchivoNoEnviable,
   detectarTipoArchivo,
   DOCUMENTO_CATEGORY_SYSTEM,
+  esProhibido,
   JPEG,
   MAX_MB,
   PDF,
@@ -53,6 +59,12 @@ export const MENSAJE_SIN_CONSENTIMIENTO_ADJUNTO =
   'Antes de adjuntar estudios necesitamos que firmes el consentimiento informado.';
 export const MENSAJE_TIPO_NO_ADMITIDO = `Ese archivo no es un PDF ni una foto en JPG o PNG. Subí el estudio en uno de esos formatos (hasta ${MAX_MB} MB).`;
 export const MENSAJE_TURNO_CERRADO = 'Este turno ya no admite estudios adjuntos.';
+/** El server no deja crear el `Binary`: embebido, el profesional no lo podría abrir. */
+export const MENSAJE_SIN_BINARIO =
+  'Por ahora no podemos guardar el archivo para que lo abra el profesional. Mandalo por Mensajes y lo sumamos nosotros.';
+/** Un PDF que se mandó embebido (sin `Binary`): el dashboard solo mostraría el nombre. */
+export const MENSAJE_EMBEBIDO =
+  'Ese estudio no se puede adjuntar desde acá: el profesional no podría abrirlo. Subilo de nuevo con «Subir un PDF o una foto».';
 const MENSAJE_SIN_CONEXION = 'No pudimos adjuntar el estudio. Revisá tu conexión y probá de nuevo en unos segundos.';
 const MENSAJE_SIN_ARCHIVO = 'Ese estudio no tiene un archivo para adjuntar.';
 const MENSAJE_NO_ES_ADJUNTO = 'Ese documento no es un estudio adjunto al turno: no se puede quitar desde acá.';
@@ -88,17 +100,34 @@ export function esAdjuntoDeTurno(doc: DocumentReference): boolean {
   );
 }
 
+/** Por qué un turno ya no recibe estudios (lo que le dice la pantalla a la persona). */
+export type MotivoSinAdjuntos = 'cancelado' | 'reserva-vencida' | 'terminado';
+
+type TurnoParaAdjuntar = Pick<Appointment, 'status' | 'start' | 'end' | 'extension'>;
+
 /**
- * ¿Se pueden sumar (o quitar) estudios a este turno? No si se canceló, no vino, fue un
- * error de carga o ya se hizo; tampoco si ya terminó (`end`, o una hora después de `start`
- * si no dice cuándo termina). Un turno sin fecha todavía no terminó.
+ * Por qué no se pueden sumar (ni quitar) estudios a este turno, o undefined si se puede: se
+ * canceló o fue un error de carga; la reserva del portal venció sin la seña (Recepción libera
+ * el horario y lo cancela); no vino o ya se hizo; o ya terminó (`end`, o una hora después de
+ * `start` si no dice cuándo termina). Un turno sin fecha todavía no terminó.
  */
-export function puedeAdjuntar(appt: Pick<Appointment, 'status' | 'start' | 'end'>, ahora: Date = new Date()): boolean {
+export function porQueNoSeAdjunta(appt: TurnoParaAdjuntar, ahora: Date = new Date()): MotivoSinAdjuntos | undefined {
+  if (appt.status === 'cancelled' || appt.status === 'entered-in-error') {
+    return 'cancelado';
+  }
   if (ESTADOS_CERRADOS.includes(appt.status)) {
-    return false;
+    return 'terminado';
+  }
+  if (estadoReservaPortal(appt, ahora)?.estado === 'vencido') {
+    return 'reserva-vencida';
   }
   const fin = appt.end ? Date.parse(appt.end) : appt.start ? Date.parse(appt.start) + DURACION_POR_OMISION_MS : NaN;
-  return Number.isNaN(fin) || fin > ahora.getTime();
+  return Number.isNaN(fin) || fin > ahora.getTime() ? undefined : 'terminado';
+}
+
+/** ¿Se pueden sumar (o quitar) estudios a este turno? (`porQueNoSeAdjunta` no tiene motivo.) */
+export function puedeAdjuntar(appt: TurnoParaAdjuntar, ahora: Date = new Date()): boolean {
+  return porQueNoSeAdjunta(appt, ahora) === undefined;
 }
 
 /** El DocumentReference que adjunta un archivo al turno (lo que lee el dashboard). */
@@ -174,6 +203,14 @@ export function claveDeArchivo(a: Attachment | undefined): string | undefined {
   return undefined;
 }
 
+/**
+ * ¿Este PDF que mandó se puede elegir para el turno? Vigente (no anulado) y guardado como
+ * `Binary`, con URL: uno embebido el profesional no lo podría abrir desde el dashboard.
+ */
+export function sePuedeElegir(doc: DocumentReference): boolean {
+  return doc.status !== 'entered-in-error' && !!doc.content?.[0]?.attachment?.url;
+}
+
 /** Los estudios vigentes adjuntos al turno, del más nuevo al más viejo (sin caché). */
 export async function cargarAdjuntosDelTurno(
   medplum: MedplumClient,
@@ -206,6 +243,10 @@ function mensajeDeError(err: unknown): string {
   if (err instanceof ArchivoNoEnviable) {
     return err.message;
   }
+  if (esProhibido(err)) {
+    console.error('Adjuntar al turno (el server no dejó crear el archivo):', err);
+    return MENSAJE_SIN_BINARIO;
+  }
   console.error('Adjuntar al turno:', err);
   return MENSAJE_SIN_CONEXION;
 }
@@ -213,6 +254,8 @@ function mensajeDeError(err: unknown): string {
 /**
  * Adjunta un archivo nuevo al turno: consentimiento → validar → subir el `Binary` → crear el
  * `DocumentReference`. Nunca lanza: si algo falla, `ok: false` con el mensaje para la persona.
+ * Si el server no deja crear el `Binary`, no se embebe (el profesional no lo podría abrir):
+ * `MENSAJE_SIN_BINARIO`.
  */
 export async function adjuntarArchivo(
   medplum: MedplumClient,
@@ -229,7 +272,7 @@ export async function adjuntarArchivo(
     if (!valido.ok) {
       return { ok: false, mensaje: valido.mensaje };
     }
-    const attachment = await subirArchivo(medplum, patient, file, valido.contentType);
+    const attachment = await subirArchivo(medplum, patient, file, valido.contentType, { embeber: false });
     const documento = await medplum.createResource(armarAdjuntoTurno(patient, appointment, attachment));
     return { ok: true, documento };
   } catch (err) {
@@ -241,7 +284,8 @@ export async function adjuntarArchivo(
  * Adjunta al turno un PDF que ya mandó (de `cargarEstudiosEnviados`): crea un
  * `DocumentReference` NUEVO, de categoría `adjunto-turno`, que apunta al MISMO archivo. El
  * original no se toca: es un registro clínico que también actualiza el bot de laboratorio.
- * Si ese archivo ya está adjunto (y vigente) en el turno, no crea otro.
+ * Si ese archivo ya está adjunto (y vigente) en el turno, no crea otro. Uno que se mandó
+ * embebido (sin `Binary`) no se adjunta: el profesional vería solo el nombre.
  */
 export async function adjuntarDeMisEstudios(
   medplum: MedplumClient,
@@ -251,8 +295,8 @@ export async function adjuntarDeMisEstudios(
 ): Promise<ResultadoEnvioEstudio> {
   const original = documento.content?.[0]?.attachment;
   const clave = claveDeArchivo(original);
-  if (!original || !clave) {
-    return { ok: false, mensaje: MENSAJE_SIN_ARCHIVO };
+  if (!original?.url || !clave) {
+    return { ok: false, mensaje: original?.data ? MENSAJE_EMBEBIDO : MENSAJE_SIN_ARCHIVO };
   }
   try {
     const falta = await antesDeEscribir(medplum, patient, appointment);
@@ -266,7 +310,7 @@ export async function adjuntarDeMisEstudios(
     }
     const attachment: Attachment = {
       contentType: original.contentType ?? PDF,
-      ...(original.url ? { url: original.url } : { data: original.data }),
+      url: original.url,
       ...(original.title ? { title: original.title } : {}),
       ...(original.size === undefined ? {} : { size: original.size }),
     };

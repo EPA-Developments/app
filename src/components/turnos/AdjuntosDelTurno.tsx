@@ -9,13 +9,19 @@
 //
 // Honestidad: lo adjunto NO lo lee la IA ni se suma a los biomarcadores (no es la categoría
 // de laboratorio y no dispara al bot); para eso está «Enviar estudios en PDF», y la bajada lo
-// dice con un link.
+// dice con un link. Tampoco se promete lo que el dashboard no hace: hoy muestra los adjuntos
+// solo en su pantalla de teleconsulta, así que en un turno en el centro la bajada pide
+// llevarlos igual; y quitar uno no lo borra (sigue en la historia de documentos que ve el
+// profesional), así que el diálogo no dice que «ya no lo ve».
+//
+// Teclado: después de cada escritura el foco vuelve a un lugar que existe (el botón que se
+// usó, o el título de la sección si ese botón ya no está), nunca queda en <body>.
 import { Box, Button, FileButton, Group, Loader, Modal, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import type { WithId } from '@medplum/core';
 import type { Appointment, Attachment, DocumentReference, Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { IconChevronDown, IconFileTypePdf, IconPaperclip, IconPhoto, IconUpload } from '@tabler/icons-react';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router';
 import { TZ } from '../../fhir/agenda';
@@ -27,16 +33,33 @@ import {
   claveDeArchivo,
   esAdjuntoDeTurno,
   MENSAJE_SIN_CONSENTIMIENTO_ADJUNTO,
-  puedeAdjuntar,
+  porQueNoSeAdjunta,
   quitarAdjunto,
+  sePuedeElegir,
 } from '../../fhir/adjuntosTurno';
+import type { MotivoSinAdjuntos } from '../../fhir/adjuntosTurno';
 import { buscarConsentimiento, RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import { cargarEstudiosEnviados, MAX_MB } from '../../fhir/estudios';
 import type { ResultadoEnvioEstudio } from '../../fhir/estudios';
+import { esTeleconsulta } from '../../fhir/teleconsulta';
 import { RUTA_ENVIAR_ESTUDIOS } from '../AccionesRapidas';
 import classes from './AdjuntosDelTurno.module.css';
 
 export const TITULO_ADJUNTOS = 'Estudios para esta consulta';
+const RUTA_MENSAJES = '/Communication';
+const MENSAJE_ESPERAR = 'Esperá a que termine de adjuntarse el otro estudio y probá de nuevo.';
+
+const TURNO_CERRADO: Record<MotivoSinAdjuntos, string> = {
+  cancelado: 'Este turno se canceló: no se pueden sumar más estudios.',
+  'reserva-vencida': 'Venció la reserva de este turno: no se pueden sumar estudios.',
+  terminado: 'Este turno ya pasó: no se pueden sumar más estudios.',
+};
+
+/** Lo último que pasó con una escritura (para mostrarlo junto al botón si la sección se plegó). */
+export interface AvisoAdjuntos {
+  readonly texto: string;
+  readonly tipo: 'en-curso' | 'listo' | 'error';
+}
 
 const fmtFecha = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ });
 const fmtFechaSinAnio = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long', timeZone: TZ });
@@ -103,6 +126,13 @@ export interface AdjuntosDelTurnoProps {
   readonly ahora?: Date;
   /** Dentro de una tarjeta (plegado): el título, más chico. */
   readonly compacto?: boolean;
+  /**
+   * Qué turno es («Consulta de Cardiología, 14 de octubre…»): se suma, oculto, al título,
+   * para que con varios turnos en pantalla un lector de pantalla diga de cuál es la sección.
+   */
+  readonly contexto?: string;
+  /** Cada vez que cambia lo que se está haciendo o cómo terminó (lo usa el plegable). */
+  readonly onAviso?: (aviso: AvisoAdjuntos | undefined) => void;
 }
 
 type EstadoConsentimiento = 'cargando' | 'firmado' | 'falta' | 'no-se-pudo-revisar';
@@ -114,10 +144,15 @@ export function AdjuntosDelTurno({
   onCambio,
   ahora,
   compacto = false,
+  contexto,
+  onAviso,
 }: AdjuntosDelTurnoProps): JSX.Element {
   const medplum = useMedplum();
   const persona = patient ?? (medplum.getProfile() as Patient);
-  const abierto = puedeAdjuntar(appointment, ahora);
+  const motivo = porQueNoSeAdjunta(appointment, ahora);
+  const abierto = motivo === undefined;
+  // El dashboard muestra los adjuntos solo en su pantalla de teleconsulta (docs/adjuntos-turno.md).
+  const loVeAntes = esTeleconsulta(appointment);
   const idTitulo = useId();
   const idEnviados = useId();
 
@@ -134,7 +169,16 @@ export function AdjuntosDelTurno({
   const [aQuitar, setAQuitar] = useState<WithId<DocumentReference>>();
   const [quitando, setQuitando] = useState(false);
   const [errorQuitar, setErrorQuitar] = useState<string>();
+  /** A dónde vuelve el foco después de una escritura: el `data-foco` de un elemento. */
+  const [foco, setFoco] = useState<string>();
+  const seccion = useRef<HTMLElement>(null);
+  const confirmar = useRef<HTMLButtonElement>(null);
   const resetArchivo = useRef<() => void>(null);
+  /**
+   * Hay una escritura en curso (adjuntar o quitar). Es una ref y no estado: dos toques
+   * seguidos llegan antes de que el botón se vea deshabilitado, y cada uno crearía su copia.
+   */
+  const enCurso = useRef(false);
   const avisar = useRef(onCambio);
   useEffect(() => {
     avisar.current = onCambio;
@@ -144,6 +188,34 @@ export function AdjuntosDelTurno({
       avisar.current?.(adjuntos.length);
     }
   }, [adjuntos]);
+
+  const textoAviso = error ?? progreso;
+  const tipoAviso: AvisoAdjuntos['tipo'] = error ? 'error' : ocupado !== undefined || quitando ? 'en-curso' : 'listo';
+  const avisarAviso = useRef(onAviso);
+  useEffect(() => {
+    avisarAviso.current = onAviso;
+  });
+  useEffect(() => {
+    avisarAviso.current?.(textoAviso ? { texto: textoAviso, tipo: tipoAviso } : undefined);
+  }, [textoAviso, tipoAviso]);
+
+  // El foco, después de que la pantalla ya se actualizó (el botón dejó de estar deshabilitado,
+  // o la fila ya no está). Si el destino no existe, al título de la sección.
+  useEffect(() => {
+    if (foco === undefined) {
+      return;
+    }
+    setFoco(undefined);
+    if (foco === 'confirmar-quitar') {
+      confirmar.current?.focus();
+      return;
+    }
+    const buscar = (clave: string): HTMLElement | null | undefined =>
+      seccion.current?.querySelector<HTMLElement>(`[data-foco="${clave}"]`);
+    const destino = buscar(foco);
+    // Uno deshabilitado no recibe el foco (p. ej. «Quitar» mientras se sube otro estudio).
+    (destino && !destino.matches(':disabled') ? destino : buscar('titulo'))?.focus();
+  }, [foco]);
 
   const cargarLista = useCallback(async (): Promise<void> => {
     try {
@@ -195,37 +267,59 @@ export function AdjuntosDelTurno({
   };
 
   const subir = async (file: File | null): Promise<void> => {
-    if (!file) {
+    if (!file || enCurso.current) {
+      resetArchivo.current?.();
       return;
     }
+    enCurso.current = true;
     setOcupado('subir');
     setError(undefined);
     setProgreso(`Subiendo «${file.name}»…`);
-    const r = await adjuntarArchivo(medplum, persona, appointment, file);
+    const r = await adjuntarArchivo(medplum, persona, appointment, file).finally(() => {
+      enCurso.current = false;
+    });
     resetArchivo.current?.();
     setOcupado(undefined);
     alTerminar(r, file.name);
+    // Mientras subía, el botón estuvo deshabilitado y el navegador le sacó el foco.
+    setFoco('subir');
   };
 
   const elegir = async (doc: WithId<DocumentReference>): Promise<void> => {
+    if (enCurso.current) {
+      return;
+    }
+    enCurso.current = true;
     setOcupado(doc.id);
     setError(undefined);
     setProgreso(`Adjuntando «${tituloDe(doc)}»…`);
-    const r = await adjuntarDeMisEstudios(medplum, persona, appointment, doc);
+    const r = await adjuntarDeMisEstudios(medplum, persona, appointment, doc).finally(() => {
+      enCurso.current = false;
+    });
     setOcupado(undefined);
     alTerminar(r, tituloDe(doc));
+    // Adjuntado, su fila desaparece: el foco vuelve a «Elegir de los que ya mandaste».
+    setFoco(r.ok ? 'elegir' : `adjuntar-${doc.id}`);
   };
 
   const confirmarQuitar = async (): Promise<void> => {
     if (!aQuitar) {
       return;
     }
+    if (enCurso.current) {
+      setErrorQuitar(MENSAJE_ESPERAR);
+      return;
+    }
+    enCurso.current = true;
     setQuitando(true);
     setErrorQuitar(undefined);
-    const r = await quitarAdjunto(medplum, aQuitar, appointment.id);
+    const r = await quitarAdjunto(medplum, aQuitar, appointment.id).finally(() => {
+      enCurso.current = false;
+    });
     setQuitando(false);
     if (!r.ok) {
       setErrorQuitar(r.mensaje);
+      setFoco('confirmar-quitar');
       return;
     }
     const quitado = aQuitar.id;
@@ -233,44 +327,63 @@ export function AdjuntosDelTurno({
     setError(undefined);
     setProgreso(`Quitamos «${tituloDe(aQuitar)}» de esta consulta.`);
     setAQuitar(undefined);
+    // Su «Quitar» ya no existe: el foco va al título de la sección (el aviso lo lee el lector).
+    setFoco('titulo');
+  };
+
+  /** Cerrar el diálogo sin quitar: el foco vuelve al «Quitar» que lo abrió. */
+  const cancelarQuitar = (): void => {
+    if (quitando || !aQuitar) {
+      return;
+    }
+    setFoco(`quitar-${aQuitar.id}`);
+    setAQuitar(undefined);
   };
 
   const yaAdjuntos = new Set((adjuntos ?? []).map((d) => claveDeArchivo(d.content?.[0]?.attachment)));
-  const disponibles = (enviados ?? []).filter((d) => {
-    const clave = claveDeArchivo(d.content?.[0]?.attachment);
-    return clave !== undefined && !yaAdjuntos.has(clave);
-  });
-  const cancelado = appointment.status === 'cancelled' || appointment.status === 'entered-in-error';
+  // Los PDFs que mandó que se pueden elegir (vigentes y con archivo que el profesional abre),
+  // los que se mandaron embebidos (no se ofrecen, y se dice por qué) y, de los elegibles, los
+  // que todavía no están en esta consulta.
+  const elegibles = (enviados ?? []).filter(sePuedeElegir);
+  const embebidos = (enviados ?? []).filter(
+    (d) => d.status !== 'entered-in-error' && !d.content?.[0]?.attachment?.url && !!d.content?.[0]?.attachment?.data
+  ).length;
+  const disponibles = elegibles.filter((d) => !yaAdjuntos.has(claveDeArchivo(d.content?.[0]?.attachment)));
 
   return (
-    <Box component="section" aria-labelledby={idTitulo} className={classes.seccion}>
+    <Box component="section" ref={seccion} aria-labelledby={idTitulo} className={classes.seccion}>
       <Stack gap="sm">
-        <Title order={nivel} id={idTitulo} fz={compacto ? 'lg' : 'h4'}>
+        <Title
+          order={nivel}
+          id={idTitulo}
+          fz={compacto ? 'lg' : 'h4'}
+          tabIndex={-1}
+          data-foco="titulo"
+          className={classes.titulo}
+        >
           {TITULO_ADJUNTOS}
+          {contexto && <VisuallyHidden>: {contexto}</VisuallyHidden>}
         </Title>
 
         {abierto ? (
           <Text size="sm">
-            Lo que adjuntes lo ve el profesional que te atiende, antes de la consulta. No lo lee nuestra IA ni se suma a
-            tus biomarcadores: para eso está{' '}
+            {loVeAntes
+              ? 'Lo que adjuntes lo ve el profesional que te atiende, antes de la consulta. No lo lee nuestra IA ni se suma a tus biomarcadores: para eso está '
+              : 'Quedan guardados con este turno. Llevalos igual el día de la consulta: en los turnos en el centro, el profesional todavía no los ve desde antes. No los lee nuestra IA ni se suman a tus biomarcadores: para eso está '}
             <Link to={RUTA_ENVIAR_ESTUDIOS} className={classes.enLinea}>
               Enviar estudios en PDF
             </Link>
             .
           </Text>
         ) : (
-          <Text size="sm">
-            {cancelado
-              ? 'Este turno se canceló: no se pueden sumar más estudios.'
-              : 'Este turno ya pasó: no se pueden sumar más estudios.'}
-          </Text>
+          <Text size="sm">{TURNO_CERRADO[motivo]}</Text>
         )}
 
         {/* La lista: lo que ya está adjunto (y ve el profesional). */}
         {adjuntos === undefined && !errorLista && (
           <Group gap="xs">
             <Loader size="xs" />
-            <Text size="sm" c="dimmed">
+            <Text size="sm" className={classes.secundario}>
               Buscando los estudios de esta consulta…
             </Text>
           </Group>
@@ -288,7 +401,7 @@ export function AdjuntosDelTurno({
           </Group>
         )}
         {adjuntos?.length === 0 && (
-          <Text size="sm" c="dimmed">
+          <Text size="sm" className={classes.secundario}>
             {abierto ? 'Todavía no adjuntaste estudios a esta consulta.' : 'No se adjuntaron estudios a esta consulta.'}
           </Text>
         )}
@@ -300,7 +413,7 @@ export function AdjuntosDelTurno({
                 <div className={classes.texto}>
                   <NombreDelArchivo doc={doc} />
                   {fecha(doc.date) && (
-                    <Text size="xs" c="dimmed">
+                    <Text size="sm" className={classes.secundario}>
                       Adjuntado el {fecha(doc.date)}
                     </Text>
                   )}
@@ -309,9 +422,13 @@ export function AdjuntosDelTurno({
                   <Button
                     variant="subtle"
                     color="red"
+                    c="red.9"
                     size="sm"
                     className={classes.tactil}
                     aria-label={`Quitar ${tituloDe(doc)}`}
+                    data-foco={`quitar-${doc.id}`}
+                    // Mientras se sube o se adjunta otro, no se quita (una escritura por vez).
+                    disabled={ocupado !== undefined}
                     onClick={() => {
                       setErrorQuitar(undefined);
                       setAQuitar(doc);
@@ -328,7 +445,7 @@ export function AdjuntosDelTurno({
         {abierto && consentimiento === 'falta' && (
           <Stack gap="xs" align="flex-start">
             <Text size="sm">{MENSAJE_SIN_CONSENTIMIENTO_ADJUNTO} Es un paso único.</Text>
-            <Button component={Link} to={RUTA_CONSENTIMIENTO} variant="light" className={classes.tactil}>
+            <Button component={Link} to={RUTA_CONSENTIMIENTO} className={classes.tactil}>
               Firmar el consentimiento
             </Button>
           </Stack>
@@ -342,6 +459,7 @@ export function AdjuntosDelTurno({
                   <Button
                     {...props}
                     className={classes.tactil}
+                    data-foco="subir"
                     loading={ocupado === 'subir'}
                     disabled={ocupado !== undefined && ocupado !== 'subir'}
                     leftSection={<IconUpload size={18} aria-hidden />}
@@ -353,6 +471,7 @@ export function AdjuntosDelTurno({
               <Button
                 variant="default"
                 className={classes.tactil}
+                data-foco="elegir"
                 aria-expanded={verEnviados}
                 aria-controls={idEnviados}
                 rightSection={
@@ -372,7 +491,7 @@ export function AdjuntosDelTurno({
                 Elegir de los que ya mandaste
               </Button>
             </div>
-            <Text size="xs" c="dimmed">
+            <Text size="sm" className={classes.secundario}>
               PDF o foto (JPG o PNG), de hasta {MAX_MB} MB.
             </Text>
 
@@ -380,6 +499,8 @@ export function AdjuntosDelTurno({
               {verEnviados && (
                 <EstudiosEnviados
                   enviados={enviados}
+                  elegibles={elegibles.length}
+                  embebidos={embebidos}
                   disponibles={disponibles}
                   error={errorEnviados}
                   ocupado={ocupado}
@@ -396,7 +517,7 @@ export function AdjuntosDelTurno({
           {progreso}
         </Text>
         {error && (
-          <Text size="sm" c="red.8" role="alert">
+          <Text size="sm" c="red.9" role="alert">
             {error}
           </Text>
         )}
@@ -404,30 +525,39 @@ export function AdjuntosDelTurno({
 
       <Modal
         opened={aQuitar !== undefined}
-        onClose={() => !quitando && setAQuitar(undefined)}
+        onClose={cancelarQuitar}
+        // El foco lo devolvemos nosotros: si se quitó, el botón que abrió el diálogo ya no existe.
+        returnFocus={false}
         title="¿Quitar este estudio de la consulta?"
         centered
+        classNames={{ title: classes.tituloDialogo }}
+        closeButtonProps={{ size: 'xl', 'aria-label': 'Cerrar sin quitar' }}
       >
         <Stack>
           <Text size="sm">
-            «{aQuitar ? tituloDe(aQuitar) : ''}» deja de estar entre los estudios de esta consulta y el profesional ya
-            no lo ve en su ficha.
+            «{aQuitar ? tituloDe(aQuitar) : ''}» deja de estar entre los estudios de esta consulta. El archivo no se
+            borra: si lo subiste por error, avisanos por{' '}
+            <Link to={RUTA_MENSAJES} className={classes.enLinea}>
+              Mensajes
+            </Link>
+            .
           </Text>
           {errorQuitar && (
-            <Text size="sm" c="red.8" role="alert">
+            <Text size="sm" c="red.9" role="alert">
               {errorQuitar}
             </Text>
           )}
           <Group justify="flex-end" gap="sm">
-            <Button
-              variant="default"
-              className={classes.tactil}
-              onClick={() => setAQuitar(undefined)}
-              disabled={quitando}
-            >
+            <Button variant="default" className={classes.tactil} onClick={cancelarQuitar} disabled={quitando}>
               No, dejarlo
             </Button>
-            <Button color="red" className={classes.tactil} onClick={() => void confirmarQuitar()} loading={quitando}>
+            <Button
+              ref={confirmar}
+              color="red.9"
+              className={classes.tactil}
+              onClick={() => void confirmarQuitar()}
+              loading={quitando}
+            >
               Sí, quitarlo
             </Button>
           </Group>
@@ -439,13 +569,17 @@ export function AdjuntosDelTurno({
 
 function EstudiosEnviados(props: {
   enviados: WithId<DocumentReference>[] | undefined;
+  /** Cuántos se pueden elegir (vigentes y con archivo que el profesional abre). */
+  elegibles: number;
+  /** Cuántos vigentes se mandaron embebidos: no se ofrecen. */
+  embebidos: number;
   disponibles: WithId<DocumentReference>[];
   error: boolean;
   ocupado: string | undefined;
   onReintentar: () => void;
   onAdjuntar: (doc: WithId<DocumentReference>) => void;
 }): JSX.Element {
-  const { enviados, disponibles, error, ocupado } = props;
+  const { enviados, elegibles, embebidos, disponibles, error, ocupado } = props;
   if (error) {
     return (
       <Group gap="xs" wrap="wrap">
@@ -462,49 +596,71 @@ function EstudiosEnviados(props: {
     return (
       <Group gap="xs">
         <Loader size="xs" />
-        <Text size="sm" c="dimmed">
+        <Text size="sm" className={classes.secundario}>
           Buscando los estudios que mandaste…
         </Text>
       </Group>
     );
   }
-  if (disponibles.length === 0) {
+  if (elegibles === 0 && embebidos === 0) {
+    // Ninguno para elegir: no mandó, o los que mandó están anulados.
     return (
-      <Text size="sm" c="dimmed">
-        {enviados.length === 0
-          ? 'Todavía no mandaste estudios en PDF.'
-          : 'Los estudios que mandaste ya están adjuntos a esta consulta.'}
+      <Text size="sm" className={classes.secundario}>
+        {enviados.length === 0 ? 'Todavía no mandaste estudios en PDF.' : 'No tenés estudios enviados para elegir.'}
       </Text>
     );
   }
+  const notaEmbebidos =
+    embebidos > 0 ? (
+      <Text size="sm" className={classes.secundario}>
+        {elegibles === 0 ? 'Los PDFs que mandaste' : 'Algunos PDFs que mandaste'} no se pueden elegir acá: el
+        profesional no podría abrirlos. Si hacen falta, subilos de nuevo con «Subir un PDF o una foto».
+      </Text>
+    ) : null;
+  if (disponibles.length === 0) {
+    return (
+      <Stack gap="xs">
+        {elegibles > 0 && (
+          <Text size="sm" className={classes.secundario}>
+            Los estudios que mandaste ya están adjuntos a esta consulta.
+          </Text>
+        )}
+        {notaEmbebidos}
+      </Stack>
+    );
+  }
   return (
-    <ul className={classes.lista} aria-label="Estudios que ya mandaste">
-      {disponibles.map((doc) => (
-        <li key={doc.id} className={classes.fila}>
-          <IconoArchivo a={doc.content?.[0]?.attachment} />
-          <div className={classes.texto}>
-            <span className={classes.nombre}>{tituloDe(doc)}</span>
-            {fecha(doc.date) && (
-              <Text size="xs" c="dimmed">
-                Enviado el {fecha(doc.date)}
-              </Text>
-            )}
-          </div>
-          <Button
-            variant="light"
-            size="sm"
-            className={classes.tactil}
-            aria-label={`Adjuntar ${tituloDe(doc)}`}
-            loading={ocupado === doc.id}
-            disabled={ocupado !== undefined && ocupado !== doc.id}
-            leftSection={<IconPaperclip size={16} aria-hidden />}
-            onClick={() => props.onAdjuntar(doc)}
-          >
-            Adjuntar
-          </Button>
-        </li>
-      ))}
-    </ul>
+    <Stack gap="xs">
+      <ul className={classes.lista} aria-label="Estudios que ya mandaste">
+        {disponibles.map((doc) => (
+          <li key={doc.id} className={classes.fila}>
+            <IconoArchivo a={doc.content?.[0]?.attachment} />
+            <div className={classes.texto}>
+              <span className={classes.nombre}>{tituloDe(doc)}</span>
+              {fecha(doc.date) && (
+                <Text size="sm" className={classes.secundario}>
+                  Enviado el {fecha(doc.date)}
+                </Text>
+              )}
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              className={classes.tactil}
+              aria-label={`Adjuntar ${tituloDe(doc)}`}
+              data-foco={`adjuntar-${doc.id}`}
+              loading={ocupado === doc.id}
+              disabled={ocupado !== undefined && ocupado !== doc.id}
+              leftSection={<IconPaperclip size={16} aria-hidden />}
+              onClick={() => props.onAdjuntar(doc)}
+            >
+              Adjuntar
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {notaEmbebidos}
+    </Stack>
   );
 }
 
@@ -512,27 +668,64 @@ export interface AdjuntosDelTurnoPlegablesProps {
   readonly appointment: WithId<Appointment>;
   readonly patient?: Patient;
   readonly nivel?: 2 | 3;
+  /**
+   * Con `false` la sección se muestra abierta y sin botón (la sala de espera). Puede cambiar en
+   * vivo (al abrirse la videollamada): la sección no se desmonta, así no se pierde una subida
+   * en curso ni su resultado.
+   */
+  readonly plegable?: boolean;
+  /** Qué turno es: describe el botón y se suma, oculto, al título (ver `AdjuntosDelTurnoProps`). */
+  readonly contexto?: string;
 }
 
 /**
  * Los estudios del turno detrás de un botón «Adjuntar estudios (N)»: para no alargar la
  * lista de «Mis turnos» ni estorbar la videollamada abierta. El contador se lee al montar
  * (una búsqueda por turno) y se actualiza con lo que se adjunta o se quita.
+ *
+ * Plegar solo OCULTA la sección (`hidden`): una vez abierta queda montada, con su escritura en
+ * curso, su traba contra dos toques y el contador al día. Si algo termina (o está en curso, o
+ * falló) con la sección plegada, el aviso aparece junto al botón.
  */
 export function AdjuntosDelTurnoPlegables({
   appointment,
   patient,
   nivel,
+  plegable = true,
+  contexto,
 }: AdjuntosDelTurnoPlegablesProps): JSX.Element {
   const medplum = useMedplum();
   const [abierto, setAbierto] = useState(false);
+  const visible = !plegable || abierto;
+  /** Se monta la primera vez que se muestra (no antes: una búsqueda menos por turno) y queda. */
+  const [montada, setMontada] = useState(visible);
   const [cantidad, setCantidad] = useState<number>();
+  const [aviso, setAviso] = useState<AvisoAdjuntos>();
+  /** El aviso llegó con la sección plegada (un «Listo» de antes de plegar no se repite). */
+  const [llegoPlegado, setLlegoPlegado] = useState(false);
+  const visibleAhora = useRef(visible);
   const idPanel = useId();
+  const idContexto = useId();
+
+  // Antes que los efectos de la sección (que avisan), para saber si el aviso llega plegado.
+  useLayoutEffect(() => {
+    visibleAhora.current = visible;
+    if (visible) {
+      setMontada(true);
+      setLlegoPlegado(false);
+    }
+  }, [visible]);
+
+  const recibirAviso = useCallback((nuevo: AvisoAdjuntos | undefined) => {
+    setAviso(nuevo);
+    setLlegoPlegado(!visibleAhora.current);
+  }, []);
 
   useEffect(() => {
     let vigente = true;
     cargarAdjuntosDelTurno(medplum, appointment.id)
-      .then((docs) => vigente && setCantidad(docs.length))
+      // Si la sección ya contó (está abierta), su número es el más nuevo.
+      .then((docs) => vigente && setCantidad((c) => c ?? docs.length))
       // Sin el número, el botón dice «Adjuntar estudios» y el panel muestra el error.
       .catch(() => undefined);
     return () => {
@@ -540,26 +733,54 @@ export function AdjuntosDelTurnoPlegables({
     };
   }, [medplum, appointment.id]);
 
+  const avisoPlegado = !visible && aviso && (aviso.tipo !== 'listo' || llegoPlegado) ? aviso : undefined;
+
   return (
     <Stack gap="sm">
-      <Group>
-        <Button
-          variant="default"
-          className={classes.tactil}
-          aria-expanded={abierto}
-          aria-controls={idPanel}
-          leftSection={<IconPaperclip size={18} aria-hidden />}
-          rightSection={
-            <IconChevronDown size={16} aria-hidden style={{ transform: abierto ? 'rotate(180deg)' : undefined }} />
-          }
-          onClick={() => setAbierto((a) => !a)}
-        >
-          {cantidad ? `Adjuntar estudios (${cantidad})` : 'Adjuntar estudios'}
-        </Button>
-      </Group>
-      <div id={idPanel} hidden={!abierto}>
-        {abierto && (
-          <AdjuntosDelTurno appointment={appointment} patient={patient} nivel={nivel} onCambio={setCantidad} compacto />
+      {plegable && (
+        <Stack gap={4}>
+          <Group>
+            <Button
+              variant="default"
+              className={classes.tactil}
+              aria-expanded={abierto}
+              aria-controls={idPanel}
+              aria-describedby={contexto ? idContexto : undefined}
+              leftSection={<IconPaperclip size={18} aria-hidden />}
+              rightSection={
+                <IconChevronDown size={16} aria-hidden style={{ transform: abierto ? 'rotate(180deg)' : undefined }} />
+              }
+              onClick={() => setAbierto((a) => !a)}
+            >
+              {cantidad ? `Adjuntar estudios (${cantidad})` : 'Adjuntar estudios'}
+            </Button>
+          </Group>
+          {contexto && (
+            <span id={idContexto} hidden>
+              {contexto}
+            </span>
+          )}
+          <Text size="sm" role="status" aria-live="polite">
+            {avisoPlegado && avisoPlegado.tipo !== 'error' ? avisoPlegado.texto : null}
+          </Text>
+          {avisoPlegado?.tipo === 'error' && (
+            <Text size="sm" c="red.9" role="alert">
+              {avisoPlegado.texto}
+            </Text>
+          )}
+        </Stack>
+      )}
+      <div id={idPanel} hidden={!visible}>
+        {(montada || visible) && (
+          <AdjuntosDelTurno
+            appointment={appointment}
+            patient={patient}
+            nivel={nivel}
+            onCambio={setCantidad}
+            onAviso={recibirAviso}
+            compacto={plegable}
+            contexto={contexto}
+          />
         )}
       </div>
     </Stack>

@@ -35,13 +35,19 @@
   padding: 6px 0;
 }
 
+/* Fechas, ayudas y estados vacíos: gris, pero con contraste de sobra (el «dimmed» de Mantine no
+   llega a 4.5:1 sobre blanco) y en el mismo tamaño que el resto. */
+.secundario {
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
 /* El nombre del archivo: un link que nunca empuja el ancho de la pantalla. Se ve del alto del
    texto (así todas las filas miden lo mismo), pero se toca en 44px como mínimo: el ::after
    agranda la zona táctil sin mover nada. */
 .archivo {
   position: relative;
   display: inline-block;
-  color: var(--mantine-color-anchor);
+  color: light-dark(var(--mantine-primary-color-7), var(--mantine-color-anchor));
   font-weight: 600;
   font-size: var(--mantine-font-size-sm);
   text-decoration: underline;
@@ -71,9 +77,10 @@
   min-height: 44px;
 }
 
-/* El link dentro de la bajada (un link en medio de un texto no necesita 44px de alto). */
+/* El link dentro de la bajada (un link en medio de un texto no necesita 44px de alto). Los
+   links van un tono más oscuro que el principal: el 6 queda debajo de 4.5:1 en texto chico. */
 .enLinea {
-  color: var(--mantine-color-anchor);
+  color: light-dark(var(--mantine-primary-color-7), var(--mantine-color-anchor));
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -81,7 +88,8 @@
 
 .archivo:focus-visible,
 .enLinea:focus-visible,
-.tactil:focus-visible {
+.tactil:focus-visible,
+.titulo:focus-visible {
   outline: 3px solid var(--mantine-primary-color-filled);
   outline-offset: 2px;
   border-radius: 4px;
@@ -102,4 +110,14 @@
 
 .panel {
   padding-top: var(--mantine-spacing-xs);
+}
+
+/* El título recibe el foco (programático, tabIndex -1) cuando el botón que se usó ya no existe,
+   p. ej. después de quitar un estudio. Con el mouse no hace falta el contorno. */
+.titulo:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.tituloDialogo {
+  font-weight: 700;
 }

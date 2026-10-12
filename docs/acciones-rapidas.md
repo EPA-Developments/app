@@ -59,7 +59,8 @@ Pantalla `src/pages/EnviarEstudiosPage.tsx`, capa FHIR `src/fhir/estudios.ts`.
 ## Estudios adjuntos a un turno (no es una opción del "+")
 
 Distinto de la opción 6: la persona adjunta PDFs o fotos **a un turno** (desde la sala de la
-teleconsulta o desde "Mis turnos") para que el profesional los vea antes de la consulta. Es un
+teleconsulta o desde "Mis turnos") para que el profesional los vea antes de la consulta (hoy el
+dashboard los muestra solo en las teleconsultas; en los presenciales se pide llevarlos). Es un
 `DocumentReference` con `category` `…/CodeSystem/documento|adjunto-turno` y
 `context.related` → `Appointment/<id>`, que el dashboard de los profesionales lee con
 `DocumentReference?related=Appointment/<id>`. **No dispara** al bot de laboratorio (no lo lee
