@@ -508,7 +508,10 @@ export interface EstadoReservaPortal {
 }
 
 /** Estado de una reserva hecha desde el portal (R-23); undefined si el turno no lo es o ya está resuelto. */
-export function estadoReservaPortal(appt: Appointment, ahora: Date = new Date()): EstadoReservaPortal | undefined {
+export function estadoReservaPortal(
+  appt: Pick<Appointment, 'status' | 'extension'>,
+  ahora: Date = new Date()
+): EstadoReservaPortal | undefined {
   const expiraISO = appt.extension?.find((e) => e.url === EXT_AGENDA.reservaExpira)?.valueDateTime;
   const linkPago = appt.extension?.find((e) => e.url === EXT_AGENDA.linkPagoSena)?.valueUrl;
   if (appt.status === 'pending' && (expiraISO || linkPago)) {

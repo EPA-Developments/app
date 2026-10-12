@@ -7,13 +7,18 @@
 // /teleconsulta/:appointmentId. Solo se ejecutan bots `som-teleconsulta-*`.
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
-import type { Appointment, Patient } from '@medplum/fhirtypes';
+import type { WithId } from '@medplum/core';
+import type { Appointment, DocumentReference, Patient } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
+import { RUTA_ENVIAR_ESTUDIOS } from '../components/AccionesRapidas';
 import { buscarBotSOM } from '../fhir/bots';
+import { adjuntarArchivo, armarAdjuntoTurno, CATEGORIA_ADJUNTO_TURNO } from '../fhir/adjuntosTurno';
 import { EXT_AGENDA, V3_ACT_CODE } from '../fhir/agenda';
+import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM } from '../fhir/consentimiento';
+import { CATEGORIA_LABORATORIO, DOCUMENTO_CATEGORY_SYSTEM, enviarLaboratorioPdf } from '../fhir/estudios';
 import { indexarDefinicionesFhir } from '../fhir/__fixtures__/glp1';
 import { estadoDeLaEspera, MINUTOS_PARA_ENTRAR_IGUAL, puedeEntrarIgual } from '../fhir/teleconsulta';
 import { GetCare } from './GetCarePage';
@@ -21,7 +26,11 @@ import { TeleconsultaPage } from './TeleconsultaPage';
 
 // Los bots viven en recepcionistas: acá importa qué bot se pide y con qué.
 vi.mock('../fhir/bots', () => ({
-  buscarBotSOM: vi.fn(async (_medplum: unknown, nombre: string) => ({ resourceType: 'Bot', id: `bot-${nombre}`, name: nombre })),
+  buscarBotSOM: vi.fn(async (_medplum: unknown, nombre: string) => ({
+    resourceType: 'Bot',
+    id: `bot-${nombre}`,
+    name: nombre,
+  })),
 }));
 
 const DIA = 24 * 3_600_000;
@@ -109,7 +118,7 @@ afterEach(() => {
 });
 
 describe('Mis turnos con teleconsultas', () => {
-  test('la teleconsulta confirmada trae Entrar y Cancelar; la tentativa, Pagar; la presencial, nada', async () => {
+  test('la teleconsulta confirmada trae Entrar y Cancelar; la tentativa, Pagar; la presencial, solo sus estudios', async () => {
     const { medplum, confirmada, tentativa, presencial } = await escenario();
     await renderEn(medplum, '/get-care');
 
@@ -125,8 +134,13 @@ describe('Mis turnos con teleconsultas', () => {
     expect(within(aPagar).getByRole('button', { name: 'Pagar la seña' })).toBeInTheDocument();
     expect(within(aPagar).queryByRole('link', { name: 'Entrar a la videollamada' })).not.toBeInTheDocument();
 
+    // El presencial no tiene acciones de teleconsulta: solo adjuntar estudios (plegado).
     const enElCentro = screen.getByTestId(`turno-${presencial.id}`);
-    expect(within(enElCentro).queryAllByRole('button')).toHaveLength(0);
+    expect(
+      within(enElCentro)
+        .getAllByRole('button')
+        .map((b) => b.textContent)
+    ).toEqual(['Adjuntar estudios']);
     expect(within(enElCentro).queryAllByRole('link')).toHaveLength(0);
   });
 
@@ -139,9 +153,14 @@ describe('Mis turnos con teleconsultas', () => {
         cancelado: false,
         conSena: true,
         consumeSesion: false,
-        mensaje: 'Faltan más de 24 horas: la seña no se pierde. Recepción te contacta para devolverla o usarla en otro turno.',
+        mensaje:
+          'Faltan más de 24 horas: la seña no se pierde. Recepción te contacta para devolverla o usarla en otro turno.',
       })
-      .mockResolvedValueOnce({ ok: true, cancelado: true, mensaje: 'Cancelamos tu teleconsulta. Recepción te contacta.' });
+      .mockResolvedValueOnce({
+        ok: true,
+        cancelado: true,
+        mensaje: 'Cancelamos tu teleconsulta. Recepción te contacta.',
+      });
     await renderEn(medplum, '/get-care');
 
     const tarjeta = await screen.findByTestId(`turno-${confirmada.id}`);
@@ -149,12 +168,18 @@ describe('Mis turnos con teleconsultas', () => {
       fireEvent.click(within(tarjeta).getByRole('button', { name: 'Cancelar' }));
     });
     expect(await screen.findByText(/la seña no se pierde/)).toBeInTheDocument();
-    expect(bot).toHaveBeenLastCalledWith('bot-som-teleconsulta-cancelar', { appointmentId: confirmada.id, confirmar: false });
+    expect(bot).toHaveBeenLastCalledWith('bot-som-teleconsulta-cancelar', {
+      appointmentId: confirmada.id,
+      confirmar: false,
+    });
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancelar el turno' }));
     });
-    expect(bot).toHaveBeenLastCalledWith('bot-som-teleconsulta-cancelar', { appointmentId: confirmada.id, confirmar: true });
+    expect(bot).toHaveBeenLastCalledWith('bot-som-teleconsulta-cancelar', {
+      appointmentId: confirmada.id,
+      confirmar: true,
+    });
     expect(await screen.findByText('Cancelamos tu teleconsulta. Recepción te contacta.')).toBeInTheDocument();
   });
 
@@ -211,7 +236,11 @@ describe('/teleconsulta/:appointmentId', () => {
   test('sin la seña ofrece pagarla y redirige a Mercado Pago', async () => {
     const { medplum, tentativa } = await escenario();
     vi.spyOn(medplum, 'executeBot')
-      .mockResolvedValueOnce({ ok: false, pagar: true, mensaje: 'Tu turno todavía no está confirmado: pagá la seña para confirmarlo.' })
+      .mockResolvedValueOnce({
+        ok: false,
+        pagar: true,
+        mensaje: 'Tu turno todavía no está confirmado: pagá la seña para confirmarlo.',
+      })
       .mockResolvedValueOnce({ ok: true, url: PAGO });
     const redirigir = vi.fn();
     await renderEn(medplum, `/teleconsulta/${tentativa.id}`, redirigir);
@@ -308,6 +337,386 @@ describe('La espera hasta que entra el médico', () => {
     });
     expect(await screen.findByText('Esta consulta ya terminó.', {}, { timeout: 2000 })).toBeInTheDocument();
     expect(screen.queryByTitle('Videollamada')).not.toBeInTheDocument();
+  });
+});
+
+// «Estudios para esta consulta»: la persona adjunta estudios al turno para que el profesional
+// los vea antes. El dashboard los busca con `DocumentReference?related=Appointment/<id>`, sin
+// filtrar status ni categoría: el vínculo vive en el documento (`context.related`).
+describe('Estudios adjuntos al turno', () => {
+  async function firmarConsentimiento(medplum: MockClient): Promise<WithId<Patient>> {
+    const patient = medplum.getProfile() as WithId<Patient>;
+    await medplum.createResource<DocumentReference>({
+      resourceType: 'DocumentReference',
+      status: 'current',
+      type: { coding: [{ system: CONSENT_TYPE_SYSTEM, code: CONSENT_TYPE_CODE }] },
+      subject: { reference: `Patient/${patient.id}` },
+      date: new Date().toISOString(),
+      content: [{ attachment: { contentType: 'text/plain', data: 'ZmlybWFkbw==' } }],
+    });
+    return patient;
+  }
+
+  function pdf(nombre: string): File {
+    return new File([new TextEncoder().encode('%PDF-1.7\n%estudio')], nombre, { type: 'application/pdf' });
+  }
+
+  function foto(nombre: string): File {
+    return new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16])], nombre, { type: 'image/jpeg' });
+  }
+
+  function elegirArchivo(seccion: HTMLElement, file: File): void {
+    const input = seccion.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+  }
+
+  /** Lo que ve el dashboard en la ficha previa del turno. */
+  async function loQueVeElDashboard(medplum: MockClient, appointmentId: string): Promise<DocumentReference[]> {
+    return [
+      ...(await medplum.searchResources(
+        'DocumentReference',
+        { related: `Appointment/${appointmentId}` },
+        { cache: 'no-cache' }
+      )),
+    ];
+  }
+
+  const seccion = (): Promise<HTMLElement> => screen.findByRole('region', { name: 'Estudios para esta consulta' });
+
+  test('en la sala: adjuntar un PDF crea el documento con context.related al turno y categoría adjunto-turno', async () => {
+    const { medplum, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+
+    const zona = await seccion();
+    expect(within(zona).getByRole('heading', { level: 3, name: 'Estudios para esta consulta' })).toBeInTheDocument();
+    expect(within(zona).getByText(/No lo lee nuestra IA ni se suma a tus biomarcadores/)).toBeInTheDocument();
+    expect(within(zona).getByRole('link', { name: 'Enviar estudios en PDF' })).toHaveAttribute(
+      'href',
+      RUTA_ENVIAR_ESTUDIOS
+    );
+    expect(await within(zona).findByText('Todavía no adjuntaste estudios a esta consulta.')).toBeInTheDocument();
+
+    await within(zona).findByRole('button', { name: 'Subir un PDF o una foto' });
+    await act(async () => elegirArchivo(zona, pdf('eco-doppler.pdf')));
+    expect(
+      await within(zona).findByText('Listo: «eco-doppler.pdf» quedó adjunto a esta consulta.')
+    ).toBeInTheDocument();
+
+    const link = within(zona).getByRole('link', { name: /eco-doppler\.pdf/ });
+    expect(link).toHaveAttribute('href', expect.stringMatching(/^https:\/\//));
+    expect(link).toHaveAttribute('target', '_blank');
+
+    const docs = await loQueVeElDashboard(medplum, confirmada.id);
+    expect(docs).toHaveLength(1);
+    expect(docs[0]).toMatchObject({
+      status: 'current',
+      subject: { reference: `Patient/${patient.id}` },
+      category: [{ coding: [{ system: DOCUMENTO_CATEGORY_SYSTEM, code: CATEGORIA_ADJUNTO_TURNO }] }],
+      context: { related: [{ reference: `Appointment/${confirmada.id}` }] },
+      content: [{ attachment: { contentType: 'application/pdf', title: 'eco-doppler.pdf' } }],
+    });
+  });
+
+  test('elegir uno de los PDFs ya enviados crea una copia que apunta al mismo archivo, sin tocar el original', async () => {
+    const { medplum, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    const original = (await enviarLaboratorioPdf(medplum, patient, pdf('hemograma.pdf')))
+      .documento as WithId<DocumentReference>;
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+
+    const zona = await seccion();
+    const elegir = await within(zona).findByRole('button', { name: 'Elegir de los que ya mandaste' });
+    expect(elegir).toHaveAttribute('aria-expanded', 'false');
+    await act(async () => fireEvent.click(elegir));
+    expect(elegir).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById(elegir.getAttribute('aria-controls') as string)).toBeVisible();
+
+    await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Adjuntar hemograma.pdf' })));
+    expect(await within(zona).findByText('Listo: «hemograma.pdf» quedó adjunto a esta consulta.')).toBeInTheDocument();
+    // Ya adjunto, deja de ofrecerse.
+    expect(within(zona).queryByRole('button', { name: 'Adjuntar hemograma.pdf' })).not.toBeInTheDocument();
+    expect(within(zona).getByText('Los estudios que mandaste ya están adjuntos a esta consulta.')).toBeInTheDocument();
+
+    const docs = await loQueVeElDashboard(medplum, confirmada.id);
+    expect(docs).toHaveLength(1);
+    expect(docs[0].id).not.toBe(original.id);
+    expect(docs[0].category?.[0].coding?.[0].code).toBe(CATEGORIA_ADJUNTO_TURNO);
+    expect(docs[0].content[0].attachment).toMatchObject({
+      url: original.content[0].attachment.url,
+      contentType: 'application/pdf',
+      title: 'hemograma.pdf',
+    });
+
+    // El original (lo que procesa el bot de laboratorio) no cambió.
+    const releido = await medplum.readResource('DocumentReference', original.id);
+    expect(releido.meta?.versionId).toBe(original.meta?.versionId);
+    expect(releido.context).toBeUndefined();
+    expect(releido.category?.[0].coding?.[0].code).toBe(CATEGORIA_LABORATORIO);
+  });
+
+  test('quitar lo saca de context.related y lo pasa a entered-in-error: el dashboard deja de verlo', async () => {
+    const { medplum, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    const { documento } = await adjuntarArchivo(medplum, patient, confirmada, pdf('orden-vieja.pdf'));
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+
+    const zona = await seccion();
+    await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar orden-vieja.pdf' })));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
+    // No promete que el profesional deja de verlo: el archivo no se borra (docs/adjuntos-turno.md).
+    expect(within(dialogo).getByText(/El archivo no se borra/)).toBeInTheDocument();
+    expect(within(dialogo).queryByText(/ya no lo ve/)).not.toBeInTheDocument();
+    await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
+
+    expect(await within(zona).findByText('Todavía no adjuntaste estudios a esta consulta.')).toBeInTheDocument();
+    expect(within(zona).getByText('Quitamos «orden-vieja.pdf» de esta consulta.')).toBeInTheDocument();
+    const quitado = await medplum.readResource('DocumentReference', documento?.id as string);
+    expect(quitado.status).toBe('entered-in-error');
+    expect(quitado.context?.related).toBeUndefined();
+    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(0);
+  });
+
+  test('con la videollamada abierta, los estudios quedan plegados para no estorbar', async () => {
+    const { medplum, confirmada } = await escenario();
+    await firmarConsentimiento(medplum);
+    await medplum.updateResource<Appointment>({ ...confirmada, status: 'checked-in' });
+    vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, url: JITSI });
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+
+    expect(await seccion()).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Entrar a la videollamada' }));
+    });
+    expect(await screen.findByTitle('Videollamada')).toBeInTheDocument();
+    const plegado = screen.getByRole('button', { name: 'Adjuntar estudios' });
+    expect(plegado).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('region', { name: 'Estudios para esta consulta' })).not.toBeInTheDocument();
+    await act(async () => fireEvent.click(plegado));
+    expect(await seccion()).toBeInTheDocument();
+  });
+
+  test('un turno pasado no ofrece adjuntar: muestra lo que se adjuntó, sin quitar', async () => {
+    const { medplum, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    await medplum.createResource(
+      armarAdjuntoTurno(patient, confirmada, {
+        contentType: 'image/png',
+        url: 'https://example.com/binary/b1',
+        title: 'ecg.png',
+      })
+    );
+    const inicio = new Date(Date.now() - 2 * DIA);
+    await medplum.updateResource<Appointment>({
+      ...confirmada,
+      status: 'fulfilled',
+      start: inicio.toISOString(),
+      end: new Date(inicio.getTime() + 30 * 60_000).toISOString(),
+    });
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+
+    const zona = await seccion();
+    expect(within(zona).getByText('Este turno ya pasó: no se pueden sumar más estudios.')).toBeInTheDocument();
+    expect(await within(zona).findByRole('link', { name: /ecg\.png/ })).toBeInTheDocument();
+    expect(within(zona).queryAllByRole('button')).toHaveLength(0);
+    expect(zona.querySelector('input[type="file"]')).toBeNull();
+  });
+
+  test('sin consentimiento informado, pide firmarlo con un link y no ofrece subir', async () => {
+    const { medplum, confirmada } = await escenario();
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+    const zona = await seccion();
+    expect(await within(zona).findByRole('link', { name: 'Firmar el consentimiento' })).toHaveAttribute(
+      'href',
+      '/health-record/consent'
+    );
+    expect(within(zona).queryByRole('button', { name: 'Subir un PDF o una foto' })).not.toBeInTheDocument();
+  });
+
+  test('en Mis turnos: plegado en los próximos (las dos modalidades), con la cantidad; los pasados no ofrecen adjuntar', async () => {
+    const { medplum, presencial, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    await adjuntarArchivo(medplum, patient, confirmada, pdf('perfil-lipidico.pdf'));
+    const hace = new Date(Date.now() - 7 * DIA);
+    const pasado = await medplum.createResource<Appointment>({
+      resourceType: 'Appointment',
+      status: 'fulfilled',
+      description: 'Consulta de Clínica',
+      start: hace.toISOString(),
+      end: new Date(hace.getTime() + 30 * 60_000).toISOString(),
+      participant: [{ actor: { reference: `Patient/${patient.id}` }, status: 'accepted' }],
+    });
+    await renderEn(medplum, '/get-care');
+
+    const tele = await screen.findByTestId(`turno-${confirmada.id}`);
+    expect(await within(tele).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
+    expect(within(await screen.findByTestId(`turno-${pasado.id}`)).queryByRole('button')).not.toBeInTheDocument();
+
+    const tarjeta = screen.getByTestId(`turno-${presencial.id}`);
+    const boton = within(tarjeta).getByRole('button', { name: 'Adjuntar estudios' });
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+    const panel = document.getElementById(boton.getAttribute('aria-controls') as string) as HTMLElement;
+    expect(panel).not.toBeVisible();
+    await act(async () => fireEvent.click(boton));
+    expect(boton).toHaveAttribute('aria-expanded', 'true');
+    expect(panel).toBeVisible();
+
+    const zona = await within(tarjeta).findByRole('region', { name: /^Estudios para esta consulta/ });
+    // Con varios turnos en pantalla, el botón y la sección dicen de cuál son.
+    expect(boton).toHaveAccessibleDescription(/^Consulta de Cardiología, \d+ de \w+ de \d{4} a las \d{2}:\d{2}$/);
+    expect(zona).toHaveAccessibleName(/Consulta de Cardiología/);
+    // En el centro, el dashboard todavía no muestra los adjuntos antes: no se promete.
+    expect(within(zona).getByText(/Llevalos igual el día de la consulta/)).toBeInTheDocument();
+    expect(within(zona).queryByText(/lo ve el profesional/)).not.toBeInTheDocument();
+    await within(zona).findByRole('button', { name: 'Subir un PDF o una foto' });
+    await act(async () => elegirArchivo(zona, foto('orden-de-estudio.jpg')));
+    expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
+
+    const docs = await loQueVeElDashboard(medplum, presencial.id);
+    expect(docs).toHaveLength(1);
+    expect(docs[0]).toMatchObject({
+      category: [{ coding: [{ code: CATEGORIA_ADJUNTO_TURNO }] }],
+      context: { related: [{ reference: `Appointment/${presencial.id}` }] },
+      content: [{ attachment: { contentType: 'image/jpeg', title: 'orden-de-estudio.jpg' } }],
+    });
+    // Lo adjunto a un turno no aparece en el otro.
+    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(1);
+  });
+
+  test('en Mis turnos: elegir uno ya enviado crea la copia sin tocar el original, y no la duplica aunque toque dos veces', async () => {
+    const { medplum, presencial } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    const original = (await enviarLaboratorioPdf(medplum, patient, pdf('hemograma.pdf')))
+      .documento as WithId<DocumentReference>;
+    await renderEn(medplum, '/get-care');
+
+    const tarjeta = await screen.findByTestId(`turno-${presencial.id}`);
+    await act(async () => fireEvent.click(within(tarjeta).getByRole('button', { name: 'Adjuntar estudios' })));
+    const zona = await within(tarjeta).findByRole('region', { name: /^Estudios para esta consulta/ });
+    await act(async () =>
+      fireEvent.click(await within(zona).findByRole('button', { name: 'Elegir de los que ya mandaste' }))
+    );
+    const adjuntar = await within(zona).findByRole('button', { name: 'Adjuntar hemograma.pdf' });
+    // Dos toques seguidos (antes de que la pantalla llegue a deshabilitar el botón).
+    await act(async () => {
+      fireEvent.click(adjuntar);
+      fireEvent.click(adjuntar);
+    });
+    expect(await within(zona).findByText('Listo: «hemograma.pdf» quedó adjunto a esta consulta.')).toBeInTheDocument();
+    expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
+    expect(within(zona).getByText('Los estudios que mandaste ya están adjuntos a esta consulta.')).toBeInTheDocument();
+
+    const docs = await loQueVeElDashboard(medplum, presencial.id);
+    expect(docs).toHaveLength(1);
+    expect(docs[0].id).not.toBe(original.id);
+    expect(docs[0]).toMatchObject({
+      status: 'current',
+      category: [{ coding: [{ code: CATEGORIA_ADJUNTO_TURNO }] }],
+      context: { related: [{ reference: `Appointment/${presencial.id}` }] },
+      content: [{ attachment: { url: original.content[0].attachment.url, title: 'hemograma.pdf' } }],
+    });
+
+    // El original (lo que procesa el bot de laboratorio) sigue igual.
+    const releido = await medplum.readResource('DocumentReference', original.id);
+    expect(releido.meta?.versionId).toBe(original.meta?.versionId);
+    expect(releido.status).toBe('current');
+    expect(releido.context).toBeUndefined();
+    expect(releido.category?.[0].coding?.[0].code).toBe(CATEGORIA_LABORATORIO);
+  });
+
+  test('en Mis turnos: quitar lo saca de context.related, lo pasa a entered-in-error y baja el contador', async () => {
+    const { medplum, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    const quitar = (await adjuntarArchivo(medplum, patient, confirmada, pdf('orden-vieja.pdf')))
+      .documento as WithId<DocumentReference>;
+    const queda = (await adjuntarArchivo(medplum, patient, confirmada, foto('ecg.jpg')))
+      .documento as WithId<DocumentReference>;
+    await renderEn(medplum, '/get-care');
+
+    const tarjeta = await screen.findByTestId(`turno-${confirmada.id}`);
+    const boton = await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (2)' });
+    await act(async () => fireEvent.click(boton));
+    const zona = await within(tarjeta).findByRole('region', { name: /^Estudios para esta consulta/ });
+    await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar orden-vieja.pdf' })));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
+    await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
+
+    expect(await within(zona).findByText('Quitamos «orden-vieja.pdf» de esta consulta.')).toBeInTheDocument();
+    expect(within(zona).queryByRole('button', { name: 'Quitar orden-vieja.pdf' })).not.toBeInTheDocument();
+    expect(within(zona).getByRole('button', { name: 'Quitar ecg.jpg' })).toBeInTheDocument();
+    expect(within(tarjeta).getByRole('button', { name: 'Adjuntar estudios (1)' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+
+    const quitado = await medplum.readResource('DocumentReference', quitar.id);
+    expect(quitado.status).toBe('entered-in-error');
+    expect(quitado.context?.related).toBeUndefined();
+    expect((await loQueVeElDashboard(medplum, confirmada.id)).map((d) => d.id)).toEqual([queda.id]);
+
+    // Se vuelve a plegar: el panel queda oculto y el botón lo dice.
+    const plegar = within(tarjeta).getByRole('button', { name: 'Adjuntar estudios (1)' });
+    await act(async () => fireEvent.click(plegar));
+    expect(plegar).toHaveAttribute('aria-expanded', 'false');
+    expect(document.getElementById(plegar.getAttribute('aria-controls') as string)).not.toBeVisible();
+  });
+
+  test('si la sala se abre sola en medio de una subida, la subida sigue y su resultado se ve', async () => {
+    const { medplum, confirmada } = await escenario();
+    await firmarConsentimiento(medplum);
+    vi.spyOn(medplum, 'executeBot').mockResolvedValue({ ok: true, url: JITSI });
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`, undefined, 20);
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Entrar a la videollamada' }));
+    });
+    expect(await screen.findByText('Ya estás en la sala de espera')).toBeInTheDocument();
+
+    // Una subida lenta, en la sala de espera.
+    const subirDeVerdad = medplum.createAttachment.bind(medplum);
+    let soltar = (): void => undefined;
+    const espera = new Promise<void>((r) => {
+      soltar = r;
+    });
+    type Subir = typeof medplum.createAttachment;
+    vi.spyOn(medplum, 'createAttachment').mockImplementation((async (...args: Parameters<Subir>) => {
+      await espera;
+      return subirDeVerdad(...args);
+    }) as Subir);
+    const zona = await seccion();
+    await within(zona).findByRole('button', { name: 'Subir un PDF o una foto' });
+    await act(async () => elegirArchivo(zona, pdf('eco-doppler.pdf')));
+
+    // Entra el médico: la videollamada se abre y los estudios se pliegan…
+    await act(async () => {
+      await medplum.updateResource<Appointment>({ ...confirmada, status: 'checked-in' });
+    });
+    expect(await screen.findByTitle('Videollamada', {}, { timeout: 2000 })).toBeInTheDocument();
+    const plegado = screen.getByRole('button', { name: /^Adjuntar estudios/ });
+    expect(plegado).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('status')).toHaveTextContent('Subiendo «eco-doppler.pdf»…');
+
+    // …pero la subida no se pierde: termina, el contador sube y el «Listo» se ve junto al botón.
+    await act(async () => soltar());
+    expect(await screen.findByRole('button', { name: 'Adjuntar estudios (1)' })).toBe(plegado);
+    expect(screen.getByRole('status')).toHaveTextContent('Listo: «eco-doppler.pdf» quedó adjunto a esta consulta.');
+    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(1);
+  });
+
+  test('en Mis turnos: una reserva vencida sin la seña no ofrece adjuntar', async () => {
+    const { medplum, tentativa } = await escenario();
+    await firmarConsentimiento(medplum);
+    await medplum.updateResource<Appointment>({
+      ...tentativa,
+      extension: [
+        ...(tentativa.extension ?? []),
+        { url: EXT_AGENDA.reservaExpira, valueDateTime: new Date(Date.now() - 3_600_000).toISOString() },
+      ],
+    });
+    await renderEn(medplum, '/get-care');
+
+    const tarjeta = await screen.findByTestId(`turno-${tentativa.id}`);
+    expect(within(tarjeta).getByText('Venció la reserva')).toBeInTheDocument();
+    expect(within(tarjeta).queryByRole('button', { name: /^Adjuntar estudios/ })).not.toBeInTheDocument();
   });
 });
 

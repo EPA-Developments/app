@@ -55,3 +55,14 @@ Pantalla `src/pages/EnviarEstudiosPage.tsx`, capa FHIR `src/fhir/estudios.ts`.
 
 **Pendiente de esta opción**: eco doppler / imágenes (LOINC `18748-4`, category
 `eco-doppler`), cuando exista su procesamiento.
+
+## Estudios adjuntos a un turno (no es una opción del "+")
+
+Distinto de la opción 6: la persona adjunta PDFs o fotos **a un turno** (desde la sala de la
+teleconsulta o desde "Mis turnos") para que el profesional los vea antes de la consulta (hoy el
+dashboard los muestra solo en las teleconsultas; en los presenciales se pide llevarlos). Es un
+`DocumentReference` con `category` `…/CodeSystem/documento|adjunto-turno` y
+`context.related` → `Appointment/<id>`, que el dashboard de los profesionales lee con
+`DocumentReference?related=Appointment/<id>`. **No dispara** al bot de laboratorio (no lo lee
+la IA ni suma biomarcadores). Quitar uno saca esa referencia de `context.related` y lo pasa a
+`entered-in-error`. Contrato completo: [`adjuntos-turno.md`](adjuntos-turno.md).

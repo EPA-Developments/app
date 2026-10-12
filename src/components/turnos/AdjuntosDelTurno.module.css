@@ -1,0 +1,123 @@
+/* Estudios para esta consulta: lista de adjuntos y acciones. Táctiles de 44px como mínimo
+   y foco visible en todo lo que se toca. Sin bordes de color a un costado. */
+
+.seccion {
+  min-width: 0;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  padding: 4px var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+}
+
+.icono {
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+}
+
+.texto {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+}
+
+/* Fechas, ayudas y estados vacíos: gris, pero con contraste de sobra (el «dimmed» de Mantine no
+   llega a 4.5:1 sobre blanco) y en el mismo tamaño que el resto. */
+.secundario {
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+/* El nombre del archivo: un link que nunca empuja el ancho de la pantalla. Se ve del alto del
+   texto (así todas las filas miden lo mismo), pero se toca en 44px como mínimo: el ::after
+   agranda la zona táctil sin mover nada. */
+.archivo {
+  position: relative;
+  display: inline-block;
+  color: light-dark(var(--mantine-primary-color-7), var(--mantine-color-anchor));
+  font-weight: 600;
+  font-size: var(--mantine-font-size-sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.archivo::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 100%;
+  min-height: 44px;
+  transform: translateY(-50%);
+}
+
+.nombre {
+  display: block;
+  font-weight: 600;
+  font-size: var(--mantine-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.tactil {
+  min-height: 44px;
+}
+
+/* El link dentro de la bajada (un link en medio de un texto no necesita 44px de alto). Los
+   links van un tono más oscuro que el principal: el 6 queda debajo de 4.5:1 en texto chico. */
+.enLinea {
+  color: light-dark(var(--mantine-primary-color-7), var(--mantine-color-anchor));
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.archivo:focus-visible,
+.enLinea:focus-visible,
+.tactil:focus-visible,
+.titulo:focus-visible {
+  outline: 3px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-sm);
+}
+
+/* En el celular, cada acción ocupa el ancho: más fácil de tocar, nada se corta. */
+@media (max-width: $mantine-breakpoint-xs) {
+  .acciones > * {
+    flex: 1 1 100%;
+  }
+}
+
+.panel {
+  padding-top: var(--mantine-spacing-xs);
+}
+
+/* El título recibe el foco (programático, tabIndex -1) cuando el botón que se usó ya no existe,
+   p. ej. después de quitar un estudio. Con el mouse no hace falta el contorno. */
+.titulo:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.tituloDialogo {
+  font-weight: 700;
+}

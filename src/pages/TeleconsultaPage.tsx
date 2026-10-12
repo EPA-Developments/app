@@ -13,14 +13,21 @@
 // el turno pasa a `checked-in` (el médico entró desde el dashboard). Si el médico
 // entrara por otro lado y el turno no cambiara, a los pocos minutos del inicio se le
 // ofrece entrar igual: nunca queda esperando para siempre.
-import { Alert, Anchor, Box, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
+//
+// Debajo, «Estudios para esta consulta»: lo que adjunta para que el profesional lo vea
+// antes de la consulta (src/components/turnos/AdjuntosDelTurno.tsx). Con la videollamada
+// abierta queda plegado, para no estorbar. Es siempre el mismo componente (solo cambia
+// `plegable`): si la sala se abre sola en medio de una subida, la subida y su resultado siguen.
+import { Alert, Anchor, Box, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
 import { formatDateTime } from '@medplum/core';
+import type { WithId } from '@medplum/core';
 import type { Appointment } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconCreditCard, IconExternalLink, IconVideo } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router';
+import { AdjuntosDelTurnoPlegables } from '../components/turnos/AdjuntosDelTurno';
 import {
   entrarTeleconsulta,
   estadoDeLaEspera,
@@ -46,7 +53,7 @@ export function TeleconsultaPage({
 }: TeleconsultaPageProps = {}): JSX.Element {
   const { appointmentId = '' } = useParams();
   const medplum = useMedplum();
-  const [turno, setTurno] = useState<Appointment | null>();
+  const [turno, setTurno] = useState<WithId<Appointment> | null>();
   const [entrando, setEntrando] = useState(false);
   const [respuesta, setRespuesta] = useState<RespuestaEntrar>();
   const [sala, setSala] = useState<string>();
@@ -64,7 +71,7 @@ export function TeleconsultaPage({
   }, [medplum, appointmentId]);
 
   /** El turno recién leído del servidor (sin caché): de ahí sale si el médico entró. */
-  const releer = useCallback(async (): Promise<Appointment | undefined> => {
+  const releer = useCallback(async (): Promise<WithId<Appointment> | undefined> => {
     try {
       const fresco = await medplum.readResource('Appointment', appointmentId, { cache: 'no-cache' });
       setTurno(fresco);
@@ -199,6 +206,10 @@ export function TeleconsultaPage({
             )}
           </Stack>
         )}
+
+        <Paper withBorder radius="md" p="md">
+          <AdjuntosDelTurnoPlegables appointment={turno} nivel={3} plegable={!!sala && abierta} />
+        </Paper>
         {volver}
       </Stack>
     </Document>
