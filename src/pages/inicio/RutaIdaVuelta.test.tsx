@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { JSX, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
-import { RUTA_CONSENTIMIENTO } from '../../components/AvisoConsentimiento';
+import { RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import { simularPantalla } from '../../testing/pantalla';
 import { NOTA_COSTO_TELECONSULTA } from './caminos';
 import { rutaDe } from './ruta';

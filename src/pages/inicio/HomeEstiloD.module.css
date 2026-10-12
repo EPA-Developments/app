@@ -1109,12 +1109,9 @@
 }
 
 /* ─── 5. Seguimiento GLP-1: la tarjeta (Mantine, clara) sobre un panel; si no hay programa,
-   no ocupa lugar. ─── */
+   no ocupa lugar. El contraste del texto lo resuelve la tarjeta (SeguimientoGlp1Card). ─── */
 
 .glp1 {
-  /* La tarjeta es de Mantine (clara en los dos temas): su texto «dimmed» (gray-6, 3,3:1 sobre
-     blanco) no llega a 4,5:1; acá se lee en gray-7 (8:1). */
-  --mantine-color-dimmed: var(--mantine-color-gray-7);
   padding-bottom: 72px;
 
   &:empty {

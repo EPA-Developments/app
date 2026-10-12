@@ -10,7 +10,7 @@ import type { JSX } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { SeguimientoGlp1Card } from '../../components/SeguimientoGlp1Card';
 import { cargarFixtureGlp1, indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
-import { INDICACION_GLP1_CODE, TASK_TIPO_SYSTEM } from '../../fhir/glp1';
+import { INDICACION_GLP1_CODE, RUTA_SEGUIMIENTO_GLP1, TASK_TIPO_SYSTEM } from '../../fhir/glp1';
 import { ActionItem } from './ActionItem';
 import { SeguimientoGlp1 } from './SeguimientoGlp1';
 import { datosGraficoPeso } from './SeguimientoGlp1.grafico';
@@ -107,8 +107,12 @@ describe('página Mi seguimiento GLP-1', () => {
         within(screen.getByTestId(`control-semana-${semana}`)).getByText('Por agendar: Recepción te va a contactar')
       ).toBeInTheDocument();
     }
-    expect(within(screen.getByTestId('control-semana-12')).getByText('Entre el 28/12 y el 04/01/2027')).toBeInTheDocument();
-    expect(within(screen.getByTestId('proximo-control')).getByText('Próximo paso: Control inicial')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('control-semana-12')).getByText('Entre el 28/12 y el 04/01/2027')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('proximo-control')).getByText('Próximo paso: Control inicial')
+    ).toBeInTheDocument();
   });
 
   test('AC-3 y AC-4: revisión en la semana 20, meta y estudios con nombre visible', async () => {
@@ -116,9 +120,7 @@ describe('página Mi seguimiento GLP-1', () => {
     const revision = within(await screen.findByTestId('control-semana-20'));
     expect(revision.getByText('Revisión de tu respuesta al tratamiento')).toBeInTheDocument();
     expect(revision.getByText(/12 semanas después de llegar a tu dosis/)).toBeInTheDocument();
-    expect(screen.getByTestId('meta-glp1')).toHaveTextContent(
-      'Tu meta: llegar a 87,4 kg o menos para el 22/02/2027.'
-    );
+    expect(screen.getByTestId('meta-glp1')).toHaveTextContent('Tu meta: llegar a 87,4 kg o menos para el 22/02/2027.');
 
     const basal = within(screen.getByTestId('control-semana-0')).getByText(/^Traé los resultados de:/);
     for (const nombre of ['Hemoglobina glicosilada (HbA1c)', 'Filtrado glomerular estimado (eGFR)', 'ALT (TGP)']) {
@@ -179,22 +181,40 @@ describe('AC-9: gráfico de peso', () => {
 });
 
 describe('tarjeta de Inicio', () => {
-  test('AC-1: muestra las semanas y el próximo control, y lleva a la página', async () => {
+  test('AC-1: es un link a la página, y su nombre dice lo que se ve: título, semanas y próximo control', async () => {
     await renderEn(await pacienteConPrograma(), '/');
-    const tarjeta = await screen.findByRole('button', { name: 'Ver mi seguimiento GLP-1' });
-    expect(tarjeta).toHaveTextContent('Empezás el 05/10');
-    expect(tarjeta).toHaveTextContent('Próximo: Control inicial');
-    expect(tarjeta).toHaveTextContent('Agendado: mié 30/09 10:00 · Reservado');
-    fireEvent.click(tarjeta);
+    // Sin aria-label que lo pise: el lector de pantalla oye lo mismo que se lee.
+    const tarjeta = await screen.findByRole('link', { name: /^Seguimiento GLP-1/ });
+    expect(tarjeta).toHaveAttribute('href', RUTA_SEGUIMIENTO_GLP1);
+    expect(tarjeta).not.toHaveAttribute('aria-label');
+    expect(tarjeta).toHaveAccessibleName(/Empezás el 05\/10/);
+    expect(tarjeta).toHaveAccessibleName(/Próximo: Control inicial/);
+    expect(tarjeta).toHaveAccessibleName(/Agendado: mié 30\/09 10:00 · Reservado/);
+    // Los íconos son decorativos.
+    for (const svg of tarjeta.querySelectorAll('svg')) {
+      expect(svg.closest('[aria-hidden="true"]')).not.toBeNull();
+    }
+    await act(async () => fireEvent.click(tarjeta));
     expect(await screen.findByText('Mi seguimiento GLP-1')).toBeInTheDocument();
+  });
+
+  test('AC-6: con la indicación pendiente, el link dice que el plan está en preparación', async () => {
+    await renderEn(await pacienteNuevo(true), '/');
+    const tarjeta = await screen.findByRole('link', { name: /^Seguimiento GLP-1/ });
+    expect(tarjeta).toHaveAttribute('href', RUTA_SEGUIMIENTO_GLP1);
+    expect(tarjeta).toHaveAccessibleName(/Tu médico está preparando tu plan de seguimiento/);
   });
 
   test('AC-6: sin programa no renderiza nada', async () => {
     await renderEn(await pacienteNuevo(false), '/');
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(screen.queryByRole('button', { name: 'Ver mi seguimiento GLP-1' })).not.toBeInTheDocument();
+    // Deja correr las búsquedas (el MockClient resuelve en el próximo tick).
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seguimiento GLP-1')).not.toBeInTheDocument();
   });
 });
 

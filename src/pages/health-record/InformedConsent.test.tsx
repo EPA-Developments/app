@@ -8,7 +8,6 @@ import { MedplumProvider } from '@medplum/react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { JSX } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { AvisoConsentimiento } from '../../components/AvisoConsentimiento';
 import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
 import { RUTA_CONSENTIMIENTO_TELECONSULTA, construirConsentimientoTeleconsulta } from '../../fhir/agenda';
 import { NOTIFICACION_SYSTEM } from '../../fhir/notificaciones';
@@ -16,10 +15,12 @@ import {
   CONSENT_TYPE_CODE,
   CONSENT_TYPE_SYSTEM,
   CONSENT_VERSION_SYSTEM,
+  RUTA_CONSENTIMIENTO,
   buscarConsentimiento,
   consentimientoAlDia,
   versionFirmada,
 } from '../../fhir/consentimiento';
+import { HomePage } from '../HomePage';
 import { InformedConsent } from './InformedConsent';
 import { NOVEDADES_VERSION, VERSION_CONSENTIMIENTO } from './InformedConsent.data';
 
@@ -68,7 +69,6 @@ async function renderEn(medplum: MockClient, ruta: string): Promise<void> {
               <Route path="/health-record/consent" element={<InformedConsent />} />
               <Route path="/health-record/cuestionarios" element={<Marca texto="Mi salud cardiovascular" />} />
               <Route path="/health-record/ingreso" element={<Marca texto="Cuestionario de ingreso" />} />
-              <Route path="/inicio" element={<AvisoConsentimiento />} />
               <Route
                 path={RUTA_CONSENTIMIENTO_TELECONSULTA}
                 element={<Marca texto="Página del consentimiento de teleconsulta" />}
@@ -218,32 +218,60 @@ describe('consentimiento de teleconsulta (R-21): se ofrece, una sola vez, a quie
   });
 });
 
-describe('aviso en el inicio', () => {
-  test('a quien firmó una versión anterior le pide revisarlo y firmarlo', async () => {
-    const { medplum } = await paciente({ version: '2026-06' });
-    await renderEn(medplum, '/inicio');
-    expect(await screen.findByText('Actualizamos el consentimiento informado')).toBeInTheDocument();
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Revisar y firmar' })));
-    expect(await screen.findByRole('heading', { name: '1. Tus datos' })).toBeInTheDocument();
-  });
+// Quien firmó una versión anterior se entera en el Inicio: la puerta de la Home (paraHoy, regla
+// 'consentimiento-actualizado') le propone actualizarlo. Ana no tiene sexo cargado: ve la Home D.
+describe('el consentimiento en el Inicio', () => {
+  const ESPERA = { timeout: 10000 };
 
-  test('no aparece con la versión vigente ni a quien nunca firmó (eso lo lleva la Bienvenida)', async () => {
-    for (const firmado of [{ version: VERSION_CONSENTIMIENTO }, undefined]) {
-      const { medplum } = await paciente(firmado);
-      const { unmount } = render(
-        <MemoryRouter>
+  async function enElInicio(medplum: MockClient): Promise<void> {
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/']}>
           <MedplumProvider medplum={medplum}>
-            <MantineProvider>
-              <AvisoConsentimiento />
+            {/* env="test": sin transiciones de Mantine, cuyos timers podían disparar después de
+                desmontar jsdom («window is not defined»). */}
+            <MantineProvider env="test">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path={RUTA_CONSENTIMIENTO} element={<InformedConsent />} />
+              </Routes>
             </MantineProvider>
           </MedplumProvider>
         </MemoryRouter>
       );
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 0));
-      });
-      expect(screen.queryByText('Actualizamos el consentimiento informado')).not.toBeInTheDocument();
-      unmount();
-    }
+    });
+  }
+
+  test('a quien firmó una versión anterior la puerta le propone actualizarlo, y el botón lleva al texto', async () => {
+    const { medplum } = await paciente({ version: '2026-06' });
+    await enElInicio(medplum);
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Ana, actualizamos tu consentimiento.' }, ESPERA)
+    ).toBeInTheDocument();
+    // El botón de la puerta (el primero: la ruta puede repetir la acción más abajo).
+    const revisar = screen.getAllByRole('link', { name: 'Revisar y firmar' })[0];
+    expect(revisar).toHaveAttribute('href', RUTA_CONSENTIMIENTO);
+
+    await act(async () => fireEvent.click(revisar));
+    expect(await screen.findByRole('heading', { name: '1. Tus datos' })).toBeInTheDocument();
+    expect(await screen.findByText('Actualizamos el consentimiento informado')).toBeInTheDocument();
+  });
+
+  test.each([
+    {
+      caso: 'con la versión vigente',
+      firmado: { version: VERSION_CONSENTIMIENTO },
+      titulo: 'Ana, contanos tus antecedentes.',
+    },
+    // A quien nunca firmó la puerta le pide la primera firma, no que lo actualice.
+    { caso: 'a quien nunca firmó', firmado: undefined, titulo: 'Ana, tu ruta empieza con tu firma.' },
+  ])('$caso no propone actualizarlo', async ({ firmado, titulo }) => {
+    const { medplum } = await paciente(firmado);
+    await enElInicio(medplum);
+    // Terminó de cargar: la puerta ya eligió el próximo paso.
+    expect(await screen.findByRole('heading', { level: 1, name: titulo }, ESPERA)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /actualizamos tu consentimiento/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Revisar y firmar' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/hay una versión nueva/)).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,9 @@ import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { DocumentReference, Patient } from '@medplum/fhirtypes';
 
+/** La pantalla donde se lee y se firma el consentimiento informado. */
+export const RUTA_CONSENTIMIENTO = '/health-record/consent';
+
 export const CONSENT_TYPE_SYSTEM = 'http://loinc.org';
 export const CONSENT_TYPE_CODE = '59284-0';
 
