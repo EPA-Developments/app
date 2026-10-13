@@ -17,6 +17,7 @@ import { getReferenceString } from '@medplum/core';
 import type { CarePlan, Coverage, Observation, Patient, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { measurementsMeta } from '../pages/health-record/Measurement.data';
 import { PANEL_SYSTEM } from './biomarkers';
+import { RUTA_CONSENTIMIENTO } from './consentimiento';
 import { cargarMisSolicitudes } from './solicitudes';
 
 /** CodeSystem canónico de planes de cuidado SOM (debe coincidir con recepcionistas). */
@@ -171,7 +172,7 @@ export async function cargarPlanBienestar(
       id: 'consentimiento',
       label: 'Firmá el consentimiento',
       descripcion: 'Habilita tu atención en el plan.',
-      href: '/health-record/consent',
+      href: RUTA_CONSENTIMIENTO,
       cumplido: consentimientos.length > 0,
     },
     {

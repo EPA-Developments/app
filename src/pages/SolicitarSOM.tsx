@@ -30,7 +30,7 @@ import { IconCircleCheck, IconFileCheck, IconFileUpload, IconInfoCircle, IconSen
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { buscarConsentimiento } from '../fhir/consentimiento';
+import { buscarConsentimiento, RUTA_CONSENTIMIENTO } from '../fhir/consentimiento';
 import { MENSAJE_SIN_CONSENTIMIENTO, crearSolicitudSOM, fileToArchivoSOM, type OrigenSOM } from '../fhir/som';
 import { MARCA } from '../marca';
 import { showErrorNotification } from '../utils/notifications';
@@ -138,7 +138,7 @@ export function SolicitarSOM(): JSX.Element {
         <Alert color="yellow" variant="light" icon={<IconFileCheck />} title="Falta tu consentimiento informado">
           {MENSAJE_SIN_CONSENTIMIENTO} Es un paso único: después volvés acá y completás tu solicitud.
           <Group mt="sm">
-            <Button size="xs" onClick={() => navigate('/health-record/consent')?.catch(console.error)}>
+            <Button size="xs" onClick={() => navigate(RUTA_CONSENTIMIENTO)?.catch(console.error)}>
               Firmar el consentimiento
             </Button>
           </Group>

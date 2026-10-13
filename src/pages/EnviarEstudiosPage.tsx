@@ -28,7 +28,7 @@ import { IconCircleCheck, IconFileCheck, IconFileTypePdf, IconFileUpload, IconIn
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
-import { buscarConsentimiento } from '../fhir/consentimiento';
+import { buscarConsentimiento, RUTA_CONSENTIMIENTO } from '../fhir/consentimiento';
 import {
   cargarEstudiosEnviados,
   enviarLaboratorioPdf,
@@ -162,7 +162,7 @@ export function EnviarEstudiosPage(): JSX.Element {
         <Alert color="yellow" variant="light" icon={<IconFileCheck />} title="Falta tu consentimiento informado">
           {MENSAJE_SIN_CONSENTIMIENTO} Es un paso único: después volvés acá y subís tu PDF.
           <Group mt="sm">
-            <Button size="xs" onClick={() => navigate('/health-record/consent')?.catch(console.error)}>
+            <Button size="xs" onClick={() => navigate(RUTA_CONSENTIMIENTO)?.catch(console.error)}>
               Firmar el consentimiento
             </Button>
           </Group>

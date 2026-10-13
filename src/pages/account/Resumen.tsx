@@ -20,6 +20,7 @@ import {
 import type { JSX } from 'react';
 import { TarjetaDeOpciones } from '../../components/TarjetaDeOpciones';
 import type { OpcionDeMenu } from '../../components/TarjetaDeOpciones';
+import { RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 
 interface Grupo {
   readonly eje: string;
@@ -74,7 +75,7 @@ const GRUPOS: Grupo[] = [
         icon: IconFileCheck,
         titulo: 'Consentimiento y privacidad',
         descripcion: 'Tu autorización y el uso de tus datos.',
-        href: '/health-record/consent',
+        href: RUTA_CONSENTIMIENTO,
       },
     ],
   },

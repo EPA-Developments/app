@@ -43,6 +43,7 @@ import type { Icon } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { JSX } from 'react';
 import type { Demografia, Sexo } from '../fhir/demografia';
+import { RUTA_CONSENTIMIENTO } from '../fhir/consentimiento';
 import { SEXO_OPCIONES, aplicarDemografia, celularValido, leerDemografia } from '../fhir/demografia';
 import { getPatientOrigin, marcarOnboardingCompleto } from '../fhir/onboarding';
 import { showErrorNotification } from '../utils/notifications';
@@ -192,7 +193,7 @@ export function Welcome(): JSX.Element {
       // sesión, y el Plan Bienestar evalúa la elegibilidad sobre ese profile — con
       // la recarga el sexo y la fecha recién guardados se ven de inmediato.
       // El journey sigue en el paso 2 anunciado: firmar el consentimiento.
-      window.location.assign('/health-record/consent');
+      window.location.assign(RUTA_CONSENTIMIENTO);
     } catch (err) {
       showErrorNotification(err);
       setSaving(false);

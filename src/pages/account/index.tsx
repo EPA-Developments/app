@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { JSX } from 'react';
 import { LayoutConMenuLateral } from '../../components/LayoutConMenuLateral';
+import { RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 
 const RUTA_RESUMEN = '/account/resumen';
 
@@ -12,7 +13,7 @@ const sideMenu = {
     { name: 'Mis datos', href: '/account/profile' },
     { name: 'Mi equipo de salud', href: '/account/equipo' },
     { name: 'Membresía', href: '/membership' },
-    { name: 'Consentimiento y privacidad', href: '/health-record/consent' },
+    { name: 'Consentimiento y privacidad', href: RUTA_CONSENTIMIENTO },
   ],
 };
 
