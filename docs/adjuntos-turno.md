@@ -2,9 +2,14 @@
 
 La persona puede **adjuntar estudios a un turno** (PDF o fotos) para que el profesional que
 la atiende los vea **antes de la consulta**. Se puede en teleconsultas y en turnos
-presenciales: el dashboard los muestra en su pantalla de teleconsulta y, en un turno en el
-centro, arriba de la ficha que el profesional abre desde su agenda (ver «Lo que hizo el
-dashboard»).
+presenciales, pero el dashboard no los muestra igual en los dos:
+
+- En una **teleconsulta**, al lado de la sala. La pantalla dice que el profesional los ve
+  antes de la consulta.
+- En un **turno en el centro**, solo arriba de la ficha que el profesional abre desde la
+  «Agenda de hoy» de su tablero: el mismo día, y no siempre (ver «Dónde la ve el
+  profesional»). La pantalla dice que los puede ver el día de la consulta y pide llevarlos
+  igual.
 
 - **Dónde**: en la sala de la teleconsulta (`/teleconsulta/:appointmentId`, debajo de
   «Entrar»/la espera; con la videollamada abierta queda plegado) y en **Mis turnos**, en cada
@@ -29,13 +34,26 @@ nombre sin link), y la fecha `date`.
 
 Su otra sección, «Su historia de documentos», trae los vigentes de la persona
 (`DocumentReference?subject=Patient/<id>&status=current`), **una fila por archivo** (la copia
-de «Elegir de los que ya mandaste» no se repite junto a su original) y con la etiqueta
-«Adjunto a otro turno» para lo adjuntado a otro turno.
+de «Elegir de los que ya mandaste» no se repite junto a su original), con la etiqueta
+«Adjunto a otro turno» para lo adjuntado a otro turno, y muestra **las 12 más nuevas** (si hay
+más, avisa que no entran).
 
-Dónde la ve el profesional: en una teleconsulta, al lado de la sala; en un turno en el
-centro, arriba de la ficha de la persona, cuando la abre desde su agenda (la agenda pasa el
-turno en la URL, `?turno=<id>`, y la ficha muestra «Este turno» solo si el turno es de esa
-persona).
+La ficha previa **se lee al abrir la pantalla y no se actualiza sola**. Si el profesional ya
+la tenía abierta, lo que la persona adjunta no le aparece, y lo que quita le sigue apareciendo,
+hasta que la vuelve a abrir (y el cliente de Medplum guarda las búsquedas un minuto).
+
+### Dónde la ve el profesional
+
+- **Teleconsulta**: al lado de la sala (`/teleconsulta/<id>`), que se abre 15 minutos antes.
+- **Turno en el centro**: arriba de la ficha de la persona («Este turno»), **solo si la abre
+  desde la tarjeta «Agenda de hoy»** de su tablero. La tarjeta pasa el turno en la URL
+  (`?turno=<id>`), y la ficha lo muestra solo si el turno es de esa persona. Pero la agenda
+  trae **solo los turnos de hoy** y la tarjeta muestra **los 6 primeros**: el resto va a «Ver
+  todos los turnos», una lista genérica que no pasa el turno. Si abre la ficha desde
+  «Pacientes» o desde cualquier otro lado, no ve ni «Este turno» ni ningún documento.
+
+Por eso, en un turno en el centro, la pantalla promete menos: «Quedan guardados con este turno
+y el profesional los puede ver el día de la consulta. Llevalos igual, por las dudas.»
 
 El vínculo con el turno **vive en el documento** y no en `Appointment.supportingInformation`:
 la persona no puede escribir el turno (lo lee; lo gestionan Recepción y sus bots).
@@ -92,8 +110,9 @@ CodeSystem `documento`, hay que excluir `adjunto-turno`.
 Un solo `update` del documento:
 
 1. Se **saca** `Appointment/<id>` de `context.related` (si quedan otras referencias, quedan;
-   `context.period` queda como dato). Si no se sacara, el dashboard lo seguiría mostrando:
-   no filtra por status.
+   `context.period` queda como dato). El dashboard ya no lo mostraría aunque quedara, porque
+   busca solo lo vigente, pero la referencia se saca igual: para que nadie que lea el turno
+   sin filtrar por status lo tome como adjunto.
 2. `status` pasa a `entered-in-error`.
 
 Solo se quitan documentos de categoría `adjunto-turno` que apunten a ese turno: un
@@ -101,13 +120,18 @@ laboratorio, el consentimiento o lo que haya asociado otro al turno se muestran,
 tocan. El `Binary` no se borra (si vino de «Elegir de los que ya mandaste», el original sigue
 igual).
 
-Como el dashboard lee solo lo vigente (`status=current`), lo quitado deja de aparecerle en las
-dos secciones. El diálogo lo dice («al profesional ya no le aparece»), y también que el archivo
-no se borra y que, si lo subió por error, avise por Mensajes. Una salvedad, que el diálogo
-también dice: si lo que se quita es la copia de un estudio que ya mandó («Elegir de los que ya
-mandaste»), el envío original sigue vigente y el profesional lo sigue viendo en «Su historia de
-documentos». El portal no sabe si un adjunto es una copia sin volver a leer los estudios
-enviados, así que el diálogo lo dice como condición («Si lo habías elegido…»).
+Como la ficha previa lee solo lo vigente (`status=current`), lo quitado deja de aparecer en
+sus dos secciones **la próxima vez que el profesional la abre** (no se relee sola). El diálogo
+lo dice así: «cuando el profesional abra tu ficha, ya no le va a aparecer». Dice también que el
+archivo no se borra y que, si lo subió por error, avise por Mensajes. Las pantallas genéricas
+del dashboard (`/DocumentReference`, sin link desde la ficha) no filtran por status.
+
+Una salvedad, que el diálogo también dice: si lo que se quita es la copia de un PDF que ya
+mandó («Elegir de los que ya mandaste»), el envío original sigue vigente y sigue entrando en
+«Su historia de documentos» (que muestra las 12 más nuevas: uno viejo puede no verse ahí). El
+portal no sabe si un PDF adjunto es una copia sin volver a leer los estudios enviados, así que
+el diálogo lo dice como condición («Si lo sumaste con…»), y solo para un PDF: una foto nunca es
+una copia, porque esa lista ofrece solo PDFs.
 
 ## Cuándo se puede
 
@@ -155,10 +179,11 @@ Lo que el portal le pidió (handoff `docs/handoff-portal-ficha-previa.md` de
 mergeado el 13.10.2026. Allá van numerados por prioridad:
 
 1. **Solo la persona del turno**: «Adjuntó a este turno» filtra por `subject` (ver «Permisos»).
-2. **Turnos presenciales**: la agenda abre la ficha con `?turno=<id>` y arriba aparece «Este
-   turno», con lo adjuntado, el cuestionario previo y la historia de documentos, sin el
-   consentimiento de teleconsulta. Por eso el portal ya no pide llevar los estudios en los
-   turnos en el centro.
+2. **Turnos presenciales**: la «Agenda de hoy» abre la ficha con `?turno=<id>` y arriba
+   aparece «Este turno», con lo adjuntado, el cuestionario previo y la historia de documentos,
+   sin el consentimiento de teleconsulta. Cubre menos de lo que hace falta para prometer que
+   el profesional los ve antes (ver «Dónde la ve el profesional»): en el centro, el portal dice
+   que los puede ver el día de la consulta y sigue pidiendo llevarlos.
 3. **Quitados**: «Su historia de documentos» filtra `status=current`; lo quitado deja de
    aparecer (ver «Cómo se quita»).
 4. **Cuestionario previo**: el prefijo sale de la marca, y primero va la respuesta de este
@@ -166,10 +191,28 @@ mergeado el 13.10.2026. Allá van numerados por prioridad:
 5. **Copias**: una fila por archivo en la historia, y «Adjunto a otro turno» para lo de otro
    turno.
 
-El dashboard de producción se despliega a mano (una EC2 por marca, ver su
-`docs/MARCA-BLANCA.md`): que el PR esté mergeado no quiere decir que ya esté en el servidor.
-Los textos del portal que dependen de esto (el de los turnos en el centro y el del diálogo de
-quitar) salen con el dashboard ya desplegado.
+Que el PR esté mergeado no quiere decir que ya esté en el servidor: su `docs/MARCA-BLANCA.md`
+describe los dos caminos (un proyecto de Vercel por marca, y una EC2 por marca como «camino de
+producción»). Los textos del portal que dependen de esto (el de los turnos en el centro y el
+del diálogo de quitar) salen con el dashboard ya desplegado en producción, verificado con una
+paciente de prueba, sin datos reales:
+
+- [ ] Desde «Agenda de hoy», un turno presencial de prueba con un adjunto abre
+      `/Patient/<id>?turno=<id>`, y arriba aparece «Este turno» con «Adjuntó a este turno».
+- [ ] Quitar un adjunto desde el portal en una teleconsulta de prueba: al volver a abrir la
+      sala, ya no aparece ni en «Adjuntó a este turno» ni en «Su historia de documentos».
+
+### Lo que sigue abierto allá
+
+Pedidos nuevos para el dashboard, todavía sin handoff:
+
+- **Presenciales desde cualquier lado.** Que «Este turno» aparezca aunque la ficha no se abra
+  desde la «Agenda de hoy» (que `PatientPage`, sin `?turno=`, busque el turno de hoy o el
+  próximo de la persona), o al menos que la tarjeta muestre todos los turnos del día y no los
+  6 primeros. Con eso, el portal podría decir en el centro lo mismo que en la teleconsulta.
+- **Que la ficha previa se relea sola** mientras está abierta (y sin la caché de un minuto del
+  cliente), o con un botón «Actualizar». Hoy, si la persona adjunta o quita algo con la sala
+  ya abierta, el profesional no se entera hasta que vuelve a abrirla.
 
 ### Lo que falta en el portal
 

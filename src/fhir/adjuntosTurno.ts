@@ -13,8 +13,10 @@
 // porque la persona no puede escribir el turno (solo lo lee). Por eso:
 //  - Adjuntar = crear un `DocumentReference` con `context.related` → `Appointment/<id>`.
 //  - Quitar = SACAR esa referencia de `context.related` y pasar el documento a
-//    `entered-in-error`. Con `status=current` el dashboard ya no lo muestra en ningún lado;
-//    sacar la referencia igual queda, para quien lea el turno sin filtrar por status.
+//    `entered-in-error`. La ficha previa del dashboard lee solo `status=current`, así que ahí
+//    deja de aparecer (la próxima vez que se abre: no se relee sola). Sus pantallas genéricas
+//    (`/DocumentReference`, sin link desde la ficha) no filtran por status. Sacar la referencia
+//    igual queda, para quien lea el turno sin filtrar por status.
 //
 // No es «Enviar estudios en PDF» (src/fhir/estudios.ts): la categoría `adjunto-turno` no
 // dispara al bot `som-procesar-laboratorio` (su Subscription es solo sobre

@@ -346,8 +346,8 @@ describe('La espera hasta que entra el médico', () => {
 });
 
 // «Estudios para esta consulta»: la persona adjunta estudios al turno para que el profesional
-// los vea antes. El dashboard los busca con `DocumentReference?related=Appointment/<id>`, sin
-// filtrar status ni categoría: el vínculo vive en el documento (`context.related`).
+// los vea antes. El vínculo vive en el documento (`context.related`). El dashboard trae solo lo
+// vigente de la persona y no filtra por categoría (docs/adjuntos-turno.md).
 describe('Estudios adjuntos al turno', () => {
   async function firmarConsentimiento(medplum: MockClient): Promise<WithId<Patient>> {
     const patient = medplum.getProfile() as WithId<Patient>;
@@ -376,8 +376,10 @@ describe('Estudios adjuntos al turno', () => {
   }
 
   /** Lo que ve el dashboard en la ficha previa del turno. */
-  // Las dos búsquedas de la ficha previa del dashboard (docs/adjuntos-turno.md): «Adjuntó a este
-  // turno» y «Su historia de documentos». Las dos, solo lo vigente de la persona.
+  // Las dos búsquedas de la ficha previa del dashboard, tal como las manda al server
+  // (docs/adjuntos-turno.md): las dos traen solo lo vigente de la persona.
+
+  /** «Adjuntó a este turno»: lo vigente de la persona que apunta al turno. */
   async function loQueVeElDashboard(medplum: MockClient, appointmentId: string): Promise<DocumentReference[]> {
     const patient = medplum.getProfile() as WithId<Patient>;
     return [
@@ -389,6 +391,10 @@ describe('Estudios adjuntos al turno', () => {
     ];
   }
 
+  /**
+   * «Su historia de documentos», tal como la trae el server: lo vigente de la persona. No aplica
+   * lo que el dashboard hace después (sacar lo del turno, una fila por archivo, las 12 primeras).
+   */
   async function laHistoriaQueVeElDashboard(medplum: MockClient): Promise<DocumentReference[]> {
     const patient = medplum.getProfile() as WithId<Patient>;
     return [
@@ -484,7 +490,7 @@ describe('Estudios adjuntos al turno', () => {
     await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar orden-vieja.pdf' })));
     const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
     // El dashboard lee solo lo vigente: al profesional deja de aparecerle (docs/adjuntos-turno.md).
-    expect(within(dialogo).getByText(/al profesional ya no le aparece\. El archivo no se borra/)).toBeInTheDocument();
+    expect(within(dialogo).getByText(/ya no le va a aparecer\. El archivo no se borra/)).toBeInTheDocument();
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
 
     expect(await within(zona).findByText('Todavía no adjuntaste estudios a esta consulta.')).toBeInTheDocument();
@@ -510,7 +516,7 @@ describe('Estudios adjuntos al turno', () => {
     const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
     // El diálogo avisa que el envío original sigue: es lo que el profesional va a seguir viendo.
     expect(
-      within(dialogo).getByText(/Si lo habías elegido de los estudios que ya mandaste, ese envío sigue guardado/)
+      within(dialogo).getByText(/Si lo sumaste con «Elegir de los que ya mandaste», el PDF que mandaste antes/)
     ).toBeInTheDocument();
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
     expect(await within(zona).findByText('Quitamos «hemograma.pdf» de esta consulta.')).toBeInTheDocument();
@@ -609,9 +615,10 @@ describe('Estudios adjuntos al turno', () => {
     // Con varios turnos en pantalla, el botón y la sección dicen de cuál son.
     expect(boton).toHaveAccessibleDescription(/^Consulta de Cardiología, \d+ de \w+ de \d{4} a las \d{2}:\d{2}$/);
     expect(zona).toHaveAccessibleName(/Consulta de Cardiología/);
-    // En el centro también: el profesional los ve en la ficha que abre desde su agenda.
-    expect(within(zona).getByText(/Lo que adjuntes lo ve el profesional que te atiende/)).toBeInTheDocument();
-    expect(within(zona).queryByText(/Llevalos/)).not.toBeInTheDocument();
+    // En el centro el dashboard los muestra solo desde la agenda del día: se promete menos y se
+    // piden igual.
+    expect(within(zona).getByText(/los puede ver el día de la consulta\. Llevalos igual/)).toBeInTheDocument();
+    expect(within(zona).queryByText(/lo ve el profesional que te atiende/)).not.toBeInTheDocument();
     await within(zona).findByRole('button', { name: 'Subir un PDF o una foto' });
     await act(async () => elegirArchivo(zona, foto('orden-de-estudio.jpg')));
     expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
