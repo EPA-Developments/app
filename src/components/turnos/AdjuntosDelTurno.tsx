@@ -9,10 +9,12 @@
 //
 // Honestidad: lo adjunto NO lo lee la IA ni se suma a los biomarcadores (no es la categoría
 // de laboratorio y no dispara al bot); para eso está «Enviar estudios en PDF», y la bajada lo
-// dice con un link. Tampoco se promete lo que el dashboard no hace: hoy muestra los adjuntos
-// solo en su pantalla de teleconsulta, así que en un turno en el centro la bajada pide
-// llevarlos igual; y quitar uno no lo borra (sigue en la historia de documentos que ve el
-// profesional), así que el diálogo no dice que «ya no lo ve».
+// dice con un link. Tampoco se promete lo que el dashboard no hace. Lo que sí hace: muestra
+// los adjuntos en la teleconsulta y, en un turno en el centro, en la ficha que el profesional
+// abre desde su agenda; y de la paciente lee solo lo vigente, así que lo quitado deja de
+// aparecerle. Salvo una cosa, que el diálogo de quitar dice: si se quita la copia de un
+// estudio que ya mandó («Elegir de los que ya mandaste»), el envío original sigue vigente y
+// el profesional lo sigue viendo entre sus estudios.
 //
 // Teclado: después de cada escritura el foco vuelve a un lugar que existe (el botón que se
 // usó, o el título de la sección si ese botón ya no está), nunca queda en <body>.
@@ -41,7 +43,6 @@ import type { MotivoSinAdjuntos } from '../../fhir/adjuntosTurno';
 import { buscarConsentimiento, RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import { cargarEstudiosEnviados, MAX_MB } from '../../fhir/estudios';
 import type { ResultadoEnvioEstudio } from '../../fhir/estudios';
-import { esTeleconsulta } from '../../fhir/teleconsulta';
 import { RUTA_ENVIAR_ESTUDIOS } from '../AccionesRapidas';
 import classes from './AdjuntosDelTurno.module.css';
 
@@ -151,8 +152,6 @@ export function AdjuntosDelTurno({
   const persona = patient ?? (medplum.getProfile() as Patient);
   const motivo = porQueNoSeAdjunta(appointment, ahora);
   const abierto = motivo === undefined;
-  // El dashboard muestra los adjuntos solo en su pantalla de teleconsulta (docs/adjuntos-turno.md).
-  const loVeAntes = esTeleconsulta(appointment);
   const idTitulo = useId();
   const idEnviados = useId();
 
@@ -367,9 +366,8 @@ export function AdjuntosDelTurno({
 
         {abierto ? (
           <Text size="sm">
-            {loVeAntes
-              ? 'Lo que adjuntes lo ve el profesional que te atiende, antes de la consulta. No lo lee nuestra IA ni se suma a tus biomarcadores: para eso está '
-              : 'Quedan guardados con este turno. Llevalos igual el día de la consulta: en los turnos en el centro, el profesional todavía no los ve desde antes. No los lee nuestra IA ni se suman a tus biomarcadores: para eso está '}
+            Lo que adjuntes lo ve el profesional que te atiende, antes de la consulta. No lo lee nuestra IA ni se suma a
+            tus biomarcadores: para eso está{' '}
             <Link to={RUTA_ENVIAR_ESTUDIOS} className={classes.enLinea}>
               Enviar estudios en PDF
             </Link>
@@ -535,12 +533,17 @@ export function AdjuntosDelTurno({
       >
         <Stack>
           <Text size="sm">
-            «{aQuitar ? tituloDe(aQuitar) : ''}» deja de estar entre los estudios de esta consulta. El archivo no se
-            borra: si lo subiste por error, avisanos por{' '}
+            «{aQuitar ? tituloDe(aQuitar) : ''}» deja de estar entre los estudios de esta consulta y al profesional ya
+            no le aparece. El archivo no se borra: si lo subiste por error, avisanos por{' '}
             <Link to={RUTA_MENSAJES} className={classes.enLinea}>
               Mensajes
             </Link>
             .
+          </Text>
+          {/* La copia de un estudio que ya mandó: el original sigue vigente y el dashboard lo sigue mostrando. */}
+          <Text size="sm">
+            Si lo habías elegido de los estudios que ya mandaste, ese envío sigue guardado y el profesional lo puede
+            seguir viendo.
           </Text>
           {errorQuitar && (
             <Text size="sm" c="red.9" role="alert">

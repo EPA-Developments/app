@@ -5,14 +5,16 @@
 // ya mandó) para que el profesional que la atiende los vea antes de la consulta.
 //
 // CONTRATO con el dashboard de los profesionales (su ficha previa, «Adjuntó a este turno»):
-// busca `DocumentReference?related=Appointment/<id>` (el search param `related` es
-// `context.related`), SIN filtrar por status ni por categoría, y muestra
+// busca `DocumentReference?related=Appointment/<id>&subject=Patient/<id>&status=current`
+// (el search param `related` es `context.related`), sin filtrar por categoría, y muestra
 // `content[0].attachment.title ?? description` (con link si hay `attachment.url`) y `date`.
+// Su «historia de documentos» trae los vigentes de la persona (`subject` + `status=current`).
 // El vínculo con el turno vive en el documento y no en `Appointment.supportingInformation`,
 // porque la persona no puede escribir el turno (solo lo lee). Por eso:
 //  - Adjuntar = crear un `DocumentReference` con `context.related` → `Appointment/<id>`.
 //  - Quitar = SACAR esa referencia de `context.related` y pasar el documento a
-//    `entered-in-error`. Si quedara la referencia, el dashboard lo seguiría mostrando.
+//    `entered-in-error`. Con `status=current` el dashboard ya no lo muestra en ningún lado;
+//    sacar la referencia igual queda, para quien lea el turno sin filtrar por status.
 //
 // No es «Enviar estudios en PDF» (src/fhir/estudios.ts): la categoría `adjunto-turno` no
 // dispara al bot `som-procesar-laboratorio` (su Subscription es solo sobre
@@ -322,8 +324,8 @@ export async function adjuntarDeMisEstudios(
 }
 
 /**
- * Quita un estudio del turno: saca `Appointment/<id>` de `context.related` (así el dashboard
- * deja de mostrarlo) y pasa el documento a `entered-in-error`, en un solo update. Solo toca
+ * Quita un estudio del turno: saca `Appointment/<id>` de `context.related` y pasa el
+ * documento a `entered-in-error` (así el dashboard deja de mostrarlo), en un solo update. Solo toca
  * documentos de categoría `adjunto-turno`: un laboratorio, el consentimiento o cualquier
  * otro documento no se modifica nunca desde acá.
  */

@@ -114,14 +114,12 @@ test('el título es del nivel que se pide y nombra la sección', async () => {
   expect(await within(zona).findByText(/PDF o foto \(JPG o PNG\), de hasta 15 MB/)).toBeInTheDocument();
 });
 
-test('en un turno en el centro no promete que el profesional lo ve antes: pide llevarlos', async () => {
-  // El dashboard muestra los adjuntos solo en su pantalla de teleconsulta.
+test('en un turno en el centro también lo ve el profesional antes de la consulta', async () => {
+  // El dashboard los muestra en la ficha que el profesional abre desde su agenda.
   const { medplum, turno } = await escenario();
   const zona = await mostrar(medplum, <AdjuntosDelTurno appointment={turno} />);
-  expect(
-    within(zona).getByText(/Quedan guardados con este turno\. Llevalos igual el día de la consulta/)
-  ).toBeInTheDocument();
-  expect(within(zona).queryByText(/lo ve el profesional/)).not.toBeInTheDocument();
+  expect(within(zona).getByText(/Lo que adjuntes lo ve el profesional que te atiende/)).toBeInTheDocument();
+  expect(within(zona).queryByText(/Llevalos/)).not.toBeInTheDocument();
   expect(within(zona).getByRole('link', { name: 'Enviar estudios en PDF' })).toBeInTheDocument();
 });
 
@@ -363,7 +361,7 @@ test('plegado: el botón dice cuántos hay y se actualiza al quitar', async () =
 });
 
 describe('el foco del teclado, después de cada acción', () => {
-  test('quitar: el diálogo no promete que el profesional deja de verlo; al cancelar vuelve al «Quitar», al quitar va al título', async () => {
+  test('quitar: el diálogo dice que al profesional deja de aparecerle; al cancelar vuelve al «Quitar», al quitar va al título', async () => {
     const e = await escenario();
     await adjuntoConUrl(e, 'uno.pdf');
     await adjuntoConUrl(e, 'dos.pdf');
@@ -372,11 +370,14 @@ describe('el foco del teclado, después de cada acción', () => {
 
     await act(async () => fireEvent.click(quitarUno));
     let dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
-    // Quitarlo no lo borra: el profesional lo puede seguir viendo en la historia de documentos.
+    // El dashboard lee solo lo vigente: deja de aparecerle. El archivo, igual, no se borra.
     expect(
-      within(dialogo).getByText(/deja de estar entre los estudios de esta consulta\. El archivo no se borra/)
+      within(dialogo).getByText(
+        /deja de estar entre los estudios de esta consulta y al profesional ya no le aparece\. El archivo no se borra/
+      )
     ).toBeInTheDocument();
-    expect(within(dialogo).queryByText(/ya no lo ve/)).not.toBeInTheDocument();
+    // Salvo la copia de uno ya enviado: el envío original sigue a la vista.
+    expect(within(dialogo).getByText(/Si lo habías elegido de los estudios que ya mandaste/)).toBeInTheDocument();
     expect(within(dialogo).getByRole('link', { name: 'Mensajes' })).toHaveAttribute('href', '/Communication');
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'No, dejarlo' })));
     expect(document.activeElement).toBe(within(zona).getByRole('button', { name: 'Quitar uno.pdf' }));

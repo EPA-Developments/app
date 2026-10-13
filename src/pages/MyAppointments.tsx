@@ -9,10 +9,9 @@
 //   (R-14). Esas acciones pasan por los bots de SOM `som-teleconsulta-*`; el portal nunca
 //   escribe el turno directo.
 // - Próximos (las dos modalidades): «Adjuntar estudios (N)», plegado, para que el profesional
-//   vea los estudios antes de la consulta (en los presenciales la sección no lo promete: el
-//   dashboard todavía no los muestra fuera de la teleconsulta). El vínculo vive en el
-//   DocumentReference, no en el turno (src/fhir/adjuntosTurno.ts). Una reserva vencida no
-//   ofrece adjuntar.
+//   vea los estudios antes de la consulta (en los presenciales, en la ficha que abre desde su
+//   agenda). El vínculo vive en el DocumentReference, no en el turno
+//   (src/fhir/adjuntosTurno.ts). Una reserva vencida no ofrece adjuntar.
 import { Alert, Badge, Button, Card, Group, Stack, Text } from '@mantine/core';
 import { formatDateTime, getReferenceString } from '@medplum/core';
 import type { Appointment, Patient } from '@medplum/fhirtypes';

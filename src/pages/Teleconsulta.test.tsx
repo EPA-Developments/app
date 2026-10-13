@@ -15,7 +15,12 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { RUTA_ENVIAR_ESTUDIOS } from '../components/AccionesRapidas';
 import { buscarBotSOM } from '../fhir/bots';
-import { adjuntarArchivo, armarAdjuntoTurno, CATEGORIA_ADJUNTO_TURNO } from '../fhir/adjuntosTurno';
+import {
+  adjuntarArchivo,
+  adjuntarDeMisEstudios,
+  armarAdjuntoTurno,
+  CATEGORIA_ADJUNTO_TURNO,
+} from '../fhir/adjuntosTurno';
 import { EXT_AGENDA, V3_ACT_CODE } from '../fhir/agenda';
 import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM } from '../fhir/consentimiento';
 import { CATEGORIA_LABORATORIO, DOCUMENTO_CATEGORY_SYSTEM, enviarLaboratorioPdf } from '../fhir/estudios';
@@ -371,11 +376,25 @@ describe('Estudios adjuntos al turno', () => {
   }
 
   /** Lo que ve el dashboard en la ficha previa del turno. */
+  // Las dos búsquedas de la ficha previa del dashboard (docs/adjuntos-turno.md): «Adjuntó a este
+  // turno» y «Su historia de documentos». Las dos, solo lo vigente de la persona.
   async function loQueVeElDashboard(medplum: MockClient, appointmentId: string): Promise<DocumentReference[]> {
+    const patient = medplum.getProfile() as WithId<Patient>;
     return [
       ...(await medplum.searchResources(
         'DocumentReference',
-        { related: `Appointment/${appointmentId}` },
+        { related: `Appointment/${appointmentId}`, subject: `Patient/${patient.id}`, status: 'current' },
+        { cache: 'no-cache' }
+      )),
+    ];
+  }
+
+  async function laHistoriaQueVeElDashboard(medplum: MockClient): Promise<DocumentReference[]> {
+    const patient = medplum.getProfile() as WithId<Patient>;
+    return [
+      ...(await medplum.searchResources(
+        'DocumentReference',
+        { subject: `Patient/${patient.id}`, status: 'current' },
         { cache: 'no-cache' }
       )),
     ];
@@ -464,9 +483,8 @@ describe('Estudios adjuntos al turno', () => {
     const zona = await seccion();
     await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar orden-vieja.pdf' })));
     const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
-    // No promete que el profesional deja de verlo: el archivo no se borra (docs/adjuntos-turno.md).
-    expect(within(dialogo).getByText(/El archivo no se borra/)).toBeInTheDocument();
-    expect(within(dialogo).queryByText(/ya no lo ve/)).not.toBeInTheDocument();
+    // El dashboard lee solo lo vigente: al profesional deja de aparecerle (docs/adjuntos-turno.md).
+    expect(within(dialogo).getByText(/al profesional ya no le aparece\. El archivo no se borra/)).toBeInTheDocument();
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
 
     expect(await within(zona).findByText('Todavía no adjuntaste estudios a esta consulta.')).toBeInTheDocument();
@@ -475,6 +493,32 @@ describe('Estudios adjuntos al turno', () => {
     expect(quitado.status).toBe('entered-in-error');
     expect(quitado.context?.related).toBeUndefined();
     expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(0);
+    // Tampoco en su historia de documentos: ahí queda solo el consentimiento.
+    expect((await laHistoriaQueVeElDashboard(medplum)).map((d) => d.id)).not.toContain(documento?.id);
+  });
+
+  test('quitar la copia de un estudio ya enviado: sale del turno, pero el original sigue a la vista del profesional', async () => {
+    const { medplum, confirmada } = await escenario();
+    const patient = await firmarConsentimiento(medplum);
+    const original = (await enviarLaboratorioPdf(medplum, patient, pdf('hemograma.pdf')))
+      .documento as WithId<DocumentReference>;
+    const { documento: copia } = await adjuntarDeMisEstudios(medplum, patient, confirmada, original);
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+
+    const zona = await seccion();
+    await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar hemograma.pdf' })));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
+    // El diálogo avisa que el envío original sigue: es lo que el profesional va a seguir viendo.
+    expect(
+      within(dialogo).getByText(/Si lo habías elegido de los estudios que ya mandaste, ese envío sigue guardado/)
+    ).toBeInTheDocument();
+    await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
+    expect(await within(zona).findByText('Quitamos «hemograma.pdf» de esta consulta.')).toBeInTheDocument();
+
+    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(0);
+    const historia = (await laHistoriaQueVeElDashboard(medplum)).map((d) => d.id);
+    expect(historia).not.toContain(copia?.id);
+    expect(historia).toContain(original.id);
   });
 
   test('con la videollamada abierta, los estudios quedan plegados para no estorbar', async () => {
@@ -565,9 +609,9 @@ describe('Estudios adjuntos al turno', () => {
     // Con varios turnos en pantalla, el botón y la sección dicen de cuál son.
     expect(boton).toHaveAccessibleDescription(/^Consulta de Cardiología, \d+ de \w+ de \d{4} a las \d{2}:\d{2}$/);
     expect(zona).toHaveAccessibleName(/Consulta de Cardiología/);
-    // En el centro, el dashboard todavía no muestra los adjuntos antes: no se promete.
-    expect(within(zona).getByText(/Llevalos igual el día de la consulta/)).toBeInTheDocument();
-    expect(within(zona).queryByText(/lo ve el profesional/)).not.toBeInTheDocument();
+    // En el centro también: el profesional los ve en la ficha que abre desde su agenda.
+    expect(within(zona).getByText(/Lo que adjuntes lo ve el profesional que te atiende/)).toBeInTheDocument();
+    expect(within(zona).queryByText(/Llevalos/)).not.toBeInTheDocument();
     await within(zona).findByRole('button', { name: 'Subir un PDF o una foto' });
     await act(async () => elegirArchivo(zona, foto('orden-de-estudio.jpg')));
     expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
