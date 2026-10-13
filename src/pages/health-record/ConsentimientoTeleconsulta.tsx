@@ -24,12 +24,10 @@ import {
   aceptarConsentimientoTeleconsulta,
   buscarConsentimientoTeleconsulta,
 } from '../../fhir/agenda';
-import { buscarConsentimiento } from '../../fhir/consentimiento';
+import { buscarConsentimiento, RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import { marcarLeidasDeTipo } from '../../fhir/notificaciones';
 import { showErrorNotification } from '../../utils/notifications';
 import { RUTA_NUEVO_MENSAJE } from '../mensajes/Conversaciones';
-
-const RUTA_CONSENTIMIENTO_INFORMADO = '/health-record/consent';
 
 export function ConsentimientoTeleconsulta(): JSX.Element {
   const medplum = useMedplum();
@@ -150,7 +148,7 @@ export function ConsentimientoTeleconsulta(): JSX.Element {
         {general === false && (
           <Text size="sm" c="dimmed" mb="md">
             Este consentimiento se apoya en el consentimiento informado. Si todavía no lo firmaste,{' '}
-            <Anchor component={Link} to={RUTA_CONSENTIMIENTO_INFORMADO}>
+            <Anchor component={Link} to={RUTA_CONSENTIMIENTO}>
               leelo y firmalo acá
             </Anchor>
             .

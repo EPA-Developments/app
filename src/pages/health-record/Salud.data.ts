@@ -29,6 +29,7 @@ import {
 import type { Icon } from '@tabler/icons-react';
 import type { SideMenuProps } from '../../components/SideMenu';
 import { RUTA_CONSENTIMIENTO_TELECONSULTA } from '../../fhir/agenda';
+import { RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { biomarkerPanels } from './Biomarkers.data';
 import { measurementsMeta } from './Measurement.data';
@@ -95,7 +96,7 @@ export const SECCIONES_SALUD: readonly SeccionSalud[] = [
   },
   {
     titulo: 'Consentimiento Informado',
-    href: '/health-record/consent',
+    href: RUTA_CONSENTIMIENTO,
     icon: IconFileCheck,
     descripcion: 'Leé y firmá tu consentimiento.',
   },

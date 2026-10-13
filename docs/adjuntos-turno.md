@@ -133,14 +133,19 @@ dashboard tendría que filtrar también por `subject` (abajo).
 ## Pendiente del lado del dashboard
 
 Handoff para `EPA-Developments/dashboard-cardiometabolismo` (su ficha previa,
-`src/teleconsulta/hooks/useFichaPrevia.ts` y `components/FichaPrevia.tsx`):
+`src/teleconsulta/hooks/useFichaPrevia.ts` y `components/FichaPrevia.tsx`). **Ya está
+entregado:** `docs/handoff-portal-ficha-previa.md` de ese repo (13.10.2026), con la
+corrección propuesta y los tests de cada punto. Allá van numerados por prioridad: este 4 es
+su pedido 1, el 1 su 2, el 2 su 3 y el 3 su 5; su pedido 4 es el prefijo del cuestionario
+previo, que sale de la marca.
 
 1. **Turnos presenciales.** La ficha previa (la única pantalla que lee `DocumentReference`) se
    monta solo en `/teleconsulta/:appointmentId`; la agenda lleva un turno no virtual a
    `/Patient/<id>`, y esa ficha no tiene vista de documentos. Hace falta mostrar «Adjuntó a
    este turno» también para los presenciales (en la ficha o en la agenda). Hasta entonces el
-   portal no promete que el profesional los ve antes en esos turnos. A confirmar con el dueño
-   del producto si, mientras tanto, conviene no ofrecer adjuntar en los presenciales.
+   portal no promete que el profesional los ve antes en esos turnos. Decisión del dueño del
+   producto (12.10.2026): mientras tanto se sigue ofreciendo adjuntar en los presenciales, con
+   el texto que pide llevarlos.
 2. **Quitados.** «Su historia de documentos» (`DocumentReference?subject=Patient/<id>`) no
    filtra por status: un adjunto quitado deja de estar en «Adjuntó a este turno», pero ahí
    se sigue listando, con su link. Conviene que esa búsqueda filtre `status=current`.
@@ -154,3 +159,19 @@ Handoff para `EPA-Developments/dashboard-cardiometabolismo` (su ficha previa,
 4. **Solo la persona del turno.** Sumar `subject: Patient/<pacienteId>` a la búsqueda
    `related=Appointment/<id>`, así la ficha previa muestra solo documentos de la persona del
    turno (ver «Permisos»).
+
+### Lo que le toca al portal cuando el dashboard despliegue
+
+- **Su pedido 1 y su 3** (filtra por `subject` y por `status=current`): actualizar este doc y
+  el diálogo de «Quitar», que ya puede decir que el profesional deja de verlo. Salvedad: si
+  se quita una copia de «Elegir de los que ya mandaste», el laboratorio original sigue
+  vigente y el profesional lo sigue viendo en «Su historia de documentos». Cierra los
+  puntos 4 y 2 de arriba.
+- **Su pedido 2** (presenciales): cambiar el texto de los turnos en el centro (hoy pide
+  llevarlos) y cerrar el punto 1.
+- **Su pedido 5** (copias): cerrar el punto 3.
+- **Su pedido 4 y el `Questionnaire` publicado por Recepción**: el cuestionario previo en la
+  sala y en «Mis turnos», elegido por el `serviceType.code` del turno, con una sola
+  `QuestionnaireResponse` por turno (`identifier` `…/fhir/Identifier/previo-turno` = id del
+  turno; se actualiza, no se duplica). El contrato completo está en el handoff, «Pendientes
+  de otros repos». El contenido lo define la dirección médica.
