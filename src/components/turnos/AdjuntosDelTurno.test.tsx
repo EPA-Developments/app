@@ -80,6 +80,10 @@ const TELECONSULTA: Partial<Appointment> = {
   extension: [{ url: EXT_AGENDA.modalidad, valueCoding: { system: V3_ACT_CODE, code: 'VR' } }],
 };
 
+const EN_EL_CENTRO: Partial<Appointment> = {
+  extension: [{ url: EXT_AGENDA.modalidad, valueCoding: { system: V3_ACT_CODE, code: 'AMB' } }],
+};
+
 /** Adjunta un PDF con URL (como lo deja el server) directo en FHIR. */
 function adjuntoConUrl(e: Escenario, titulo: string): Promise<WithId<DocumentReference>> {
   return e.medplum.createResource(
@@ -111,18 +115,48 @@ test('el título es del nivel que se pide y nombra la sección', async () => {
   const zona = await mostrar(medplum, <AdjuntosDelTurno appointment={turno} nivel={2} />);
   expect(within(zona).getByRole('heading', { level: 2, name: 'Estudios para esta consulta' })).toBeInTheDocument();
   expect(within(zona).getByText(/Lo que adjuntes lo ve el profesional que te atiende/)).toBeInTheDocument();
+  // La ficha previa no se relee sola: lo de último momento puede no aparecerle.
+  expect(
+    within(zona).getByText(/Si lo adjuntás a último momento, puede que todavía no le aparezca/)
+  ).toBeInTheDocument();
   expect(await within(zona).findByText(/PDF o foto \(JPG o PNG\), de hasta 15 MB/)).toBeInTheDocument();
 });
 
-test('en un turno en el centro no promete que el profesional lo ve antes: pide llevarlos', async () => {
-  // El dashboard muestra los adjuntos solo en su pantalla de teleconsulta.
-  const { medplum, turno } = await escenario();
+test('en un turno en el centro promete menos: el profesional los puede ver ese día, y pide llevarlos', async () => {
+  // El dashboard los muestra solo desde la «Agenda de hoy» de su tablero, y no siempre.
+  const { medplum, turno } = await escenario(EN_EL_CENTRO);
   const zona = await mostrar(medplum, <AdjuntosDelTurno appointment={turno} />);
   expect(
-    within(zona).getByText(/Quedan guardados con este turno\. Llevalos igual el día de la consulta/)
+    within(zona).getByText(
+      /Quedan guardados con este turno y el profesional los puede ver el día de la consulta\. Llevalos igual, por las dudas\./
+    )
   ).toBeInTheDocument();
-  expect(within(zona).queryByText(/lo ve el profesional/)).not.toBeInTheDocument();
+  expect(within(zona).queryByText(/lo ve el profesional que te atiende, antes de la consulta/)).not.toBeInTheDocument();
   expect(within(zona).getByRole('link', { name: 'Enviar estudios en PDF' })).toBeInTheDocument();
+});
+
+test('quitar una foto no habla de los PDF que ya mandó: una foto nunca es una copia', async () => {
+  const e = await escenario();
+  await adjuntoConUrl(e, 'receta.pdf');
+  await e.medplum.createResource(
+    armarAdjuntoTurno(e.patient, e.turno, {
+      contentType: 'image/jpeg',
+      url: 'https://example.com/binary/foto-orden',
+      title: 'foto-orden.jpg',
+    })
+  );
+  const zona = await mostrar(e.medplum, <AdjuntosDelTurno appointment={e.turno} />);
+
+  await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar foto-orden.jpg' })));
+  const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
+  expect(within(dialogo).getByText(/deja de estar entre los estudios de esta consulta/)).toBeInTheDocument();
+  expect(within(dialogo).queryByText(/Elegir de los que ya mandaste/)).not.toBeInTheDocument();
+  await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'No, dejarlo' })));
+
+  // Un PDF sí puede serlo: ahí la salvedad aparece.
+  await act(async () => fireEvent.click(within(zona).getByRole('button', { name: 'Quitar receta.pdf' })));
+  const otro = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
+  expect(within(otro).getByText(/Si lo sumaste con «Elegir de los que ya mandaste»/)).toBeInTheDocument();
 });
 
 test('con el contexto del turno, el título dice de qué turno es (para lectores de pantalla)', async () => {
@@ -363,7 +397,7 @@ test('plegado: el botón dice cuántos hay y se actualiza al quitar', async () =
 });
 
 describe('el foco del teclado, después de cada acción', () => {
-  test('quitar: el diálogo no promete que el profesional deja de verlo; al cancelar vuelve al «Quitar», al quitar va al título', async () => {
+  test('quitar: el diálogo dice que al profesional deja de aparecerle; al cancelar vuelve al «Quitar», al quitar va al título', async () => {
     const e = await escenario();
     await adjuntoConUrl(e, 'uno.pdf');
     await adjuntoConUrl(e, 'dos.pdf');
@@ -372,11 +406,17 @@ describe('el foco del teclado, después de cada acción', () => {
 
     await act(async () => fireEvent.click(quitarUno));
     let dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
-    // Quitarlo no lo borra: el profesional lo puede seguir viendo en la historia de documentos.
+    // El dashboard lee solo lo vigente, al abrir la ficha, y no la relee sola: si ya la tiene
+    // abierta, lo sigue viendo hasta que la vuelve a abrir. El archivo no se borra.
     expect(
-      within(dialogo).getByText(/deja de estar entre los estudios de esta consulta\. El archivo no se borra/)
+      within(dialogo).getByText(
+        /deja de estar entre los estudios de esta consulta\. Si el profesional ya tiene abierta tu ficha, lo va a seguir viendo hasta que la vuelva a abrir\. El archivo no se borra/
+      )
     ).toBeInTheDocument();
-    expect(within(dialogo).queryByText(/ya no lo ve/)).not.toBeInTheDocument();
+    // Un PDF puede ser la copia de uno ya enviado: el envío original sigue a la vista.
+    expect(
+      within(dialogo).getByText(/Si lo sumaste con «Elegir de los que ya mandaste», el PDF que mandaste antes/)
+    ).toBeInTheDocument();
     expect(within(dialogo).getByRole('link', { name: 'Mensajes' })).toHaveAttribute('href', '/Communication');
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'No, dejarlo' })));
     expect(document.activeElement).toBe(within(zona).getByRole('button', { name: 'Quitar uno.pdf' }));

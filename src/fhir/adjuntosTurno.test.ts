@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 //
-// Estudios adjuntos a un turno: el contrato con el dashboard de los profesionales es
-// `DocumentReference?related=Appointment/<id>`, sin filtrar status ni categoría. Estos tests
-// fijan qué se escribe al adjuntar, que quitar saca la referencia (si no, el dashboard lo
-// seguiría mostrando) y que nada de esto dispara al bot de laboratorio.
+// Estudios adjuntos a un turno: el dashboard de los profesionales los busca con
+// `DocumentReference?related=Appointment/<id>&subject=Patient/<id>&status=current`, sin filtrar
+// categoría (docs/adjuntos-turno.md). Estos tests fijan qué se escribe al adjuntar, que quitar
+// saca la referencia y además anula el documento (para quien lea el turno sin filtrar por
+// status), y que nada de esto dispara al bot de laboratorio.
 import { forbidden, OperationOutcomeError } from '@medplum/core';
 import type { WithId } from '@medplum/core';
 import type { Appointment, DocumentReference, Patient } from '@medplum/fhirtypes';
@@ -95,8 +96,11 @@ async function escenario(firmoConsentimiento = true): Promise<Escenario> {
   return { medplum, patient, turno: await turno(48), otroTurno: await turno(72) };
 }
 
-/** Lo que ve el dashboard: todo lo que apunta al turno, sin filtrar status ni categoría. */
-async function loQueVeElDashboard(medplum: MockClient, appointmentId: string): Promise<DocumentReference[]> {
+/**
+ * Todo lo que apunta al turno, de cualquier status: más de lo que trae el dashboard (que además
+ * pide `subject` y `status=current`). Si acá queda vacío, el dashboard tampoco lo ve.
+ */
+async function loQueApuntaAlTurno(medplum: MockClient, appointmentId: string): Promise<DocumentReference[]> {
   return [
     ...(await medplum.searchResources(
       'DocumentReference',
@@ -286,9 +290,9 @@ describe('adjuntarArchivo', () => {
     expect(r.documento?.content[0].attachment.url).toBeDefined();
     expect(esAdjuntoDeTurno(r.documento as DocumentReference)).toBe(true);
 
-    // Lo ve el dashboard en ese turno, y en ningún otro.
-    expect((await loQueVeElDashboard(medplum, turno.id)).map((d) => d.id)).toEqual([r.documento?.id]);
-    expect(await loQueVeElDashboard(medplum, otroTurno.id)).toEqual([]);
+    // Apunta a ese turno, y a ningún otro.
+    expect((await loQueApuntaAlTurno(medplum, turno.id)).map((d) => d.id)).toEqual([r.documento?.id]);
+    expect(await loQueApuntaAlTurno(medplum, otroTurno.id)).toEqual([]);
     expect((await cargarAdjuntosDelTurno(medplum, turno.id)).map((d) => d.id)).toEqual([r.documento?.id]);
     // No es un laboratorio: no aparece en «Estudios enviados» (ni lo procesa el bot).
     expect(await cargarEstudiosEnviados(medplum, patient)).toHaveLength(0);
@@ -361,7 +365,7 @@ describe('adjuntarDeMisEstudios', () => {
     expect(releido.meta?.versionId).toBe(original.meta?.versionId);
     expect(releido.context).toBeUndefined();
     expect((await cargarEstudiosEnviados(medplum, patient)).map((d) => d.id)).toEqual([original.id]);
-    expect((await loQueVeElDashboard(medplum, turno.id)).map((d) => d.id)).toEqual([r.documento?.id]);
+    expect((await loQueApuntaAlTurno(medplum, turno.id)).map((d) => d.id)).toEqual([r.documento?.id]);
   });
 
   test('no duplica: si ese archivo ya está adjunto y vigente, devuelve el que hay', async () => {
@@ -435,7 +439,7 @@ describe('adjuntarDeMisEstudios', () => {
 });
 
 describe('quitarAdjunto', () => {
-  test('saca el turno de context.related y lo pasa a entered-in-error: el dashboard deja de verlo', async () => {
+  test('saca el turno de context.related y lo pasa a entered-in-error: deja de aparecer al abrir la ficha', async () => {
     const { medplum, patient, turno } = await escenario();
     const { documento } = await adjuntarArchivo(medplum, patient, turno, pdf());
     const actualizar = vi.spyOn(medplum, 'updateResource');
@@ -448,7 +452,7 @@ describe('quitarAdjunto', () => {
     expect(quitado.context?.related).toBeUndefined();
     // La fecha del turno queda como dato del documento; el vínculo, no.
     expect(quitado.context?.period?.start).toBe(turno.start);
-    expect(await loQueVeElDashboard(medplum, turno.id)).toEqual([]);
+    expect(await loQueApuntaAlTurno(medplum, turno.id)).toEqual([]);
     expect(await cargarAdjuntosDelTurno(medplum, turno.id)).toEqual([]);
   });
 
