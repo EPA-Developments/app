@@ -11,12 +11,15 @@
 // de laboratorio y no dispara al bot); para eso está «Enviar estudios en PDF», y la bajada lo
 // dice con un link. Tampoco se promete lo que el dashboard no hace (docs/adjuntos-turno.md):
 //  - En la teleconsulta muestra los adjuntos al lado de la sala: la bajada dice que el
-//    profesional los ve antes.
+//    profesional los ve antes. Pero los lee al abrir la pantalla y no los relee sola: lo que
+//    se adjunta a último momento (con la sala ya abierta) no le aparece, y la bajada pide
+//    contárselo.
 //  - En un turno en el centro, solo arriba de la ficha que el profesional abre desde la
 //    «Agenda de hoy» de su tablero (el mismo día, y no siempre: la tarjeta muestra los
 //    primeros turnos). La bajada dice que los puede ver el día de la consulta y pide llevarlos.
 //  - De la persona lee solo lo vigente, al abrir la pantalla: lo quitado deja de aparecerle
-//    la próxima vez que abre la ficha. Salvo una cosa, que el diálogo de quitar dice: si se
+//    la próxima vez que abre la ficha, y si ya la tiene abierta lo sigue viendo hasta que la
+//    vuelve a abrir (el diálogo de quitar lo dice). Y una salvedad, que el diálogo dice: si se
 //    quita la copia de un PDF que ya mandó («Elegir de los que ya mandaste»), el envío original
 //    sigue vigente y el profesional lo puede seguir viendo. Una foto nunca es una copia (esa
 //    lista ofrece solo PDFs), así que con una foto la salvedad no se muestra.
@@ -375,7 +378,7 @@ export function AdjuntosDelTurno({
         {abierto ? (
           <Text size="sm">
             {loVeAntes
-              ? 'Lo que adjuntes lo ve el profesional que te atiende, antes de la consulta. No lo lee nuestra IA ni se suma a tus biomarcadores: para eso está '
+              ? 'Lo que adjuntes lo ve el profesional que te atiende, antes de la consulta. Si lo adjuntás a último momento, puede que todavía no le aparezca: contáselo cuando empiece la llamada. No lo lee nuestra IA ni se suma a tus biomarcadores: para eso está '
               : 'Quedan guardados con este turno y el profesional los puede ver el día de la consulta. Llevalos igual, por las dudas. No los lee nuestra IA ni se suman a tus biomarcadores: para eso está '}
             <Link to={RUTA_ENVIAR_ESTUDIOS} className={classes.enLinea}>
               Enviar estudios en PDF
@@ -542,9 +545,9 @@ export function AdjuntosDelTurno({
       >
         <Stack>
           <Text size="sm">
-            «{aQuitar ? tituloDe(aQuitar) : ''}» deja de estar entre los estudios de esta consulta: cuando el
-            profesional abra tu ficha, ya no le va a aparecer. El archivo no se borra: si lo subiste por error, avisanos
-            por{' '}
+            «{aQuitar ? tituloDe(aQuitar) : ''}» deja de estar entre los estudios de esta consulta. Si el profesional ya
+            tiene abierta tu ficha, lo va a seguir viendo hasta que la vuelva a abrir. El archivo no se borra: si lo
+            subiste por error, avisanos por{' '}
             <Link to={RUTA_MENSAJES} className={classes.enLinea}>
               Mensajes
             </Link>

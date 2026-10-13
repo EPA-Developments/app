@@ -375,12 +375,12 @@ describe('Estudios adjuntos al turno', () => {
     fireEvent.change(input, { target: { files: [file] } });
   }
 
-  /** Lo que ve el dashboard en la ficha previa del turno. */
-  // Las dos búsquedas de la ficha previa del dashboard, tal como las manda al server
-  // (docs/adjuntos-turno.md): las dos traen solo lo vigente de la persona.
+  // Las dos búsquedas de la ficha previa del dashboard, con sus mismos filtros (`subject` y
+  // `status=current`; docs/adjuntos-turno.md). Es lo que el profesional ve al abrir (o volver a
+  // abrir) la ficha previa: el dashboard no la relee sola mientras está abierta.
 
   /** «Adjuntó a este turno»: lo vigente de la persona que apunta al turno. */
-  async function loQueVeElDashboard(medplum: MockClient, appointmentId: string): Promise<DocumentReference[]> {
+  async function loQueTraeElDashboard(medplum: MockClient, appointmentId: string): Promise<DocumentReference[]> {
     const patient = medplum.getProfile() as WithId<Patient>;
     return [
       ...(await medplum.searchResources(
@@ -392,10 +392,10 @@ describe('Estudios adjuntos al turno', () => {
   }
 
   /**
-   * «Su historia de documentos», tal como la trae el server: lo vigente de la persona. No aplica
+   * «Su historia de documentos», con los mismos filtros: lo vigente de la persona. No aplica
    * lo que el dashboard hace después (sacar lo del turno, una fila por archivo, las 12 primeras).
    */
-  async function laHistoriaQueVeElDashboard(medplum: MockClient): Promise<DocumentReference[]> {
+  async function laHistoriaQueTraeElDashboard(medplum: MockClient): Promise<DocumentReference[]> {
     const patient = medplum.getProfile() as WithId<Patient>;
     return [
       ...(await medplum.searchResources(
@@ -432,7 +432,7 @@ describe('Estudios adjuntos al turno', () => {
     expect(link).toHaveAttribute('href', expect.stringMatching(/^https:\/\//));
     expect(link).toHaveAttribute('target', '_blank');
 
-    const docs = await loQueVeElDashboard(medplum, confirmada.id);
+    const docs = await loQueTraeElDashboard(medplum, confirmada.id);
     expect(docs).toHaveLength(1);
     expect(docs[0]).toMatchObject({
       status: 'current',
@@ -463,7 +463,7 @@ describe('Estudios adjuntos al turno', () => {
     expect(within(zona).queryByRole('button', { name: 'Adjuntar hemograma.pdf' })).not.toBeInTheDocument();
     expect(within(zona).getByText('Los estudios que mandaste ya están adjuntos a esta consulta.')).toBeInTheDocument();
 
-    const docs = await loQueVeElDashboard(medplum, confirmada.id);
+    const docs = await loQueTraeElDashboard(medplum, confirmada.id);
     expect(docs).toHaveLength(1);
     expect(docs[0].id).not.toBe(original.id);
     expect(docs[0].category?.[0].coding?.[0].code).toBe(CATEGORIA_ADJUNTO_TURNO);
@@ -480,7 +480,7 @@ describe('Estudios adjuntos al turno', () => {
     expect(releido.category?.[0].coding?.[0].code).toBe(CATEGORIA_LABORATORIO);
   });
 
-  test('quitar lo saca de context.related y lo pasa a entered-in-error: el dashboard deja de verlo', async () => {
+  test('quitar lo saca de context.related y lo pasa a entered-in-error: deja de aparecer al abrir la ficha', async () => {
     const { medplum, confirmada } = await escenario();
     const patient = await firmarConsentimiento(medplum);
     const { documento } = await adjuntarArchivo(medplum, patient, confirmada, pdf('orden-vieja.pdf'));
@@ -490,7 +490,9 @@ describe('Estudios adjuntos al turno', () => {
     await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar orden-vieja.pdf' })));
     const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
     // El dashboard lee solo lo vigente: al profesional deja de aparecerle (docs/adjuntos-turno.md).
-    expect(within(dialogo).getByText(/ya no le va a aparecer\. El archivo no se borra/)).toBeInTheDocument();
+    expect(
+      within(dialogo).getByText(/lo va a seguir viendo hasta que la vuelva a abrir\. El archivo no se borra/)
+    ).toBeInTheDocument();
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
 
     expect(await within(zona).findByText('Todavía no adjuntaste estudios a esta consulta.')).toBeInTheDocument();
@@ -498,9 +500,9 @@ describe('Estudios adjuntos al turno', () => {
     const quitado = await medplum.readResource('DocumentReference', documento?.id as string);
     expect(quitado.status).toBe('entered-in-error');
     expect(quitado.context?.related).toBeUndefined();
-    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(0);
+    expect(await loQueTraeElDashboard(medplum, confirmada.id)).toHaveLength(0);
     // Tampoco en su historia de documentos: ahí queda solo el consentimiento.
-    expect((await laHistoriaQueVeElDashboard(medplum)).map((d) => d.id)).not.toContain(documento?.id);
+    expect((await laHistoriaQueTraeElDashboard(medplum)).map((d) => d.id)).not.toContain(documento?.id);
   });
 
   test('quitar la copia de un estudio ya enviado: sale del turno, pero el original sigue a la vista del profesional', async () => {
@@ -521,8 +523,8 @@ describe('Estudios adjuntos al turno', () => {
     await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, quitarlo' })));
     expect(await within(zona).findByText('Quitamos «hemograma.pdf» de esta consulta.')).toBeInTheDocument();
 
-    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(0);
-    const historia = (await laHistoriaQueVeElDashboard(medplum)).map((d) => d.id);
+    expect(await loQueTraeElDashboard(medplum, confirmada.id)).toHaveLength(0);
+    const historia = (await laHistoriaQueTraeElDashboard(medplum)).map((d) => d.id);
     expect(historia).not.toContain(copia?.id);
     expect(historia).toContain(original.id);
   });
@@ -623,7 +625,7 @@ describe('Estudios adjuntos al turno', () => {
     await act(async () => elegirArchivo(zona, foto('orden-de-estudio.jpg')));
     expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
 
-    const docs = await loQueVeElDashboard(medplum, presencial.id);
+    const docs = await loQueTraeElDashboard(medplum, presencial.id);
     expect(docs).toHaveLength(1);
     expect(docs[0]).toMatchObject({
       category: [{ coding: [{ code: CATEGORIA_ADJUNTO_TURNO }] }],
@@ -631,7 +633,7 @@ describe('Estudios adjuntos al turno', () => {
       content: [{ attachment: { contentType: 'image/jpeg', title: 'orden-de-estudio.jpg' } }],
     });
     // Lo adjunto a un turno no aparece en el otro.
-    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(1);
+    expect(await loQueTraeElDashboard(medplum, confirmada.id)).toHaveLength(1);
   });
 
   test('en Mis turnos: elegir uno ya enviado crea la copia sin tocar el original, y no la duplica aunque toque dos veces', async () => {
@@ -657,7 +659,7 @@ describe('Estudios adjuntos al turno', () => {
     expect(await within(tarjeta).findByRole('button', { name: 'Adjuntar estudios (1)' })).toBeInTheDocument();
     expect(within(zona).getByText('Los estudios que mandaste ya están adjuntos a esta consulta.')).toBeInTheDocument();
 
-    const docs = await loQueVeElDashboard(medplum, presencial.id);
+    const docs = await loQueTraeElDashboard(medplum, presencial.id);
     expect(docs).toHaveLength(1);
     expect(docs[0].id).not.toBe(original.id);
     expect(docs[0]).toMatchObject({
@@ -703,7 +705,7 @@ describe('Estudios adjuntos al turno', () => {
     const quitado = await medplum.readResource('DocumentReference', quitar.id);
     expect(quitado.status).toBe('entered-in-error');
     expect(quitado.context?.related).toBeUndefined();
-    expect((await loQueVeElDashboard(medplum, confirmada.id)).map((d) => d.id)).toEqual([queda.id]);
+    expect((await loQueTraeElDashboard(medplum, confirmada.id)).map((d) => d.id)).toEqual([queda.id]);
 
     // Se vuelve a plegar: el panel queda oculto y el botón lo dice.
     const plegar = within(tarjeta).getByRole('button', { name: 'Adjuntar estudios (1)' });
@@ -750,7 +752,7 @@ describe('Estudios adjuntos al turno', () => {
     await act(async () => soltar());
     expect(await screen.findByRole('button', { name: 'Adjuntar estudios (1)' })).toBe(plegado);
     expect(screen.getByRole('status')).toHaveTextContent('Listo: «eco-doppler.pdf» quedó adjunto a esta consulta.');
-    expect(await loQueVeElDashboard(medplum, confirmada.id)).toHaveLength(1);
+    expect(await loQueTraeElDashboard(medplum, confirmada.id)).toHaveLength(1);
   });
 
   test('en Mis turnos: una reserva vencida sin la seña no ofrece adjuntar', async () => {

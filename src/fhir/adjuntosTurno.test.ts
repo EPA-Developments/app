@@ -439,7 +439,7 @@ describe('adjuntarDeMisEstudios', () => {
 });
 
 describe('quitarAdjunto', () => {
-  test('saca el turno de context.related y lo pasa a entered-in-error: el dashboard deja de verlo', async () => {
+  test('saca el turno de context.related y lo pasa a entered-in-error: deja de aparecer al abrir la ficha', async () => {
     const { medplum, patient, turno } = await escenario();
     const { documento } = await adjuntarArchivo(medplum, patient, turno, pdf());
     const actualizar = vi.spyOn(medplum, 'updateResource');

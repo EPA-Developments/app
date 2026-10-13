@@ -59,11 +59,12 @@ Pantalla `src/pages/EnviarEstudiosPage.tsx`, capa FHIR `src/fhir/estudios.ts`.
 ## Estudios adjuntos a un turno (no es una opción del "+")
 
 Distinto de la opción 6: la persona adjunta PDFs o fotos **a un turno** (desde la sala de la
-teleconsulta o desde "Mis turnos") para que el profesional los vea antes de la consulta (en los
-presenciales, solo si abre la ficha desde la «Agenda de hoy» de su tablero: se pide llevarlos
-igual). Es un `DocumentReference` con `category` `…/CodeSystem/documento|adjunto-turno` y
-`context.related` → `Appointment/<id>`, que el dashboard de los profesionales lee con
+teleconsulta o desde "Mis turnos") para que el profesional los vea: en una teleconsulta, antes
+de la consulta; en un presencial, solo el mismo día y si abre la ficha desde la «Agenda de hoy»
+de su tablero (por eso se pide llevarlos igual). Es un `DocumentReference` con `category`
+`…/CodeSystem/documento|adjunto-turno` y `context.related` → `Appointment/<id>`, que el
+dashboard de los profesionales lee con
 `DocumentReference?related=Appointment/<id>&subject=Patient/<id>&status=current`. **No
 dispara** al bot de laboratorio (no lo lee la IA ni suma biomarcadores). Quitar uno saca esa
-referencia de `context.related` y lo pasa a `entered-in-error`, así que el dashboard deja de
-mostrarlo. Contrato completo: [`adjuntos-turno.md`](adjuntos-turno.md).
+referencia de `context.related` y lo pasa a `entered-in-error`: la ficha previa del dashboard
+deja de mostrarlo la próxima vez que el profesional la abre. Contrato completo: [`adjuntos-turno.md`](adjuntos-turno.md).

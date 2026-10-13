@@ -115,6 +115,10 @@ test('el título es del nivel que se pide y nombra la sección', async () => {
   const zona = await mostrar(medplum, <AdjuntosDelTurno appointment={turno} nivel={2} />);
   expect(within(zona).getByRole('heading', { level: 2, name: 'Estudios para esta consulta' })).toBeInTheDocument();
   expect(within(zona).getByText(/Lo que adjuntes lo ve el profesional que te atiende/)).toBeInTheDocument();
+  // La ficha previa no se relee sola: lo de último momento puede no aparecerle.
+  expect(
+    within(zona).getByText(/Si lo adjuntás a último momento, puede que todavía no le aparezca/)
+  ).toBeInTheDocument();
   expect(await within(zona).findByText(/PDF o foto \(JPG o PNG\), de hasta 15 MB/)).toBeInTheDocument();
 });
 
@@ -145,7 +149,7 @@ test('quitar una foto no habla de los PDF que ya mandó: una foto nunca es una c
 
   await act(async () => fireEvent.click(await within(zona).findByRole('button', { name: 'Quitar foto-orden.jpg' })));
   const dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
-  expect(within(dialogo).getByText(/ya no le va a aparecer/)).toBeInTheDocument();
+  expect(within(dialogo).getByText(/deja de estar entre los estudios de esta consulta/)).toBeInTheDocument();
   expect(within(dialogo).queryByText(/Elegir de los que ya mandaste/)).not.toBeInTheDocument();
   await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'No, dejarlo' })));
 
@@ -402,10 +406,11 @@ describe('el foco del teclado, después de cada acción', () => {
 
     await act(async () => fireEvent.click(quitarUno));
     let dialogo = await screen.findByRole('dialog', { name: '¿Quitar este estudio de la consulta?' });
-    // El dashboard lee solo lo vigente, al abrir la ficha: deja de aparecerle. El archivo no se borra.
+    // El dashboard lee solo lo vigente, al abrir la ficha, y no la relee sola: si ya la tiene
+    // abierta, lo sigue viendo hasta que la vuelve a abrir. El archivo no se borra.
     expect(
       within(dialogo).getByText(
-        /deja de estar entre los estudios de esta consulta: cuando el profesional abra tu ficha, ya no le va a aparecer\. El archivo no se borra/
+        /deja de estar entre los estudios de esta consulta\. Si el profesional ya tiene abierta tu ficha, lo va a seguir viendo hasta que la vuelva a abrir\. El archivo no se borra/
       )
     ).toBeInTheDocument();
     // Un PDF puede ser la copia de uno ya enviado: el envío original sigue a la vista.

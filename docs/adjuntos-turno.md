@@ -5,7 +5,8 @@ la atiende los vea **antes de la consulta**. Se puede en teleconsultas y en turn
 presenciales, pero el dashboard no los muestra igual en los dos:
 
 - En una **teleconsulta**, al lado de la sala. La pantalla dice que el profesional los ve
-  antes de la consulta.
+  antes de la consulta y que, si se adjunta algo a último momento, puede que todavía no le
+  aparezca: que se lo cuente cuando empiece la llamada (la ficha previa no se relee sola).
 - En un **turno en el centro**, solo arriba de la ficha que el profesional abre desde la
   «Agenda de hoy» de su tablero: el mismo día, y no siempre (ver «Dónde la ve el
   profesional»). La pantalla dice que los puede ver el día de la consulta y pide llevarlos
@@ -44,13 +45,18 @@ hasta que la vuelve a abrir (y el cliente de Medplum guarda las búsquedas un mi
 
 ### Dónde la ve el profesional
 
-- **Teleconsulta**: al lado de la sala (`/teleconsulta/<id>`), que se abre 15 minutos antes.
+- **Teleconsulta**: en la pantalla de la sala (`/teleconsulta/<id>`), en «Lo que trajo el
+  paciente», desde que abre la pantalla (la videollamada se abre 15 minutos antes). A esa
+  pantalla también se llega solo desde la tarjeta «Agenda de hoy» (abajo), pero el
+  profesional tiene que pasar por ahí para atender: si atiende, la ficha previa está al lado.
 - **Turno en el centro**: arriba de la ficha de la persona («Este turno»), **solo si la abre
   desde la tarjeta «Agenda de hoy»** de su tablero. La tarjeta pasa el turno en la URL
   (`?turno=<id>`), y la ficha lo muestra solo si el turno es de esa persona. Pero la agenda
-  trae **solo los turnos de hoy** y la tarjeta muestra **los 6 primeros**: el resto va a «Ver
-  todos los turnos», una lista genérica que no pasa el turno. Si abre la ficha desde
-  «Pacientes» o desde cualquier otro lado, no ve ni «Este turno» ni ningún documento.
+  trae **solo los turnos de hoy** (de todo el centro, ordenados por hora, contando los ya
+  atendidos: saca solo los cancelados y los cargados por error) y la tarjeta muestra **los 6
+  primeros**: el resto va a «Ver todos los turnos», una lista genérica que no pasa el turno.
+  Si abre la ficha desde «Pacientes» o desde cualquier otro lado, no ve ni «Este turno» ni
+  ningún documento.
 
 Por eso, en un turno en el centro, la pantalla promete menos: «Quedan guardados con este turno
 y el profesional los puede ver el día de la consulta. Llevalos igual, por las dudas.»
@@ -121,10 +127,12 @@ tocan. El `Binary` no se borra (si vino de «Elegir de los que ya mandaste», el
 igual).
 
 Como la ficha previa lee solo lo vigente (`status=current`), lo quitado deja de aparecer en
-sus dos secciones **la próxima vez que el profesional la abre** (no se relee sola). El diálogo
-lo dice así: «cuando el profesional abra tu ficha, ya no le va a aparecer». Dice también que el
-archivo no se borra y que, si lo subió por error, avise por Mensajes. Las pantallas genéricas
-del dashboard (`/DocumentReference`, sin link desde la ficha) no filtran por status.
+sus dos secciones **la próxima vez que el profesional la abre**: no se relee sola, y si la
+había abierto en el último minuto, el cliente de Medplum puede devolverle la lectura anterior.
+El diálogo dice lo que importa para la persona: «Si el profesional ya tiene abierta tu ficha,
+lo va a seguir viendo hasta que la vuelva a abrir». Dice también que el archivo no se borra y
+que, si lo subió por error, avise por Mensajes. Las pantallas genéricas del dashboard
+(`/DocumentReference`, sin link desde la ficha) no filtran por status.
 
 Una salvedad, que el diálogo también dice: si lo que se quita es la copia de un PDF que ya
 mandó («Elegir de los que ya mandaste»), el envío original sigue vigente y sigue entrando en
@@ -197,22 +205,34 @@ producción»). Los textos del portal que dependen de esto (el de los turnos en 
 del diálogo de quitar) salen con el dashboard ya desplegado en producción, verificado con una
 paciente de prueba, sin datos reales:
 
-- [ ] Desde «Agenda de hoy», un turno presencial de prueba con un adjunto abre
-      `/Patient/<id>?turno=<id>`, y arriba aparece «Este turno» con «Adjuntó a este turno».
-- [ ] Quitar un adjunto desde el portal en una teleconsulta de prueba: al volver a abrir la
-      sala, ya no aparece ni en «Adjuntó a este turno» ni en «Su historia de documentos».
+- [ ] Desde «Agenda de hoy», un turno presencial de prueba con un adjunto (a primera hora,
+      para que entre en los 6 de la tarjeta) abre `/Patient/<id>?turno=<id>`, y arriba aparece
+      «Este turno» con «Adjuntó a este turno».
+- [ ] Quitar un adjunto desde el portal en una teleconsulta de prueba y recargar la sala (o
+      esperar más de un minuto para volver a abrirla: el cliente de Medplum guarda las
+      búsquedas 60 s). Ya no aparece ni en «Adjuntó a este turno» ni en «Su historia de
+      documentos».
+
+Cuando estén las dos, este párrafo pasa a pasado, con la fecha.
 
 ### Lo que sigue abierto allá
 
-Pedidos nuevos para el dashboard, todavía sin handoff:
+- **Presenciales desde cualquier lado.** Ya figura como abierto en su handoff (pedido 2, «Lo
+  que queda abierto»), para que lo decida el dueño del producto: que la ficha, sin `?turno=`,
+  busque sola el turno de hoy o el próximo de la persona. Con eso, el portal podría decir en
+  el centro lo mismo que en la teleconsulta.
 
-- **Presenciales desde cualquier lado.** Que «Este turno» aparezca aunque la ficha no se abra
-  desde la «Agenda de hoy» (que `PatientPage`, sin `?turno=`, busque el turno de hoy o el
-  próximo de la persona), o al menos que la tarjeta muestre todos los turnos del día y no los
-  6 primeros. Con eso, el portal podría decir en el centro lo mismo que en la teleconsulta.
-- **Que la ficha previa se relea sola** mientras está abierta (y sin la caché de un minuto del
-  cliente), o con un botón «Actualizar». Hoy, si la persona adjunta o quita algo con la sala
-  ya abierta, el profesional no se entera hasta que vuelve a abrirla.
+Pedidos nuevos, todavía sin handoff:
+
+- **Que la «Agenda de hoy» muestre todos los turnos del día**, o al menos que deje de mostrar
+  los ya atendidos (`fulfilled`, `noshow`). Hoy muestra los 6 primeros y el «+N más» lleva a
+  `/Appointment`, que no pasa el turno ni abre la sala: una séptima teleconsulta del centro no
+  se puede abrir desde el tablero. Es un problema de la agenda, no solo de los adjuntos.
+- **Que la ficha previa se relea** mientras está abierta (sola, con el intervalo de la sala, o
+  con un botón «Actualizar») y que `documentosDelTurno` y `documentosDeLaHistoria` pasen
+  `cache: 'no-cache'`: si no, durante un minuto el cliente devuelve lo mismo. `useFichaPrevia`
+  ya tiene `reload`, pero ninguna pantalla lo usa. Con eso, la bajada de la teleconsulta y el
+  diálogo de quitar podrían dejar de avisar lo de la ficha ya abierta.
 
 ### Lo que falta en el portal
 

@@ -327,9 +327,10 @@ export async function adjuntarDeMisEstudios(
 
 /**
  * Quita un estudio del turno: saca `Appointment/<id>` de `context.related` y pasa el
- * documento a `entered-in-error` (así el dashboard deja de mostrarlo), en un solo update. Solo toca
- * documentos de categoría `adjunto-turno`: un laboratorio, el consentimiento o cualquier
- * otro documento no se modifica nunca desde acá.
+ * documento a `entered-in-error` (así la ficha previa del dashboard deja de mostrarlo la
+ * próxima vez que se abre), en un solo update. Solo toca documentos de categoría
+ * `adjunto-turno`: un laboratorio, el consentimiento o cualquier otro documento no se
+ * modifica nunca desde acá.
  */
 export async function quitarAdjunto(
   medplum: MedplumClient,
