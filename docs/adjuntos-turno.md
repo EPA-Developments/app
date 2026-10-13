@@ -54,7 +54,7 @@ hasta que la vuelve a abrir (y el cliente de Medplum guarda las búsquedas un mi
   (`?turno=<id>`), y la ficha lo muestra solo si el turno es de esa persona. Pero la agenda
   trae **solo los turnos de hoy** (de todo el centro, ordenados por hora, contando los ya
   atendidos: saca solo los cancelados y los cargados por error) y la tarjeta muestra **los 6
-  primeros**: el resto va a «Ver todos los turnos», una lista genérica que no pasa el turno.
+  primeros**: el resto queda en un «+N más» que lleva a una lista genérica, sin el turno.
   Si abre la ficha desde «Pacientes» o desde cualquier otro lado, no ve ni «Este turno» ni
   ningún documento.
 
@@ -217,22 +217,24 @@ Cuando estén las dos, este párrafo pasa a pasado, con la fecha.
 
 ### Lo que sigue abierto allá
 
-- **Presenciales desde cualquier lado.** Ya figura como abierto en su handoff (pedido 2, «Lo
-  que queda abierto»), para que lo decida el dueño del producto: que la ficha, sin `?turno=`,
-  busque sola el turno de hoy o el próximo de la persona. Con eso, el portal podría decir en
-  el centro lo mismo que en la teleconsulta.
+Está entregado como segundo handoff: `docs/handoff-portal-ficha-previa-2.md` de ese repo
+([EPA-Developments/dashboard-cardiometabolismo#45](https://github.com/EPA-Developments/dashboard-cardiometabolismo/pull/45),
+13.10.2026), con el código de cada pedido probado en una copia de su `main`. Arranca por las
+dos pruebas de arriba, para dar por desplegado el #44, y pide tres cosas:
 
-Pedidos nuevos, todavía sin handoff:
+1. **Que la ficha previa se relea** mientras está abierta: cada 30 s y al volver a la
+   pestaña, sin la caché del cliente, marcando «Nuevo» lo que llega. Con eso, la bajada de la
+   teleconsulta y el diálogo de quitar pueden cambiar sus salvedades (las frases propuestas
+   están en su «Lo que le toca al portal»).
+2. **Que la «Agenda de hoy» muestre todos los turnos del día.** Hoy, del 7.º en adelante no
+   se puede abrir ni la sala ni «Este turno» desde el tablero.
+3. **Que «Este turno» aparezca sin pasar por la agenda**: la ficha busca el próximo
+   presencial de la persona. Lo decide el dueño del producto. Con este (y el 1), la bajada de
+   los turnos en el centro puede prometer casi lo mismo que la de la teleconsulta, con una
+   salvedad corta.
 
-- **Que la «Agenda de hoy» muestre todos los turnos del día**, o al menos que deje de mostrar
-  los ya atendidos (`fulfilled`, `noshow`). Hoy muestra los 6 primeros y el «+N más» lleva a
-  `/Appointment`, que no pasa el turno ni abre la sala: una séptima teleconsulta del centro no
-  se puede abrir desde el tablero. Es un problema de la agenda, no solo de los adjuntos.
-- **Que la ficha previa se relea** mientras está abierta (sola, con el intervalo de la sala, o
-  con un botón «Actualizar») y que `documentosDelTurno` y `documentosDeLaHistoria` pasen
-  `cache: 'no-cache'`: si no, durante un minuto el cliente devuelve lo mismo. `useFichaPrevia`
-  ya tiene `reload`, pero ninguna pantalla lo usa. Con eso, la bajada de la teleconsulta y el
-  diálogo de quitar podrían dejar de avisar lo de la ficha ya abierta.
+Ningún texto del portal cambia antes de que el pedido correspondiente esté desplegado y
+probado en producción.
 
 ### Lo que falta en el portal
 
