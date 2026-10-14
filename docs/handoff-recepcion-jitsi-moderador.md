@@ -50,17 +50,16 @@ conectarnos a la conferencia». No hay logs de esa vez.
 
   Está bien armado: el bot hace lo que tiene que hacer.
 
-## Lo que falta confirmar primero
+## Confirmado: el médico estaba adentro
 
-**Si el médico llegó a estar adentro de la reunión.** La pestaña que abre el dashboard
-arranca en la pantalla previa del Jitsi, con el botón «Entrar a la reunión», y ahí todavía no
-cuenta como moderador (la cámara ya se ve encendida). Si no tocó ese botón, la paciente espera
-con razón. Hay que repetir la prueba con el médico adentro.
+**El médico tocó «Entrar a la reunión» en su pestaña, y la paciente siguió esperando**
+(confirmado el 14.10.2026). No es que le faltara un paso: entró y el Jitsi no lo tomó como
+moderador.
 
-## Si el médico estaba adentro: el Jitsi no está usando el token
+## El Jitsi no está usando el token
 
-Entonces el médico entró como invitado, igual que la paciente, y los dos esperan a un
-anfitrión que no existe. Lo que estaba pendiente según `docs/TELECONSULTA-SOM.md` §8 del
+El médico entró como invitado, igual que la paciente, y los dos esperan a un anfitrión que
+no existe. Lo que estaba pendiente según `docs/TELECONSULTA-SOM.md` §8 del
 dashboard («configurar el Jitsi de SOM para que valide esos tokens y dé moderador a quien
 trae `moderator: true`») tiene que estar hecho. Hay que revisar, según cómo esté instalado:
 
@@ -71,6 +70,17 @@ trae `moderator: true`») tiene que estar hecho. Hay que revisar, según cómo e
 | El mismo secreto que el bot                | `JWT_APP_SECRET` = el Project Secret `JITSI_APP_SECRET` de Medplum                                | Prosody: `app_secret`                                                                             |
 | Emisor y audiencia aceptados               | `JWT_ACCEPTED_ISSUERS` con `epa-teleconsulta` y `JWT_ACCEPTED_AUDIENCES` con `jitsi` (si se usan) | `asap_accepted_issuers` / `asap_accepted_audiences` (si se usan)                                  |
 | La paciente entra sin token, como invitada | `ENABLE_GUESTS=1`                                                                                 | Un host de invitados con `authentication = "anonymous"`, y en `config.js` `hosts.anonymousdomain` |
+
+**La causa más probable**: el servidor tiene activada la autenticación de usuario y
+contraseña de Jitsi («secure domain») y no la de token: por eso a los dos les pide un
+moderador que «inicie sesión» y no toma el token del médico. Se puede ver sin tocar la
+configuración: si en «Esperando al anfitrión» el botón «Iniciar sesión» abre un formulario de
+usuario y contraseña, el servidor está en ese modo.
+
+**Mientras tanto, para no frenar las consultas** (lo decide Recepción): darle al médico un
+usuario y contraseña del Jitsi (con `prosodyctl register`, o el equivalente de su instalación),
+para que inicie sesión en ese diálogo y la consulta arranque. Es provisorio: el contrato es
+que el médico entra con el token que firma `som-teleconsulta-token`.
 
 Dos controles rápidos:
 
