@@ -24,7 +24,6 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
-import { formatDateTime } from '@medplum/core';
 import type { Patient, Task } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconCircleCheck, IconInfoCircle, IconMessage2 } from '@tabler/icons-react';
@@ -40,6 +39,7 @@ import {
   TEXTO_CONSENTIMIENTO_TELECONSULTA,
   tieneConsentimientoTeleconsulta,
 } from '../fhir/agenda';
+import { fechaYHora } from '../fhir/fechas';
 import { cargarMisSolicitudes, crearSolicitud, ESTADO_SOLICITUD, modalidadDeSolicitud } from '../fhir/solicitudes';
 import { showErrorNotification } from '../utils/notifications';
 import { MyAppointments } from './MyAppointments';
@@ -58,7 +58,7 @@ function SolicitudCard({ t }: { t: Task }): JSX.Element {
             </Badge>
           )}
           <Text size="xs" c="dimmed">
-            {t.authoredOn ? formatDateTime(t.authoredOn) : ''}
+            {t.authoredOn ? fechaYHora(t.authoredOn) : ''}
           </Text>
         </div>
         <Badge color={e.color} variant="light">

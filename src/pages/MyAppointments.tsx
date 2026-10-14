@@ -14,7 +14,7 @@
 //   en el DocumentReference, no en el turno (src/fhir/adjuntosTurno.ts). Una reserva vencida
 //   no ofrece adjuntar.
 import { Alert, Badge, Button, Card, Group, Stack, Text } from '@mantine/core';
-import { formatDateTime, getReferenceString } from '@medplum/core';
+import { getReferenceString } from '@medplum/core';
 import type { Appointment, Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { IconCalendarEvent, IconCircleCheck, IconCreditCard } from '@tabler/icons-react';
@@ -24,6 +24,7 @@ import { AccionesTeleconsulta } from '../components/teleconsulta/AccionesTelecon
 import { AdjuntosDelTurnoPlegables } from '../components/turnos/AdjuntosDelTurno';
 import { cuandoEsElTurno, puedeAdjuntar } from '../fhir/adjuntosTurno';
 import { estadoReservaPortal, fmtHoraArg, modalidadesDe, type EstadoReservaPortal } from '../fhir/agenda';
+import { fechaDelTurno } from '../fhir/fechas';
 import { esTeleconsulta } from '../fhir/teleconsulta';
 import { ESTADOS_TURNO } from '../fhir/turnos';
 import { showErrorNotification } from '../utils/notifications';
@@ -73,7 +74,7 @@ function AppointmentCard({ appt, onCambio, patient }: AppointmentCardProps): JSX
         <div>
           <Text fw={600}>{serviceLabel(appt)}</Text>
           <Text size="sm" c="dimmed">
-            {appt.start ? formatDateTime(appt.start) : 'Fecha a confirmar'}
+            {appt.start ? fechaDelTurno(appt.start) : 'Fecha a confirmar'}
           </Text>
           {modalidad && (
             <Badge variant="outline" color="gray" size="sm" mt={4}>

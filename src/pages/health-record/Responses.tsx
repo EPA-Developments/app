@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 import { Box, Button, Group, Stack, Text, Title, useMantineTheme } from '@mantine/core';
-import { formatDateTime, getReferenceString } from '@medplum/core';
+import { getReferenceString } from '@medplum/core';
 import type { Patient } from '@medplum/fhirtypes';
 import { useMedplum, useMedplumProfile } from '@medplum/react';
 import { IconChevronRight } from '@tabler/icons-react';
@@ -9,6 +9,7 @@ import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { InfoButton } from '../../components/InfoButton';
 import { InfoSection } from '../../components/InfoSection';
+import { fechaYHora } from '../../fhir/fechas';
 
 export function Responses(): JSX.Element {
   const medplum = useMedplum();
@@ -33,7 +34,7 @@ export function Responses(): JSX.Element {
             <InfoButton key={resp.id} onClick={() => navigate(`./${resp.id}`)?.catch(console.error)}>
               <div>
                 <Text c={theme.primaryColor} fw={500} mb={4}>
-                  {formatDateTime(resp.authored)}
+                  {fechaYHora(resp.authored)}
                 </Text>
               </div>
               <IconChevronRight color={theme.colors.gray[5]} />

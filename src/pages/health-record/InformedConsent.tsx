@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Alert, Box, Button, Checkbox, Divider, Group, List, Stack, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { createReference, formatDateTime, formatHumanName, getReferenceString } from '@medplum/core';
+import { createReference, formatHumanName, getReferenceString } from '@medplum/core';
 import type { WithId } from '@medplum/core';
 import type { DocumentReference, Patient } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
@@ -18,6 +18,7 @@ import {
   buscarConsentimiento,
   consentimientoAlDia,
 } from '../../fhir/consentimiento';
+import { fechaYHora } from '../../fhir/fechas';
 import { buscarUltimoIngreso } from '../../fhir/ingreso';
 import { hayNovedadSinLeer } from '../../fhir/notificaciones';
 import { MARCA } from '../../marca';
@@ -302,8 +303,8 @@ export function InformedConsent(): JSX.Element {
 
       {!loading && signed && alDia && (
         <Alert icon={<IconCircleCheck size={16} />} color="green" radius="md" title="Consentimiento firmado" mb="lg">
-          Firmaste este consentimiento el {formatDateTime(signed.date)}. Si necesitás revocarlo, escribí a {MARCA.email}
-          . Podés volver a firmarlo si se actualiza el documento.
+          Firmaste este consentimiento el {fechaYHora(signed.date)}. Si necesitás revocarlo, escribí a {MARCA.email}.
+          Podés volver a firmarlo si se actualiza el documento.
           <Group mt="sm">
             <Button
               size="xs"
@@ -342,7 +343,7 @@ export function InformedConsent(): JSX.Element {
           title="Actualizamos el consentimiento informado"
           mb="lg"
         >
-          Firmaste una versión anterior el {formatDateTime(signed.date)}. Estos son los cambios:
+          Firmaste una versión anterior el {fechaYHora(signed.date)}. Estos son los cambios:
           <List size="sm" mt="xs" spacing={4}>
             {NOVEDADES_VERSION.map((n) => (
               <List.Item key={n}>{n}</List.Item>

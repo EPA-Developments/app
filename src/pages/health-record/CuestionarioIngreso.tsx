@@ -14,7 +14,7 @@
 // la respuesta se registra la etapa de la menopausia declarada (`registrarEtapaDelIngreso`).
 import { Alert, Anchor, Button, Group, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { createReference, formatDateTime } from '@medplum/core';
+import { createReference } from '@medplum/core';
 import type { Patient, Questionnaire, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { Document, QuestionnaireForm, useMedplum } from '@medplum/react';
 import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router';
 import { tieneContactoEmergencia } from '../../fhir/demografia';
+import { fechaYHora } from '../../fhir/fechas';
 import { buscarUltimoIngreso, ingresoParaPaciente } from '../../fhir/ingreso';
 import { registrarEtapaDelIngreso } from '../../fhir/ingresoCondiciones';
 import { showErrorNotification } from '../../utils/notifications';
@@ -125,7 +126,7 @@ export function CuestionarioIngreso(): JSX.Element {
               <Text c="dimmed">
                 {estado.recienEnviado
                   ? 'Tu información quedó registrada en tu historia clínica. Tu equipo la va a revisar antes de tu consulta.'
-                  : `Lo completaste el ${formatDateTime(estado.respuesta.authored)}. Si algo cambió (un diagnóstico, una medicación, una cirugía), actualizalo.`}
+                  : `Lo completaste el ${fechaYHora(estado.respuesta.authored)}. Si algo cambió (un diagnóstico, una medicación, una cirugía), actualizalo.`}
               </Text>
             </div>
           </Group>

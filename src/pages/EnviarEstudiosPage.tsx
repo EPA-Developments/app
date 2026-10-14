@@ -21,7 +21,6 @@ import {
   Title,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { formatDateTime } from '@medplum/core';
 import type { DocumentReference, Patient } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconCircleCheck, IconFileCheck, IconFileTypePdf, IconFileUpload, IconInfoCircle } from '@tabler/icons-react';
@@ -37,6 +36,7 @@ import {
   MENSAJE_SIN_CONSENTIMIENTO,
   TEXTO_AUTORIZACION,
 } from '../fhir/estudios';
+import { fechaYHora } from '../fhir/fechas';
 import { showErrorNotification } from '../utils/notifications';
 
 function EstudioEnviado({ doc }: { doc: DocumentReference }): JSX.Element {
@@ -51,7 +51,7 @@ function EstudioEnviado({ doc }: { doc: DocumentReference }): JSX.Element {
             {doc.content?.[0]?.attachment?.title ?? 'Resultado de laboratorio'}
           </Text>
           <Text size="xs" c="dimmed">
-            {doc.date ? formatDateTime(doc.date) : '—'}
+            {doc.date ? fechaYHora(doc.date) : '—'}
           </Text>
         </div>
       </Group>

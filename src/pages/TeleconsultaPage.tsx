@@ -12,14 +12,15 @@
 // «Entrar», el portal la hace esperar en su propia pantalla y abre la sala sola cuando
 // el turno pasa a `checked-in` (el médico entró desde el dashboard). Si el médico
 // entrara por otro lado y el turno no cambiara, a los pocos minutos del inicio se le
-// ofrece entrar igual: nunca queda esperando para siempre.
+// ofrece entrar igual: nunca queda esperando para siempre. Y como igual puede ver el
+// «Esperando al anfitrión» del Jitsi (si entra igual, o si el Jitsi todavía no reconoce
+// al médico como moderador), arriba de la sala se le dice que no toque «Iniciar sesión».
 //
 // Debajo, «Estudios para esta consulta»: lo que adjunta para que el profesional lo vea
 // antes de la consulta (src/components/turnos/AdjuntosDelTurno.tsx). Con la videollamada
 // abierta queda plegado, para no estorbar. Es siempre el mismo componente (solo cambia
 // `plegable`): si la sala se abre sola en medio de una subida, la subida y su resultado siguen.
 import { Alert, Anchor, Box, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
-import { formatDateTime } from '@medplum/core';
 import type { WithId } from '@medplum/core';
 import type { Appointment } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
@@ -28,6 +29,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router';
 import { AdjuntosDelTurnoPlegables } from '../components/turnos/AdjuntosDelTurno';
+import { fechaDelTurno } from '../fhir/fechas';
 import {
   entrarTeleconsulta,
   estadoDeLaEspera,
@@ -154,7 +156,7 @@ export function TeleconsultaPage({
         <div>
           <Title order={2}>{turno.description ?? 'Teleconsulta'}</Title>
           <Text c="dimmed">
-            {turno.start ? formatDateTime(turno.start) : 'Fecha a confirmar'}
+            {turno.start ? fechaDelTurno(turno.start) : 'Fecha a confirmar'}
             {profesional ? ` · ${profesional}` : ''}
           </Text>
         </div>
@@ -163,6 +165,11 @@ export function TeleconsultaPage({
           <SalaDeEspera turno={turno} ahora={ahora} onEntrarIgual={() => setAbierta(true)} />
         ) : sala ? (
           <Stack gap="xs">
+            {/* Si llega antes que el moderador, el Jitsi le ofrece «Iniciar sesión»: es para el médico. */}
+            <Text size="sm" c="dimmed">
+              Si ves «Esperando al anfitrión», no toques «Iniciar sesión»: ese botón es para tu médico. Esperá en esta
+              pantalla: la consulta empieza cuando entra.
+            </Text>
             <Box
               component="iframe"
               src={sala}
