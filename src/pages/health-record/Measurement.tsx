@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 import { Alert, Box, Button, Group, Modal, NumberInput, Stack, Table, Title } from '@mantine/core';
-import { createReference, formatDate, formatDateTime, formatObservationValue, getReferenceString } from '@medplum/core';
+import { createReference, formatDate, formatObservationValue, getReferenceString } from '@medplum/core';
 import type { Observation, ObservationComponent, Patient } from '@medplum/fhirtypes';
 import { Document, Form, useMedplum } from '@medplum/react';
 import { IconAlertCircle } from '@tabler/icons-react';
@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { useParams } from 'react-router';
 import { LineChart } from '../../components/LineChart';
+import { fechaYHora } from '../../fhir/fechas';
 import { showErrorNotification } from '../../utils/notifications';
 import { measurementsMeta } from './Measurement.data';
 
@@ -148,7 +149,7 @@ export function Measurement(): JSX.Element {
           <Table.Tbody>
             {observations.map((obs) => (
               <Table.Tr key={obs.id}>
-                <Table.Td>{formatDateTime(obs.effectiveDateTime as string)}</Table.Td>
+                <Table.Td>{fechaYHora(obs.effectiveDateTime as string)}</Table.Td>
                 <Table.Td>{formatObservationValue(obs)}</Table.Td>
               </Table.Tr>
             ))}

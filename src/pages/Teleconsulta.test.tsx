@@ -236,6 +236,16 @@ describe('/teleconsulta/:appointmentId', () => {
     expect(await screen.findByTitle('Videollamada')).toHaveAttribute('src', JITSI);
     expect(screen.getByRole('link', { name: /Abrir la videollamada en otra pestaña/ })).toHaveAttribute('href', JITSI);
     expect(screen.queryByText('Ya estás en la sala de espera')).not.toBeInTheDocument();
+    // El «Iniciar sesión» del Jitsi es para el médico: arriba de la sala se le dice que no lo toque.
+    expect(screen.getByText(/no toques «Iniciar sesión»: ese botón es para tu médico/)).toBeInTheDocument();
+  });
+
+  test('la fecha del turno sale en castellano y en hora de Argentina, no en la del navegador', async () => {
+    const { medplum, confirmada } = await escenario();
+    await medplum.updateResource<Appointment>({ ...confirmada, start: '2026-10-13T22:30:00Z' });
+    await renderEn(medplum, `/teleconsulta/${confirmada.id}`);
+    expect(await screen.findByText(/martes 13 de octubre de 2026, 19:30/)).toBeInTheDocument();
+    expect(screen.queryByText(/10\/13\/2026|PM/)).not.toBeInTheDocument();
   });
 
   test('sin la seña ofrece pagarla y redirige a Mercado Pago', async () => {

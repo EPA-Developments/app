@@ -11,7 +11,7 @@
 // no se reescribe. Recepción solo ve si está firmado (sí/no), nunca el Consent.
 import { Alert, Anchor, Button, Card, Checkbox, Group, Loader, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { formatDateTime, getReferenceString } from '@medplum/core';
+import { getReferenceString } from '@medplum/core';
 import type { WithId } from '@medplum/core';
 import type { Consent, Patient } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
@@ -25,6 +25,7 @@ import {
   buscarConsentimientoTeleconsulta,
 } from '../../fhir/agenda';
 import { buscarConsentimiento, RUTA_CONSENTIMIENTO } from '../../fhir/consentimiento';
+import { fechaYHora } from '../../fhir/fechas';
 import { marcarLeidasDeTipo } from '../../fhir/notificaciones';
 import { showErrorNotification } from '../../utils/notifications';
 import { RUTA_NUEVO_MENSAJE } from '../mensajes/Conversaciones';
@@ -110,8 +111,8 @@ export function ConsentimientoTeleconsulta(): JSX.Element {
           mt="md"
           mb="lg"
         >
-          Lo aceptaste{consent.dateTime ? ` el ${formatDateTime(consent.dateTime)}` : ''}. Si querés revocarlo,
-          escribinos por Mensajes.
+          Lo aceptaste{consent.dateTime ? ` el ${fechaYHora(consent.dateTime)}` : ''}. Si querés revocarlo, escribinos
+          por Mensajes.
           <Group mt="sm">
             <Button
               size="xs"

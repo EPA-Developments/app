@@ -6,7 +6,6 @@
 // descarga el PDF. Todo es de SOLO LECTURA: lo genera el bot, el portal solo lo muestra.
 // El nombre del servicio ("Segunda Opinión") sale de la marca (`MARCA.producto`).
 import { Alert, Badge, Box, Button, Card, Divider, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { formatDateTime } from '@medplum/core';
 import type { DocumentReference, Patient, ServiceRequest } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconDownload, IconFilePlus, IconInfoCircle, IconReportMedical } from '@tabler/icons-react';
@@ -14,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { PreventScore } from '../components/PreventScore';
+import { fechaYHora } from '../fhir/fechas';
 import {
   cargarInformeSOM,
   cargarMisSolicitudesSOM,
@@ -149,7 +149,7 @@ export function MiSegundaOpinion(): JSX.Element {
                   <div>
                     <Text fw={500}>{sr.reasonCode?.[0]?.text ?? `${MARCA.producto} Cardiológica`}</Text>
                     <Text size="xs" c="dimmed">
-                      {sr.authoredOn ? formatDateTime(sr.authoredOn) : ''}
+                      {sr.authoredOn ? fechaYHora(sr.authoredOn) : ''}
                     </Text>
                   </div>
                   <Group gap="xs" wrap="nowrap">

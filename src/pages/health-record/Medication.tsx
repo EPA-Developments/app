@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 import { Anchor, Box, Button, Modal, Stack, Text, Title } from '@mantine/core';
-import { formatDateTime, formatHumanName, formatTiming } from '@medplum/core';
+import { formatHumanName, formatTiming } from '@medplum/core';
 import type { MedicationRequest } from '@medplum/fhirtypes';
 import { ResourceTable, useMedplum } from '@medplum/react';
 import { useState } from 'react';
 import type { JSX } from 'react';
 import { useParams } from 'react-router';
 import { InfoSection } from '../../components/InfoSection';
+import { fechaYHora } from '../../fhir/fechas';
 
 export function Medication(): JSX.Element {
   const medplum = useMedplum();
@@ -51,7 +52,7 @@ function RenewalModal({
     >
       <Stack gap="md">
         <KeyValue name="Paciente" value={formatHumanName(patient?.name?.[0])} />
-        <KeyValue name="Última prescripción" value={formatDateTime(prev.authoredOn)} />
+        <KeyValue name="Última prescripción" value={fechaYHora(prev.authoredOn)} />
         <KeyValue name="Estado" value={prev.status} />
         <KeyValue name="Medicación" value={prev.medicationCodeableConcept?.text} />
         <KeyValue
