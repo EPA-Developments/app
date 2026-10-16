@@ -19,6 +19,8 @@ Portal del paciente de **Segunda Opinión Médica** — segunda opinión cardiol
   analitos, nivel esencial/extensivo y rangos de guía publicados por el servidor como
   `ObservationDefinition`; "te faltan X estudios esenciales"), signos vitales, cuestionarios
   LE8 (PSQI / MEDAS / EVS / tabaco), consentimiento informado y membresía.
+- Informes de tu médico: los informes CKM que el médico firma en el dashboard clínico, para
+  ver y bajar en PDF (solo lectura).
 
 **Stack**: React 19 + TypeScript + Vite + Mantine 8 + Medplum React SDK · FHIR R4 en
 `https://api.medplum.com.ar` (proyecto `7ce5e559`) · deploy en Vercel.

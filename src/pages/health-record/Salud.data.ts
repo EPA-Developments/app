@@ -9,8 +9,10 @@
 // cardiovascular, Signos Vitales (adelante, para que se carguen seguido), Biomarcadores, el
 // Consentimiento informado y el de teleconsulta (R-21; para quien se atiende por
 // videollamada, una sola vez: sin sub-opciones, así "Consentimiento Informado" no se marca
-// activo en su ruta). El historial de cuestionarios sigue en /health-record/questionnaire-
-// responses, enlazado desde el Cuestionario de ingreso.
+// activo en su ruta). Al final, Informes de tu médico: los informes CKM que el médico firma en
+// el dashboard clínico, para leer y bajar en PDF (src/fhir/informesCkm.ts). El historial de
+// cuestionarios sigue en /health-record/questionnaire-responses, enlazado desde el
+// Cuestionario de ingreso.
 //
 // Nota: las rutas y componentes de Resultados de Laboratorio, Medicación y Vacunas
 // se mantienen (no se borran); solo se ocultan del menú.
@@ -22,6 +24,7 @@ import {
   IconActivityHeartbeat,
   IconClipboardList,
   IconFileCheck,
+  IconFileText,
   IconHeartbeat,
   IconReportMedical,
   IconVideo,
@@ -105,6 +108,12 @@ export const SECCIONES_SALUD: readonly SeccionSalud[] = [
     href: RUTA_CONSENTIMIENTO_TELECONSULTA,
     icon: IconVideo,
     descripcion: 'Para atenderte por videollamada.',
+  },
+  {
+    titulo: 'Informes de tu médico',
+    href: '/health-record/informes',
+    icon: IconFileText,
+    descripcion: 'Los informes que firmó tu médico, para bajar en PDF.',
   },
 ];
 

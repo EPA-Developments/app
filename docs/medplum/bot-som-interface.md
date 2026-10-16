@@ -195,6 +195,7 @@ un DocumentReference) dispare el bot.
 |---|---|---|
 | `https://segundaopinionmedica.org/fhir/CodeSystem/documento` | `resultado-laboratorio` | `DocumentReference.category` del PDF de laboratorio. |
 | `https://segundaopinionmedica.org/fhir/CodeSystem/documento` | `adjunto-turno` | `DocumentReference.category` de un estudio adjunto a un turno (`context.related` → `Appointment/<id>`). **No** dispara a este bot: ver `../adjuntos-turno.md`. |
+| `https://segundaopinionmedica.org/fhir/CodeSystem/documento` | `informe-ckm` | `DocumentReference.category` del informe CKM firmado (`docStatus` `final`, PDF en `Binary/<id>`). Lo escribe el médico desde el dashboard; la paciente solo lo lee y lo baja en «Informes de tu médico» (`/health-record/informes`, `src/fhir/informesCkm.ts`). **No** dispara a este bot. |
 | `https://segundaopinionmedica.org/fhir/CodeSystem/consentimiento` | `procesamiento-datos-salud` | `Consent.policyRule` (Ley 25.326). |
 
 ---

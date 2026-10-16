@@ -24,15 +24,25 @@ Cubre todo lo que el portal lee/escribe:
   extensión `onboarding-completed` del Patient Journey; el origen `patient-origin` lo
   setea el backend al invitar),
   `Observation` (biomarcadores y signos vitales), `QuestionnaireResponse`,
-  `DocumentReference` (consentimiento y estudios en PDF), `Communication` (mensajes),
-  `Consent` (la autorización para procesar cada estudio que manda) y `Binary` (el PDF que
-  sube desde "Enviar estudios en PDF").
-  > `Binary`: el portal lo crea con `securityContext` = el paciente, y la escritura queda
-  > acotada con `Binary?_compartment=%patient`. **Verificar en el server** que Medplum
-  > ponga al `Binary` en el compartimento del paciente por su `securityContext`; si el
-  > server rechaza la creación, el portal manda los PDF de hasta 700 KB embebidos en el
-  > `DocumentReference` y pide los más grandes por Mensajes (ver
-  > `../acciones-rapidas.md`). La lectura general de `Binary` sigue como estaba.
+  `Communication` (mensajes) y `Consent` (la autorización para procesar cada estudio que
+  manda). `DocumentReference` y `Binary`, acotados a lo que el portal escribe de verdad:
+  - `DocumentReference`: **lee** todos los suyos (también los informes del equipo: el CKM
+    del médico, «Informes de tu médico», y el de segunda opinión). **Da de alta** sólo los
+    que lleva ella como autora (`author=%patient`; el consentimiento, el PDF de
+    laboratorio, el adjunto de un turno y el estudio de la segunda opinión, todos con
+    `author` = la paciente) y que no son un informe del equipo (ni la categoría
+    `documento|informe-ckm` ni el tipo LOINC 11488-4). **Edita** sólo un adjunto de turno
+    suyo (`documento|adjunto-turno`): «Quitar» lo pasa a `entered-in-error`. **Nunca**
+    borra un documento. Si el portal empieza a subir otro documento, tiene que llevar
+    `author` = la paciente; si empieza a editar otro, sumar su categoría a la entrada de
+    `update` acá y en el seed.
+  - `Binary` (el PDF que sube desde "Enviar estudios en PDF" y el archivo que adjunta a un
+    turno, `subirArchivo`): **sólo alta** (`"interaction": ["create"]`), con `securityContext` =
+    el paciente. Medplum no aplica criterios a `Binary`, así que no hay forma de acotar la
+    escritura a los suyos: con sólo el alta no puede sobrescribir ni borrar ningún archivo,
+    tampoco el PDF de un informe. La lectura general de `Binary` sigue como estaba. Si el
+    server rechazara la creación, el portal manda los PDF de hasta 700 KB embebidos en el
+    `DocumentReference` y pide los más grandes por Mensajes (ver `../acciones-rapidas.md`).
 - **Novedades (campanita)** — la escritura de `Communication` ya cubre leer y marcar
   leídas las notificaciones. Para el tiempo real (`MEDPLUM_TIEMPO_REAL=true`) el paciente
   necesita crear su Subscription WebSocket: `Subscription?type=websocket` (no puede tocar

@@ -168,11 +168,13 @@ una copia, porque esa lista ofrece solo PDFs.
 
 ## Permisos
 
-Nada nuevo: la AccessPolicy de la persona (`medplum/README.md`) ya le deja escribir
-`DocumentReference` y `Binary` en su compartimento y leer sus `Appointment`. No cambia la
-policy ni Recepción.
+La AccessPolicy de la persona (`medplum/README.md`) le deja dar de alta el adjunto (un
+`DocumentReference` `adjunto-turno` con `author` = ella) y su `Binary`, editarlo sólo para
+«Quitar» (lo pasa a `entered-in-error`) y leer sus `Appointment`. Del `Binary` sólo da de
+alta: no lo reemplaza. Si el portal empieza a editar el adjunto de otra forma, o a tocar
+otro documento, hay que cambiar la policy acá y en el seed de Recepción.
 
-Un límite: la escritura es `DocumentReference?subject=%patient`, que **no restringe
+Un límite: ninguna de las dos entradas (`subject=%patient&author=%patient&…`) **restringe
 `context.related`**. Que el turno sea de la persona lo controla el portal (solo ofrece sus
 turnos, y uno ajeno ni se puede leer), pero no la policy: por API, una persona que conociera
 el id del turno de otra podría crear un documento propio que apunte a ese turno. Por eso el
