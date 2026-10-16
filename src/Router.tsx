@@ -20,6 +20,7 @@ import { BiomarkerPanel } from './pages/health-record/BiomarkerPanel';
 import { ConsentimientoTeleconsulta } from './pages/health-record/ConsentimientoTeleconsulta';
 import { CuestionarioIngreso } from './pages/health-record/CuestionarioIngreso';
 import { InformedConsent } from './pages/health-record/InformedConsent';
+import { InformesCkm } from './pages/health-record/InformesCkm';
 import { LabResult } from './pages/health-record/LabResult';
 import { LabResults } from './pages/health-record/LabResults';
 import { Measurement } from './pages/health-record/Measurement';
@@ -85,6 +86,8 @@ export function Router(): JSX.Element {
         {/* Consentimiento de teleconsulta (R-21) fuera de la reserva: lo abre el link que manda
             Recepción por WhatsApp, la Novedad de la campanita y el menú de Salud. */}
         <Route path="consent/teleconsulta" element={<ConsentimientoTeleconsulta />} />
+        {/* Informes de tu médico: los informes CKM que el médico firma en el dashboard (solo lectura). */}
+        <Route path="informes" element={<InformesCkm />} />
         <Route path="medications" element={<Medications />} />
         <Route path="medications/:medicationId" element={<Medication />} />
         <Route path="questionnaire-responses" element={<Responses />} />

@@ -54,11 +54,15 @@ test('menú lateral de web: el Cuestionario de ingreso primero y Signos Vitales 
     'Biomarcadores',
     'Consentimiento Informado',
     'Consentimiento de teleconsulta',
+    'Informes de tu médico',
   ]);
   expect(MENU_LATERAL_SALUD.menu[0].href).toBe('/health-record/ingreso');
   // El de teleconsulta, suelto (sin sub-opciones): el link de WhatsApp de Recepción abre esta ruta.
   expect(MENU_LATERAL_SALUD.menu[5].href).toBe('/health-record/consent/teleconsulta');
   expect(MENU_LATERAL_SALUD.menu[5].subMenu).toBeUndefined();
+  // Los informes que firma el médico, al final y sueltos.
+  expect(MENU_LATERAL_SALUD.menu[6].href).toBe('/health-record/informes');
+  expect(MENU_LATERAL_SALUD.menu[6].subMenu).toBeUndefined();
   expect(MENU_LATERAL_SALUD.menu[0].subMenu).toBeUndefined();
   expect(MENU_LATERAL_SALUD.menu[1].subMenu).toHaveLength(LE8_QUESTIONNAIRES.length);
   expect(MENU_LATERAL_SALUD.menu[2].subMenu).toHaveLength(Object.keys(measurementsMeta).length);
@@ -91,6 +95,7 @@ test('smartphone: el inicio de Salud muestra cada sección en tarjetas, sin el m
     expect(screen.getByRole('button', { name: new RegExp(panel.title) })).toBeInTheDocument();
   }
   expect(screen.getByRole('button', { name: /Consentimiento Informado/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Informes de tu médico/ })).toBeInTheDocument();
 
   await act(async () => fireEvent.click(screen.getByRole('button', { name: /Perfil básico y riesgo cardiovascular/ })));
   expect(await screen.findByText('panel de biomarcadores')).toBeInTheDocument();
