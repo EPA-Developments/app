@@ -5,10 +5,10 @@
 // (contrato en src/fhir/informesCkm.ts). La paciente ve cada uno con su fecha y lo baja en
 // PDF. Es de solo lectura: el portal no escribe nada.
 //
-// El PDF se baja con `descargarAdjunto`, el mismo de Mensajes y de la campanita. Antes se
-// vuelve a leer el informe: el link al archivo que devuelve el server al leer es firmado y
-// vence, y la página pudo quedar abierta un rato. Un informe sin archivo se muestra igual,
-// sin el botón. Cada botón lleva como descripción la fecha y el título de su informe: con
+// El PDF se baja con `descargarPdfDelDocumento`, la misma de «Mi segunda opinión»: vuelve a
+// leer el informe antes (el link al archivo es firmado y vence, y la página pudo quedar
+// abierta un rato) y avisa si el server no da el archivo. Un informe sin archivo se muestra
+// igual, sin el botón. Cada botón lleva como descripción la fecha y el título de su informe: con
 // varios, un lector de pantalla dice de cuál es cada uno.
 import { Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import type { WithId } from '@medplum/core';
@@ -18,8 +18,8 @@ import { IconDownload, IconFileText } from '@tabler/icons-react';
 import { useEffect, useId, useState } from 'react';
 import type { JSX } from 'react';
 import { fechaYHora } from '../../fhir/fechas';
-import { adjuntoPdf, cargarInformesCkm } from '../../fhir/informesCkm';
-import { descargarAdjunto } from '../../utils/adjuntos';
+import { cargarInformesCkm } from '../../fhir/informesCkm';
+import { adjuntoPdf, descargarPdfDelDocumento } from '../../utils/adjuntos';
 import { showErrorNotification } from '../../utils/notifications';
 
 function Informe({ doc }: { doc: WithId<DocumentReference> }): JSX.Element {
@@ -34,9 +34,7 @@ function Informe({ doc }: { doc: WithId<DocumentReference> }): JSX.Element {
     }
     setDescargando(true);
     try {
-      const fresco = await medplum.readResource('DocumentReference', doc.id, { cache: 'no-cache' });
-      const archivo = adjuntoPdf(fresco) ?? pdf;
-      await descargarAdjunto(medplum, { ...archivo, title: archivo.title ?? 'informe-ckm.pdf' });
+      await descargarPdfDelDocumento(medplum, doc, 'informe-ckm.pdf');
     } catch (err) {
       showErrorNotification(err);
     } finally {
