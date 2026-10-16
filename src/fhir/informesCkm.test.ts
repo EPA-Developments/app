@@ -21,7 +21,7 @@ async function paciente(): Promise<{ medplum: MockClient; patient: WithId<Patien
   return { medplum, patient };
 }
 
-test('trae solo los informes CKM vigentes y firmados de la paciente, del más nuevo al más viejo', async () => {
+test('trae solo los informes CKM vigentes y firmados por el médico, del más nuevo al más viejo', async () => {
   const { medplum, patient } = await paciente();
   // Se cargan del más viejo al más nuevo: el orden lo tiene que dar la búsqueda.
   const viejo = await medplum.createResource(informeCkm(patient, { fecha: '2026-08-10', estadio: '1' }));
@@ -38,6 +38,12 @@ test('trae solo los informes CKM vigentes y firmados de la paciente, del más nu
       new Date('2026-10-16T12:00:00.000Z')
     ),
     docStatus: 'final',
+  });
+  // Uno con la categoría del informe pero escrito por ella: no es «de tu médico».
+  await medplum.createResource<DocumentReference>({
+    ...informeCkm(patient, { fecha: '2026-10-16' }),
+    author: [{ reference: `Patient/${patient.id}` }],
+    authenticator: undefined,
   });
   // El informe de otra paciente.
   const otra = await medplum.createResource<Patient>({ resourceType: 'Patient' });

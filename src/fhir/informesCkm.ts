@@ -14,6 +14,10 @@
 // `docStatus` no es un parámetro de búsqueda de FHIR R4: el server trae los vigentes
 // (`status=current`) y el filtro de «firmado» (`docStatus` `final`) se hace acá. Un borrador
 // (`preliminary`) todavía no es un informe para la paciente.
+//
+// Tampoco es «de tu médico» un documento que la tiene a ella como autora. Su AccessPolicy no
+// le deja dar de alta uno con la categoría `informe-ckm` (seed de Recepción), pero si alguno
+// quedó de antes, no se muestra: todo lo que sube la paciente la lleva como autora.
 import type { MedplumClient, WithId } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type { Attachment, DocumentReference, Patient } from '@medplum/fhirtypes';
@@ -38,7 +42,11 @@ export async function cargarInformesCkm(
     },
     { cache: 'no-cache' }
   );
-  return documentos.filter((d) => d.docStatus === 'final');
+  return documentos.filter((d) => d.docStatus === 'final' && !escritoPorLaPaciente(d));
+}
+
+function escritoPorLaPaciente(doc: DocumentReference): boolean {
+  return doc.author?.some((a) => a.reference?.startsWith('Patient/')) ?? false;
 }
 
 /** El PDF del informe: el adjunto que dice ser PDF o, si ninguno lo dice, el primero. */
