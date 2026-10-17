@@ -11,7 +11,7 @@ import { vi } from 'vitest';
 import { indexarDefinicionesFhir } from './__fixtures__/glp1';
 import { informeCkm } from './__fixtures__/informesCkm';
 import { armarDocumentoLaboratorio, DOCUMENTO_CATEGORY_SYSTEM, PDF } from './estudios';
-import { adjuntoPdf, CATEGORIA_INFORME_CKM, cargarInformesCkm } from './informesCkm';
+import { CATEGORIA_INFORME_CKM, cargarInformesCkm } from './informesCkm';
 
 async function paciente(): Promise<{ medplum: MockClient; patient: WithId<Patient> }> {
   indexarDefinicionesFhir();
@@ -21,7 +21,7 @@ async function paciente(): Promise<{ medplum: MockClient; patient: WithId<Patien
   return { medplum, patient };
 }
 
-test('trae solo los informes CKM vigentes y firmados de la paciente, del más nuevo al más viejo', async () => {
+test('trae solo los informes CKM vigentes y firmados por el médico, del más nuevo al más viejo', async () => {
   const { medplum, patient } = await paciente();
   // Se cargan del más viejo al más nuevo: el orden lo tiene que dar la búsqueda.
   const viejo = await medplum.createResource(informeCkm(patient, { fecha: '2026-08-10', estadio: '1' }));
@@ -38,6 +38,12 @@ test('trae solo los informes CKM vigentes y firmados de la paciente, del más nu
       new Date('2026-10-16T12:00:00.000Z')
     ),
     docStatus: 'final',
+  });
+  // Uno con la categoría del informe pero escrito por ella: no es «de tu médico».
+  await medplum.createResource<DocumentReference>({
+    ...informeCkm(patient, { fecha: '2026-10-16' }),
+    author: [{ reference: `Patient/${patient.id}` }],
+    authenticator: undefined,
   });
   // El informe de otra paciente.
   const otra = await medplum.createResource<Patient>({ resourceType: 'Patient' });
@@ -63,19 +69,4 @@ test('trae solo los informes CKM vigentes y firmados de la paciente, del más nu
 test('sin informes, devuelve la lista vacía', async () => {
   const { medplum, patient } = await paciente();
   expect(await cargarInformesCkm(medplum, patient)).toEqual([]);
-});
-
-test('adjuntoPdf: el adjunto en PDF o, si ninguno lo dice, el primero', () => {
-  const doc = (content: DocumentReference['content']): DocumentReference => ({
-    resourceType: 'DocumentReference',
-    status: 'current',
-    content,
-  });
-  const conNota = doc([
-    { attachment: { contentType: 'text/plain', url: 'Binary/nota' } },
-    { attachment: { contentType: PDF, url: 'Binary/pdf' } },
-  ]);
-  expect(adjuntoPdf(conNota)?.url).toBe('Binary/pdf');
-  expect(adjuntoPdf(doc([{ attachment: { url: 'Binary/sin-tipo' } }]))?.url).toBe('Binary/sin-tipo');
-  expect(adjuntoPdf(doc([]))).toBeUndefined();
 });

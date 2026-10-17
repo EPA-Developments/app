@@ -5,22 +5,26 @@
 // (contrato en src/fhir/informesCkm.ts). La paciente ve cada uno con su fecha y lo baja en
 // PDF. Es de solo lectura: el portal no escribe nada.
 //
-// El PDF se baja con `descargarAdjunto`, el mismo de Mensajes y de la campanita:
-// `medplum.download` resuelve la autenticación del `Binary/<id>`. Un informe sin archivo se
-// muestra igual, sin el botón.
+// El PDF se baja con `descargarPdfDelDocumento`, la misma de «Mi segunda opinión»: vuelve a
+// leer el informe antes (el link al archivo es firmado y vence, y la página pudo quedar
+// abierta un rato) y avisa si el server no da el archivo. Un informe sin archivo se muestra
+// igual, sin el botón. Cada botón lleva como descripción la fecha y el título de su informe: con
+// varios, un lector de pantalla dice de cuál es cada uno.
 import { Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import type { WithId } from '@medplum/core';
 import type { DocumentReference, Patient } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconDownload, IconFileText } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { JSX } from 'react';
 import { fechaYHora } from '../../fhir/fechas';
-import { adjuntoPdf, cargarInformesCkm } from '../../fhir/informesCkm';
-import { descargarAdjunto } from '../../utils/adjuntos';
+import { cargarInformesCkm } from '../../fhir/informesCkm';
+import { adjuntoPdf, descargarPdfDelDocumento } from '../../utils/adjuntos';
 import { showErrorNotification } from '../../utils/notifications';
 
-function Informe({ doc }: { doc: DocumentReference }): JSX.Element {
+function Informe({ doc }: { doc: WithId<DocumentReference> }): JSX.Element {
   const medplum = useMedplum();
+  const idDatos = useId();
   const [descargando, setDescargando] = useState(false);
   const pdf = adjuntoPdf(doc);
 
@@ -30,7 +34,7 @@ function Informe({ doc }: { doc: DocumentReference }): JSX.Element {
     }
     setDescargando(true);
     try {
-      await descargarAdjunto(medplum, { ...pdf, title: pdf.title ?? 'informe-ckm.pdf' });
+      await descargarPdfDelDocumento(medplum, doc, 'informe-ckm.pdf');
     } catch (err) {
       showErrorNotification(err);
     } finally {
@@ -43,7 +47,7 @@ function Informe({ doc }: { doc: DocumentReference }): JSX.Element {
       <Group justify="space-between" wrap="nowrap" gap="sm">
         <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
           <IconFileText size={20} style={{ flexShrink: 0 }} aria-hidden />
-          <div style={{ minWidth: 0 }}>
+          <div id={idDatos} style={{ minWidth: 0 }}>
             <Text fw={500}>{fechaYHora(doc.date) || 'Sin fecha'}</Text>
             <Text size="sm" c="dimmed">{doc.description ?? doc.type?.text ?? 'Informe CKM'}</Text>
           </div>
@@ -54,6 +58,7 @@ function Informe({ doc }: { doc: DocumentReference }): JSX.Element {
             variant="light"
             leftSection={<IconDownload size={14} />}
             loading={descargando}
+            aria-describedby={idDatos}
             style={{ flexShrink: 0 }}
             onClick={() => descargar().catch(console.error)}
           >
@@ -69,7 +74,7 @@ export function InformesCkm(): JSX.Element {
   const medplum = useMedplum();
   const patient = medplum.getProfile() as Patient;
   // undefined = cargando.
-  const [informes, setInformes] = useState<DocumentReference[] | 'error'>();
+  const [informes, setInformes] = useState<WithId<DocumentReference>[] | 'error'>();
 
   useEffect(() => {
     let activo = true;

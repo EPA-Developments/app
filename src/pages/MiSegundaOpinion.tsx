@@ -4,9 +4,12 @@
 // Mi Segunda Opinión — el paciente ve el estado de sus solicitudes y, cuando están
 // completadas, lee el informe (DiagnosticReport), el score PREVENT (RiskAssessment) y
 // descarga el PDF. Todo es de SOLO LECTURA: lo genera el bot, el portal solo lo muestra.
+// El PDF se baja con `descargarPdfDelDocumento`: vuelve a leer el documento antes (su link
+// es firmado y vence, y el informe pudo quedar abierto un rato) y avisa si el server no da el
+// archivo, en vez de guardar su error como si fuera el PDF.
 // El nombre del servicio ("Segunda Opinión") sale de la marca (`MARCA.producto`).
 import { Alert, Badge, Box, Button, Card, Divider, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import type { DocumentReference, Patient, ServiceRequest } from '@medplum/fhirtypes';
+import type { Patient, ServiceRequest } from '@medplum/fhirtypes';
 import { Document, useMedplum } from '@medplum/react';
 import { IconDownload, IconFilePlus, IconInfoCircle, IconReportMedical } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -23,6 +26,7 @@ import {
   type InformeSOM,
 } from '../fhir/som';
 import { MARCA } from '../marca';
+import { descargarPdfDelDocumento } from '../utils/adjuntos';
 import { showErrorNotification } from '../utils/notifications';
 
 // Secciones del informe (clave en la extensión som-sections → título legible).
@@ -42,29 +46,6 @@ function getSecciones(informe: InformeSOM): { title: string; text: string }[] {
     title,
     text: subs.find((s) => s.url === key)?.valueString ?? '',
   })).filter((s) => s.text);
-}
-
-async function descargarPdf(medplum: ReturnType<typeof useMedplum>, pdf: DocumentReference): Promise<void> {
-  const att =
-    pdf.content?.find((c) => c.attachment?.contentType === 'application/pdf')?.attachment ?? pdf.content?.[0]?.attachment;
-  if (!att) {
-    return;
-  }
-  let blob: Blob;
-  if (att.url) {
-    blob = await medplum.download(att.url);
-  } else if (att.data) {
-    const bytes = Uint8Array.from(atob(att.data), (c) => c.charCodeAt(0));
-    blob = new Blob([bytes], { type: att.contentType ?? 'application/pdf' });
-  } else {
-    return;
-  }
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = objectUrl;
-  a.download = att.title ?? 'informe-segunda-opinion.pdf';
-  a.click();
-  URL.revokeObjectURL(objectUrl);
 }
 
 function estadoDe(sr: ServiceRequest): { label: string; color: string } {
@@ -105,7 +86,7 @@ export function MiSegundaOpinion(): JSX.Element {
     }
     setDescargando(true);
     try {
-      await descargarPdf(medplum, informe.pdf);
+      await descargarPdfDelDocumento(medplum, informe.pdf, 'informe-segunda-opinion.pdf');
     } catch (err) {
       showErrorNotification(err);
     } finally {
