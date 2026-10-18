@@ -9,13 +9,18 @@ import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { InfoButton } from '../../components/InfoButton';
 import { InfoSection } from '../../components/InfoSection';
+import { ESTADOS_INFORME_EMITIDO } from '../../fhir/som';
 
 export function LabResults(): JSX.Element {
   const theme = useMantineTheme();
   const navigate = useNavigate();
   const medplum = useMedplum();
   const patient = medplum.getProfile() as Patient;
-  const reports = medplum.searchResources('DiagnosticReport', 'subject=' + getReferenceString(patient)).read();
+  // Sólo los emitidos, como la policy: un borrador (el de la Segunda Opinión, que espera la firma
+  // del cardiólogo) no se lista aunque la policy vieja siga puesta.
+  const reports = medplum
+    .searchResources('DiagnosticReport', `subject=${getReferenceString(patient)}&status=${ESTADOS_INFORME_EMITIDO}`)
+    .read();
 
   return (
     <Box p="xl">

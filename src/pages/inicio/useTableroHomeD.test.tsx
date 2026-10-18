@@ -305,6 +305,39 @@ describe('useTableroHomeD con el MockClient', () => {
     expect(hook.result.current.nuevas.has(`DiagnosticReport/${informe.id}`)).toBe(true);
     expect(hook.result.current.filas.find((f) => f.id === `ServiceRequest/${pedido}`)?.estado).toBe('Completada');
   });
+
+  test('en tiempo real, la tarea de firma que dejó el bot no queda vieja por la caché de búsquedas', async () => {
+    vi.stubEnv('MEDPLUM_TIEMPO_REAL', 'true');
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const { pedido } = await cargarDatosDeJorge(medplum, patient);
+    const hook = await montar(medplum);
+    const llegada = (): FilaTablero | undefined =>
+      hook.result.current.filas.find((f) => f.que === `Informe de ${MARCA.producto}`);
+    expect(llegada()?.estado).toBe('En camino');
+
+    // El bot deja la tarea de firma del lado del servidor (la caché de este cliente no se entera)
+    // y otra novedad cualquiera dispara la recarga.
+    await medplum.repo.createResource<Task>({
+      resourceType: 'Task',
+      status: 'requested',
+      intent: 'order',
+      code: {
+        coding: [{ system: 'https://segundaopinionmedica.org/fhir/CodeSystem/task-tipo', code: TAREA_FIRMA_INFORME }],
+      },
+      for: referencia(patient),
+      basedOn: [{ reference: `ServiceRequest/${pedido}` }],
+    });
+    const aviso = await medplum.createResource(novedad(patient, 'general'));
+    const evento: Bundle = { resourceType: 'Bundle', type: 'history', entry: [{ resource: aviso }] };
+    await act(async () => {
+      (medplum.getSubscriptionManager() as MockSubscriptionManager).emitEventForCriteria(
+        criteriaNotificaciones(`Patient/${patient.id}`),
+        { type: 'message', payload: evento }
+      );
+    });
+    await waitFor(() => expect(llegada()?.estado).toBe('En revisión por el cardiólogo'), ESPERA);
+  });
 });
 
 describe('useTableroHomeD: lecturas honestas y livianas', () => {

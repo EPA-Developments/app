@@ -55,8 +55,9 @@ A, B, C y E y el escritorio de A.
   decir que cambió desde la última visita en este dispositivo; lo que llega en tiempo real usa la misma
   suscripción que la campanita, y los avisos seguidos se juntan en una sola recarga.
 - **Honestidad (de la revisión del código)**: la Home dice «firmado» solo si el informe trae la firma de un médico
-  (`DiagnosticReport` `final` con un `resultsInterpreter` Practitioner). Hoy `bot-som-report` completa la orden y
-  arma el informe con IA sin ese paso, así que se ve «Tu informe está listo». La teleconsulta se ofrece con «un
+  (`DiagnosticReport` `final` con un `resultsInterpreter` Practitioner). Desde R-24 de Recepción el informe le
+  llega sólo firmado por un cardiólogo; mientras lo revisa, se ve «En revisión por el cardiólogo». Los informes de
+  antes los completó `bot-som-report` con IA, sin firma: esos siguen diciendo «Tu informe está listo». La teleconsulta se ofrece con «un
   profesional de nuestro equipo» (la reserva abre el catálogo, no el equipo de la paciente) y avisa qué tiene costo
   junto a cada botón que la reserva (en la D: la puerta, la ruta, PREVENT y el camino 3). Se deja de pedir cuando
   hubo una consulta posterior al laboratorio, y no se empuja mientras la Segunda Opinión está en análisis. La ruta
@@ -133,9 +134,10 @@ ordenan, calculan y redactan borradores, y tu equipo médico revisa, decide y fi
 - **Look**: claro con el color en bloques; tres tonos de la misma escala azul por actor (blanco vos, `#004d92`
   agentes, `#003a6e` equipo médico). Familia Red Hat (Display, Text y Mono).
 - **Construir**: Mantine estándar (`Card`, `Stack`, `Timeline`); el «cruce» es una animación FLIP.
-- **Tradeoff**: para que la franja del equipo sea del todo honesta, el backend tiene que exponer un estado
-  intermedio (borrador `DiagnosticReport` `preliminary` → `final`, o una `Task` de revisión). Mientras tanto, la
-  Segunda Opinión queda «entre las dos franjas». A una paciente nueva el lado azul le queda vacío.
+- **Tradeoff**: para que la franja del equipo fuera del todo honesta, el backend tenía que exponer un estado
+  intermedio. Ya lo expone (R-24 de Recepción: borrador `DiagnosticReport` `preliminary` → `final` y una `Task` de
+  firma): la Segunda Opinión pasa de la IA al equipo al quedar «En revisión por el cardiólogo». A una paciente
+  nueva el lado azul le queda vacío.
 
 ### C · Carta de tu equipo — la explicabilidad como tipografía
 
@@ -225,6 +227,7 @@ implementación, elijan la propuesta que elijan:
 
 1. Elegir dirección (o combinación) sobre el lienzo.
 2. Validar con dirección médica: cuándo mostrar PREVENT, textos sobre la IA y el orden por estadio CKM.
-3. Acordar con Recepción el estado intermedio del informe (`DiagnosticReport` `preliminary` → `final`).
+3. ~~Acordar con Recepción el estado intermedio del informe~~: hecho con R-24 (`preliminary` → `final` y la `Task`
+   de firma; ver `docs/medplum/bot-som-interface.md` §2 bis).
 4. Implementar por etapas: tema (`primaryShade: 7`, tipografía) → motor de «lo de hoy» con tests → Home nueva
    en escritorio y celular → animaciones (con `prefers-reduced-motion`).

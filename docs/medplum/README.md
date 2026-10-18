@@ -88,7 +88,7 @@ Cubre todo lo que el portal lee/escribe:
   > (`MENOPAUSE_QUESTIONNAIRE_URL`); el paciente no puede crear Questionnaires, y el
   > módulo usa el publicado si existe.
 - **Compartimento del paciente** — **solo lectura**: `Appointment`, `Coverage`,
-  `Invoice` (pagos/señas), `DiagnosticReport`, `ServiceRequest` (sus solicitudes de
+  `Invoice` (pagos/señas), `DiagnosticReport` (sólo los emitidos: abajo), `ServiceRequest` (sus solicitudes de
   Segunda Opinión), `RiskAssessment` (score PREVENT), `MedicationRequest`,
   `Immunization`. **Excepción `Coverage`**: el paciente escribe **solo** su obra social
   o prepaga (`type=v3-ActCode|HIP`, desde "Mis datos"); las membresías y paquetes siguen
