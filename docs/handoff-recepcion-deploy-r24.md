@@ -9,12 +9,21 @@
 >
 > | Repo | PR | Qué trae |
 > | --- | --- | --- |
-> | recepcionistas | #113 | El borrador, la tarea de firma, el bot que firma y las policies |
+> | recepcionistas | #112 y #113 | #112: el borrador, la tarea de firma, el bot que firma y las policies. #113: los docs y lo que encontró la revisión |
 > | app (portal) | #56 y #57 | «En revisión por el cardiólogo», «Firmado por …», la Novedad nueva y el espejo de la policy |
 > | dashboard-cardiometabolismo | #48 | La bandeja «Informes para firmar» y las acciones por el bot |
 >
 > **Qué no es:** no hay que cambiar código en ningún repo. Es operación: correr dos comandos
 > en orden y comprobar.
+>
+> **Estado (18.10.2026):** el preflight sin servidor ya pasó en `som-base` (`db1d774`):
+> - `npm run verify`: 1476 tests;
+> - `npm run seed -- --dry-run`: 156 recursos;
+> - `npm run bots:bundle`: 38 bots;
+> - el espejo de la policy es idéntico, y el dashboard llama a `som-firmar-informe` con
+>   `{ tarea, accion, secciones? }`.
+>
+> Falta el deploy, que corre el usuario con el `.env` de SOM.
 
 ## Prompt (pegar en la sesión de `recepcionistas`)
 
@@ -22,8 +31,8 @@
 # Claude Code — recepcionistas · Deploy de R-24 (firma del informe de segunda opinión)
 
 ## Contexto
-R-24 ya está mergeado en `som-base` (PR #113). El informe de segunda opinión le llega a la
-paciente sólo firmado por un cardiólogo:
+R-24 ya está mergeado en `som-base` (PRs #112 y #113). El informe de segunda opinión le llega
+a la paciente sólo firmado por un cardiólogo:
 - `bot-som-report` deja un borrador (`DiagnosticReport` `preliminary`) y una `Task` de firma
   sin dueño.
 - El cardiólogo la toma y la firma desde el dashboard con `som-firmar-informe`.
@@ -44,9 +53,18 @@ orden, y comprobar el circuito de punta a punta con una paciente sintética.
    «En análisis» mientras el cardiólogo revisa, y al firmarse el informe se ve igual. No se
    rompe nada.
 2. `som-base` al día, y las comprobaciones de siempre, sin servidor:
-   `npm run verify`, `npm run seed -- --dry-run` y `npm run bots:bundle`.
+   `npm run verify`, `npm run seed -- --dry-run` y `npm run bots:bundle`. Ya pasaron en
+   `db1d774`; repetirlas sólo si `som-base` cambió.
 3. El `.env` con las credenciales del proyecto SOM. `seed` y `deploy:bots` abortan si son de
    otro proyecto (`MEDPLUM_PROJECT_ID`). No pegues las credenciales en el chat.
+4. **El `Bot` `som-firmar-informe` existe, o las credenciales son de admin del proyecto.**
+   `deploy:bots` sólo crea un bot nuevo con una ClientApplication admin. Si no lo es:
+   - crealo UNA vez en Medplum (Project Admin → Bots → New Bot), con ese nombre exacto y el
+     runtime del script (`BOT_RUNTIME_VERSION`, por defecto `awslambda`);
+   - o confirmá que la ClientApplication del `.env` es admin del proyecto.
+
+   Hacelo antes del deploy, no después. Si no, `deploy:bots` despliega `bot-som-report`
+   (el que deja los borradores) sin el bot que los firma.
 
 ## El deploy, en este orden
 1. **`npm run seed`** (las policies). Es lo primero porque:
@@ -58,10 +76,9 @@ orden, y comprobar el circuito de punta a punta con una paciente sintética.
    Sembrar antes es seguro: las policies nombran los bots por nombre (`Bot?name=`), y con los
    bots viejos los informes siguen naciendo `final`.
 2. **`npm run deploy:bots`** (`bot-som-report` y `som-firmar-informe`, con sus Subscriptions).
-   - Si el script dice que **falta crear `som-firmar-informe`** (credenciales sin admin del
-     proyecto), hay que crearlo UNA vez en Medplum (Project Admin → Bots → New Bot), con ese
-     nombre exacto y el runtime que indica el script. Después se vuelve a correr
-     `npm run deploy:bots`.
+   - Con el `Bot` ya creado (paso 4 de arriba), el script lo encuentra y lo despliega.
+   - Si igual dice que **falta crear `som-firmar-informe`**, crealo como en el paso 4 y volvé a
+     correr `npm run deploy:bots`.
    - Al revés (bots antes que policy), la paciente podría leer por la API el borrador de la
      IA. El portal ya no lo lista, pero la API sí lo daría.
 
@@ -105,8 +122,11 @@ opinión (R-24)», y sumá lo que se ve en el portal y en el dashboard:
 ## Si algo sale mal
 - **La policy nueva puede quedar** aunque haya que volver atrás: con los bots de antes, los
   informes nacen `final` y la paciente los sigue viendo.
-- **Para volver los bots,** se despliegan desde el commit anterior a #113. Un borrador que
-  haya quedado a medio camino se firma después desde la bandeja.
+- **Para volver los bots,** se despliegan desde `1afbd55` (el merge de #111, anterior a #112:
+  #112 es el que cambió `bot-som-report` y sumó `som-firmar-informe`). Un borrador que haya
+  quedado a medio camino se firma después desde la bandeja, con los bots de R-24 de vuelta.
+- **Volver atrás no borra `som-firmar-informe` del servidor.** Sin él en `BOTS_MEDICO` de las
+  policies viejas, nadie lo ejecuta. Si hace falta, se borra desde el admin.
 
 ## Reglas
 - No consultar ni pegar datos de pacientes reales: la prueba va con una paciente sintética.
