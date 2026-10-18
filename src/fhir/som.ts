@@ -218,8 +218,11 @@ export async function cargarMisSolicitudesSOM(medplum: MedplumClient, patient: P
   );
 }
 
-/** Los estados de un informe ya emitido (el borrador `preliminary` no está). */
-const ESTADOS_INFORME_EMITIDO = 'final,amended,corrected,appended';
+/**
+ * Los estados de un informe ya emitido (el borrador `preliminary` no está): los mismos que deja
+ * leer la policy de la paciente (`DiagnosticReport?subject=%patient&status=…`).
+ */
+export const ESTADOS_INFORME_EMITIDO = 'final,amended,corrected,appended';
 
 /** Informe + score + PDF asociados a una orden SOM completada. */
 export async function cargarInformeSOM(medplum: MedplumClient, serviceRequest: ServiceRequest): Promise<InformeSOM> {

@@ -225,9 +225,10 @@ export function useTableroHomeD(): TableroHomeD {
     const ultimaVisita = visita.current.cuando;
     if (version > 0) {
       // Lo que avisa el tiempo real lo cambió un bot del lado del servidor: las búsquedas de la
-      // Segunda Opinión y de su informe (que no piden `no-cache`) pueden estar viejas en la
-      // caché del cliente (hasta un minuto) y seguirían diciendo «En camino».
+      // Segunda Opinión, de su tarea de firma y de su informe (que no piden `no-cache`) pueden
+      // estar viejas en la caché del cliente (hasta un minuto) y seguirían diciendo «En camino».
       medplum.invalidateSearches('ServiceRequest');
+      medplum.invalidateSearches('Task');
       medplum.invalidateSearches('DiagnosticReport');
     }
     let cancelado = false;
