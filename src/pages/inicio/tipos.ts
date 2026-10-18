@@ -10,6 +10,7 @@
 import type { CategoriaLe8, Le8Domain, PuntajeDominio, ResultadoLe8 } from '@epa/careplan-menopausia';
 import type { EquipoDeSalud } from '../../fhir/equipo';
 import type { PlanBienestar } from '../../fhir/bienestar';
+import type { EstadoSolicitudSOM } from '../../fhir/som';
 
 /** Estilo de la Home: E («Vos en el centro») o D («Salidas y llegadas»). */
 export type EstiloHome = 'E' | 'D';
@@ -27,17 +28,20 @@ export interface EstadioCkmHome {
 export interface SegundaOpinionHome {
   readonly id: string;
   /**
-   * `active` = en análisis; `completed` = el informe está listo (lo completa el bot que lo
-   * prepara con IA: completada NO quiere decir firmada); `revoked` o `entered-in-error` =
-   * cancelada (se le vuelve a ofrecer pedirla); el resto (en pausa, borrador…), «otro».
+   * `estadoSolicitudSOM` de src/fhir/som.ts: `active` sin tarea de firma = en análisis (la IA
+   * prepara el informe); `active` con su tarea de firma = en revisión (el borrador espera al
+   * cardiólogo, R-24); `completed` = el informe está para ver (desde R-24 lo completa la firma
+   * del cardiólogo; los de antes, el bot que lo prepara con IA: completada NO quiere decir
+   * firmada, eso lo dice `firmada`); `revoked` o `entered-in-error` = cancelada (se le vuelve a
+   * ofrecer pedirla); el resto (en pausa, borrador…), «otro».
    */
-  readonly estado: 'en-analisis' | 'completada' | 'cancelada' | 'otro';
+  readonly estado: EstadoSolicitudSOM;
   /**
    * true solo si el DiagnosticReport del informe está `final` y tiene un `resultsInterpreter`
    * Practitioner: la única marca de firma médica que hay. Sin ella, la Home nunca dice «firmado».
    */
   readonly firmada: boolean;
-  /** Etiqueta para la paciente (ESTADO_SOM de src/fhir/som.ts). */
+  /** Etiqueta para la paciente (`etiquetaSolicitudSOM` de src/fhir/som.ts). */
   readonly etiqueta: string;
   /** Fecha del pedido (ServiceRequest.authoredOn). */
   readonly pedida?: string;
@@ -185,8 +189,11 @@ export interface AnillosRosa {
   readonly iaEnProceso: boolean;
   /** Marca «Laboratorio · leído por IA» sobre el anillo de IA. */
   readonly laboratorioLeido: boolean;
-  /** Tramo encendido de la Segunda Opinión: IA + equipo juntos (en análisis) o informe listo. */
-  readonly segundaOpinion?: 'en-analisis' | 'completada';
+  /**
+   * La Segunda Opinión en la rosa: en análisis (tramo encendido: IA + equipo juntos), en revisión
+   * por el cardiólogo (la IA ya terminó: sin tramo) o informe listo.
+   */
+  readonly segundaOpinion?: 'en-analisis' | 'en-revision' | 'completada';
   /** Si el informe tiene firma médica registrada (si no, el nodo dice «informe listo», no «firmada»). */
   readonly segundaOpinionFirmada?: boolean;
   readonly equipo: readonly NodoEquipo[];

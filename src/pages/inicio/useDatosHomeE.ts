@@ -9,7 +9,8 @@
 //  - PREVENT estimado con sus datos (sin revisión médica): hook `useRiesgoPrevent`, el mismo
 //    cálculo que mostraba la Home clásica; hoy lo muestran E y D con el modelo de prevent.ts.
 //  - El resto, en un solo efecto con `Promise.allSettled`: el Plan Bienestar, la Segunda
-//    Opinión más reciente (y su PREVENT si está firmada), el último PDF de laboratorio, el
+//    Opinión más reciente (si está activa, con su tarea de firma, para saber si está en revisión
+//    por el cardiólogo; si está completada, con su PREVENT), el último PDF de laboratorio, el
 //    equipo, las novedades sin leer, el consentimiento y el cuestionario de ingreso. Si una
 //    consulta falla, la Home sigue sin ese dato.
 // La combinación es pura (`armarDatosHomeE`, `cargasHomeE`) y se prueba sin red.
@@ -25,6 +26,7 @@ import type {
   Patient,
   QuestionnaireResponse,
   ServiceRequest,
+  Task,
 } from '@medplum/fhirtypes';
 import { useMedplum, useMedplumProfile } from '@medplum/react';
 import { useEffect, useMemo, useState } from 'react';
@@ -40,7 +42,15 @@ import { contarNoLeidas } from '../../fhir/notificaciones';
 import { estadoReservaPortal } from '../../fhir/agenda';
 import { esTeleconsulta } from '../../fhir/teleconsulta';
 import type { PreventValores } from '../../fhir/som';
-import { cargarInformeSOM, cargarMisSolicitudesSOM, ESTADO_SOM, extractPrevent } from '../../fhir/som';
+import {
+  cargarInformeSOM,
+  cargarMisSolicitudesSOM,
+  cargarTareasFirma,
+  estadoSolicitudSOM,
+  etiquetaSolicitudSOM,
+  extractPrevent,
+  firmanteDelInforme,
+} from '../../fhir/som';
 import { VERSION_CONSENTIMIENTO } from '../health-record/InformedConsent.data';
 import type {
   DatosHomeE,
@@ -79,30 +89,25 @@ export function estadioCkmHome(
 }
 
 /**
- * La Segunda Opinión más reciente, como la muestra la Home (ESTADO_SOM para la etiqueta).
- * `informe` es su DiagnosticReport, si se leyó: la orden `completed` solo dice que el informe
- * está listo (la completa el bot que lo prepara con IA); firmada quiere decir `final` y con un
- * `resultsInterpreter` Practitioner, la única marca de firma médica que hay.
+ * La Segunda Opinión más reciente, como la muestra la Home: el mismo estado y la misma etiqueta
+ * que Mi Segunda Opinión (`estadoSolicitudSOM`), con `tareasFirma` para saber si está en
+ * revisión por el cardiólogo. `informe` es su DiagnosticReport, si se leyó: firmada quiere decir
+ * `final` y con un `resultsInterpreter` Practitioner, la única marca de firma médica que hay (los
+ * informes de antes de la firma, R-24, completaron la orden sin ella).
  */
 export function segundaOpinionHome(
   sr: ServiceRequest | undefined,
-  informe?: DiagnosticReport
+  informe?: DiagnosticReport,
+  tareasFirma: readonly Task[] = []
 ): SegundaOpinionHome | undefined {
   if (!sr?.id) {
     return undefined;
   }
-  let estado: SegundaOpinionHome['estado'] = 'otro';
-  if (sr.status === 'active') {
-    estado = 'en-analisis';
-  } else if (sr.status === 'completed') {
-    estado = 'completada';
-  } else if (sr.status === 'revoked' || sr.status === 'entered-in-error') {
-    estado = 'cancelada';
-  }
+  const estado = estadoSolicitudSOM(sr, tareasFirma);
   return {
     id: sr.id,
     estado,
-    etiqueta: (ESTADO_SOM[sr.status] ?? ESTADO_SOM.unknown).label,
+    etiqueta: etiquetaSolicitudSOM(sr, tareasFirma).label,
     pedida: sr.authoredOn,
     actualizada: sr.meta?.lastUpdated,
     firmada: estado === 'completada' && informeFirmado(informe),
@@ -111,10 +116,7 @@ export function segundaOpinionHome(
 
 /** ¿El informe tiene firma médica registrada? `final` y un `resultsInterpreter` Practitioner. */
 export function informeFirmado(informe: DiagnosticReport | undefined): boolean {
-  return (
-    informe?.status === 'final' &&
-    (informe.resultsInterpreter ?? []).some((r) => r.reference?.startsWith('Practitioner/') ?? false)
-  );
+  return firmanteDelInforme(informe) !== undefined;
 }
 
 /** Sin documento, falta; firmado con otra versión del texto, desactualizado. */
@@ -180,9 +182,21 @@ interface SegundaOpinionYPrevent {
   readonly prevent?: PreventFirmado;
 }
 
-/** La Segunda Opinión más reciente (la primera: vienen por fecha de pedido) y, si está completada, su PREVENT. */
+/**
+ * La Segunda Opinión más reciente (la primera: vienen por fecha de pedido). Si está activa, su
+ * tarea de firma (una búsqueda) dice si está en revisión por el cardiólogo; si no se puede leer,
+ * queda «En análisis», como antes de la firma. Si está completada, su PREVENT: mientras está
+ * activa no se lee (el RiskAssessment nace con el borrador de la IA).
+ */
 async function cargarSegundaOpinion(medplum: MedplumClient, patient: Patient): Promise<SegundaOpinionYPrevent> {
   const [ultima] = await cargarMisSolicitudesSOM(medplum, patient);
+  if (ultima?.status === 'active') {
+    const tareas = await cargarTareasFirma(medplum, patient).catch((err: unknown) => {
+      console.warn('No se pudo leer la tarea de firma de la Segunda Opinión.', err);
+      return [];
+    });
+    return { segundaOpinion: segundaOpinionHome(ultima, undefined, tareas) };
+  }
   if (ultima?.status !== 'completed') {
     return { segundaOpinion: segundaOpinionHome(ultima) };
   }

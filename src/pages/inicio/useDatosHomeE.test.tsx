@@ -7,7 +7,9 @@ import type {
   Extension,
   Patient,
   QuestionnaireResponse,
+  RiskAssessment,
   ServiceRequest,
+  Task,
 } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
@@ -18,7 +20,7 @@ import { EXT_AGENDA, V3_ACT_CODE } from '../../fhir/agenda';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import { CONSENT_TYPE_CODE, CONSENT_TYPE_SYSTEM, CONSENT_VERSION_SYSTEM } from '../../fhir/consentimiento';
 import { CATEGORIA_LABORATORIO, DOCUMENTO_CATEGORY_SYSTEM } from '../../fhir/estudios';
-import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM } from '../../fhir/som';
+import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM, TAREA_FIRMA_INFORME } from '../../fhir/som';
 import { VERSION_CONSENTIMIENTO } from '../health-record/InformedConsent.data';
 import { INTAKE_QUESTIONNAIRE_URL } from '../intake.questionnaire';
 import type { DatosHomeE, ProximoTurno } from './tipos';
@@ -105,6 +107,20 @@ function solicitudSOM(patient: Patient, status: ServiceRequest['status']): Servi
   };
 }
 
+/** La tarea de firma del informe (la crea el backend); `intent: 'plan'` es la que puede dar de alta la paciente. */
+function tareaFirma(patient: Patient, sr: ServiceRequest, intent: Task['intent'] = 'order'): Task {
+  return {
+    resourceType: 'Task',
+    status: 'requested',
+    intent,
+    code: {
+      coding: [{ system: 'https://segundaopinionmedica.org/fhir/CodeSystem/task-tipo', code: TAREA_FIRMA_INFORME }],
+    },
+    for: { reference: `Patient/${patient.id}` },
+    basedOn: [{ reference: `ServiceRequest/${sr.id}` }],
+  };
+}
+
 describe('useDatosHomeE con el MockClient', () => {
   beforeAll(() => {
     indexarDefinicionesFhir();
@@ -170,6 +186,38 @@ describe('useDatosHomeE con el MockClient', () => {
       pedida: '2026-10-01T13:00:00.000Z',
     });
     expect(datos.prevent).toBeUndefined();
+  });
+
+  test('AC-8: activa con su tarea de firma pendiente, en revisión por el cardiólogo y sin PREVENT', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const sr = await medplum.createResource(solicitudSOM(patient, 'active'));
+    await medplum.createResource(tareaFirma(patient, sr));
+    // El RiskAssessment nace con el borrador: la API lo deja leer, pero la Home no lo muestra.
+    await medplum.createResource<RiskAssessment>({
+      resourceType: 'RiskAssessment',
+      status: 'preliminary',
+      subject: { reference: `Patient/${patient.id}` },
+      basedOn: { reference: `ServiceRequest/${sr.id}` },
+      prediction: [{ outcome: { text: 'ASCVD 10 años' }, probabilityDecimal: 0.08 }],
+    });
+    const buscar = vi.spyOn(medplum, 'searchResources');
+    const datos = await datosDe(medplum);
+    expect(datos.segundaOpinion).toMatchObject({ estado: 'en-revision', etiqueta: 'En revisión por el cardiólogo' });
+    expect(datos.prevent).toBeUndefined();
+    // Una sola búsqueda de la tarea de firma, y ninguna del informe ni del PREVENT.
+    const deFirma = buscar.mock.calls.filter(([tipo, q]) => tipo === 'Task' && String(q).includes(TAREA_FIRMA_INFORME));
+    expect(deFirma).toHaveLength(1);
+    expect(buscar.mock.calls.filter(([tipo]) => tipo === 'RiskAssessment' || tipo === 'DiagnosticReport')).toEqual([]);
+  });
+
+  test('AC-9: una tarea intent=plan de la paciente con el código de la firma no la pasa a revisión', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const sr = await medplum.createResource(solicitudSOM(patient, 'active'));
+    await medplum.createResource(tareaFirma(patient, sr, 'plan'));
+    const datos = await datosDe(medplum);
+    expect(datos.segundaOpinion).toMatchObject({ estado: 'en-analisis', etiqueta: 'En análisis' });
   });
 
   test('con una teleconsulta reservada en unos días: es su próximo turno (el cancelado no cuenta)', async () => {
@@ -442,10 +490,16 @@ describe('traducciones para la Home', () => {
       etiqueta: 'Completada',
       pedida: '2026-10-01T13:00:00.000Z',
       actualizada: '2026-10-05T10:00:00.000Z',
-      // Completada no es firmada: la orden la cierra el bot que prepara el informe.
+      // Completada no es firmada: los informes de antes de la firma del cardiólogo (R-24)
+      // completaron la orden sin ella.
       firmada: false,
     });
     expect(segundaOpinionHome({ ...sr, status: 'active' })?.estado).toBe('en-analisis');
+    const firma: Task = { ...tareaFirma(PACIENTE, sr), status: 'in-progress' };
+    expect(segundaOpinionHome({ ...sr, status: 'active' }, undefined, [firma])).toMatchObject({
+      estado: 'en-revision',
+      etiqueta: 'En revisión por el cardiólogo',
+    });
     expect(segundaOpinionHome({ ...sr, status: 'on-hold' })).toMatchObject({ estado: 'otro', etiqueta: 'En pausa' });
     expect(segundaOpinionHome({ ...sr, status: 'revoked' })?.estado).toBe('cancelada');
     expect(segundaOpinionHome({ ...sr, status: 'entered-in-error' })?.estado).toBe('cancelada');

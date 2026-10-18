@@ -34,6 +34,11 @@ export const TIPOS_NOTIFICACION = {
    * de recepcionistas, R-21). Sin `about`: lleva a la página del consentimiento.
    */
   'consentimiento-teleconsulta': 'Consentimiento de teleconsulta',
+  /**
+   * El cardiólogo firmó el informe de la Segunda Opinión (bot `som-firmar-informe` de
+   * recepcionistas, R-24). `about` = la ServiceRequest: lleva a esa Segunda Opinión.
+   */
+  'informe-som-firmado': 'Informe firmado',
   general: 'Aviso',
 } as const;
 
@@ -186,11 +191,17 @@ export function adjuntoNotificacion(c: Communication): Attachment | undefined {
 
 /**
  * A dónde lleva tocar la novedad: primero según el recurso real (`about`), después según el
- * tipo. Undefined = no navega (el texto ya dice todo).
+ * tipo. Undefined = no navega (el texto ya dice todo). El informe firmado va antes: lleva a esa
+ * Segunda Opinión (`?solicitud=`), que la abre con su informe.
  */
 export function destinoNotificacion(c: Communication): string | undefined {
   const ref = c.about?.[0]?.reference ?? '';
   const [tipoRecurso, id] = ref.split('/');
+  if (tipoNotificacion(c).tipo === 'informe-som-firmado') {
+    return tipoRecurso === 'ServiceRequest' && id
+      ? `/mi-segunda-opinion?solicitud=${encodeURIComponent(id)}`
+      : '/mi-segunda-opinion';
+  }
   switch (tipoRecurso) {
     case 'Appointment':
     case 'Invoice':

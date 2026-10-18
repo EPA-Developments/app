@@ -17,6 +17,7 @@ El portal (`src/fhir/som.ts`) define las constantes canónicas que **deben coinc
 | `SOM_INTAKE_URL` | `https://segundaopinionmedica.org/Questionnaire/som-intake` |
 | `SOM_ORIGIN_EXT` | `https://segundaopinionmedica.org/fhir/StructureDefinition/som-origin` |
 | `SOM_SECTIONS_EXT` | `https://segundaopinionmedica.org/fhir/StructureDefinition/som-sections` |
+| `TAREA_FIRMA_INFORME` | `firma-informe-som` (en `https://segundaopinionmedica.org/fhir/CodeSystem/task-tipo`) |
 
 > ⛔ **REGLA INNEGOCIABLE — aislamiento de proyecto.** Los bots de SOM no interactúan
 > con bots, recursos, secrets, Subscriptions ni proyectos de otros proyectos: solo bots
@@ -97,36 +98,109 @@ criteria: ServiceRequest?status=active&code=https://segundaopinionmedica.org/fhi
 
 ### Lógica (resumen del brief §6)
 
+**El informe le llega a la paciente sólo firmado por un cardiólogo** (R-24 de
+recepcionistas, `docs/som.md` §«Firma del informe por el cardiólogo»). `bot-som-report`
+redacta un borrador y deja la firma para el equipo: **no** crea el PDF, **no** completa la
+orden y **no** avisa a la paciente.
+
 1. Pull de datos del paciente: `Patient`, `Condition`, `MedicationRequest`,
    `Observation` y los `DocumentReference` referenciados en `supportingInfo`.
 2. Calcular **Score PREVENT** (AHA 2023) → crear `RiskAssessment`:
-   - `status` `final`, `subject` el paciente, `basedOn` la `ServiceRequest`.
+   - `status` `preliminary` (por la validación del modelo), `subject` el paciente,
+     `basedOn` la `ServiceRequest`.
    - `prediction[]`: ASCVD 10a, IC 10a, ECV total 30a (cada uno con `outcome.text` y
      `probabilityDecimal`). El portal extrae estos 3 por texto del outcome
      (`extractPrevent` en `src/fhir/som.ts`).
+   - Nace con el borrador y la API se lo deja leer a la paciente (R4 no tiene `status` para
+     filtrar `RiskAssessment`): **el portal no lo muestra mientras la orden está `active`**.
 3. Llamar a **Claude `claude-sonnet-4-6`** (Project Secret `ANTHROPIC_API_KEY`) con el
-   contexto clínico estructurado para generar el informe.
-4. Crear `DiagnosticReport` (status `final`, `basedOn` la `ServiceRequest`,
-   `subject` el paciente) con las secciones en la extensión `SOM_SECTIONS_EXT`, cuyas
-   sub-extensiones (`valueString`) usan **exactamente** estas claves (el portal las lee
-   y titula en `MiSegundaOpinion.tsx`):
+   contexto clínico estructurado para redactar el informe.
+4. Crear el **borrador**: `DiagnosticReport` `preliminary` (LOINC `11488-4`, `basedOn` la
+   `ServiceRequest`, `subject` el paciente) con las secciones en la extensión
+   `SOM_SECTIONS_EXT`, cuyas sub-extensiones (`valueString`) usan **exactamente** estas
+   claves (el portal las lee y titula en `MiSegundaOpinion.tsx`):
    `executive-summary`, `risk-assessment`, `history-analysis`, `studies-analysis`,
-   `conclusions`, `pending-studies`.
-5. Generar el **PDF** (Puppeteer/html-pdf-node) y crear un `DocumentReference`
-   (type LOINC `11488-4`, contentType `application/pdf`) con
-   `context.related = [ServiceRequest/<id>]` para que el portal lo encuentre
-   (`DocumentReference?related=ServiceRequest/<id>`). Opcionalmente, setear también
-   `DiagnosticReport.presentedForm` apuntando al PDF.
-6. Actualizar la `ServiceRequest` a status `completed`.
-7. Notificar al paciente (email/WhatsApp).
+   `conclusions`, `pending-studies`. La policy de la paciente no le deja leer un
+   `preliminary` (ver §2 ter).
+5. Crear la **tarea de firma** (`Task`, una por solicitud, sin dueño):
+   - `code` = `https://segundaopinionmedica.org/fhir/CodeSystem/task-tipo|firma-informe-som`,
+     **`intent` = `order`**, identifier
+     `https://segundaopinionmedica.org/fhir/Identifier/firma-informe-som|<id de la ServiceRequest>`;
+   - `for` = la paciente, `basedOn` = [la `ServiceRequest`], `focus` = el `DiagnosticReport`;
+   - `status` (R4) `requested` → `in-progress` → `completed`; el estado del equipo, en
+     `businessStatus` (`https://segundaopinionmedica.org/fhir/CodeSystem/estado-firma-informe`:
+     `draft` / `in-review` / `completed`);
+   - su texto no dice nada clínico: la paciente la lee para ver «En revisión por el
+     cardiólogo». Es del equipo: el portal nunca la escribe.
+6. La `ServiceRequest` **sigue `active`**.
 
-### Cómo lo lee el portal
+## 2 bis. La firma: bot `som-firmar-informe` (interno, lo ejecuta el dashboard)
 
-`cargarInformeSOM` (en `src/fhir/som.ts`) busca:
-- `DiagnosticReport?based-on=ServiceRequest/<id>`
-- `DocumentReference?related=ServiceRequest/<id>` (toma el de `application/pdf`)
+Un cardiólogo toma la tarea y firma desde el dashboard. Recién ahí, en este orden:
+
+1. el **PDF** con el texto final, su nombre y su matrícula (`Binary`, `securityContext` = la
+   paciente);
+2. el **informe** → `final`, `resultsInterpreter` = el `Practitioner`, `issued`,
+   `presentedForm` = el PDF;
+3. el **documento** del PDF: `DocumentReference` LOINC `11488-4`, `docStatus` `final`,
+   `author` y `authenticator` = el cardiólogo, `context.related` = la `ServiceRequest`;
+4. la **tarea** → `completed`;
+5. la **`ServiceRequest`** → `completed`, con `performer` = el cardiólogo (en la misma
+   escritura);
+6. los **avisos**: WhatsApp «Segunda Opinión Médica: el cardiólogo ya firmó tu informe. Lo ves
+   en el portal.» (sin texto de la IA; lo manda el backend) y la Novedad del portal
+   `notificacion|informe-som-firmado` con **`about` = la `ServiceRequest`** (no el
+   `DiagnosticReport`, que en el portal lleva a Resultados de laboratorio), `status`
+   `in-progress` y el texto «El cardiólogo ya firmó tu informe de segunda opinión. Ya lo podés
+   ver y descargar.».
+
+Los informes emitidos **antes** de R-24 quedan como estaban: `final` sin
+`resultsInterpreter`, orden `completed`, PDF sin `docStatus`. El portal los sigue mostrando
+igual (no exige la firma para mostrar uno viejo).
+
+## 2 ter. Cómo lo lee el portal
+
+**El estado de cada solicitud** (`estadoSolicitudSOM` en `src/fhir/som.ts`, el mismo en Mi
+Segunda Opinión y en las dos Home):
+
+| `ServiceRequest.status` | Tarea de firma (por `basedOn`) | Lo que ve la paciente |
+|---|---|---|
+| `active` | no hay | «En análisis» (se está redactando) |
+| `active` | hay (no cargada por error) | «En revisión por el cardiólogo»: sin informe, sin PDF y sin PREVENT |
+| `completed` | (no importa) | «Ver informe»; si el informe tiene `resultsInterpreter`, «Firmado por …» |
+| `revoked`, `entered-in-error` | — | Cancelada |
+
+Una tarea de firma ya `completed` con la orden todavía `active` (una firma que se cortó entre
+la tarea y la orden) sigue «En revisión»: el informe se muestra recién con la orden
+`completed` (volver a firmar completa lo que falta).
+
+**Las tareas de firma**, en UNA búsqueda para todas las solicitudes (`cargarTareasFirma`):
+
+```
+Task?patient=Patient/<id>&code=https://segundaopinionmedica.org/fhir/CodeSystem/task-tipo|firma-informe-som&intent=order
+```
+
+Y del lado del cliente se vuelve a exigir el código **y** `intent=order` (`esTareaFirma`): la
+paciente puede dar de alta `Task` `intent=plan` con cualquier código (los pasos de su plan), y
+una suya con el código de la firma no cambia el estado que ve. Mi Segunda Opinión la busca al
+abrir; las Home, sólo si hay una solicitud activa. Si la búsqueda falla, la solicitud se ve «En
+análisis», como antes. Ninguna lista de tareas de la paciente la muestra: todas buscan por su
+propio `code` (`solicitud-turno`, `consulta-plan`, las de GLP-1) o por su `CarePlan`.
+
+**El informe**, sólo de una orden `completed` (`cargarInformeSOM`):
+- `DiagnosticReport?based-on=ServiceRequest/<id>&status=final,amended,corrected,appended`
+  (sólo los emitidos; la policy tampoco devuelve el borrador);
+- `DocumentReference?related=ServiceRequest/<id>` (toma el de `application/pdf`);
 - `RiskAssessment?subject=Patient/<id>` y filtra por `basedOn = ServiceRequest/<id>`
   (R4 no tiene search param `based-on` para `RiskAssessment`).
+
+**Firmado** = `final` + un `Practitioner/<id>` en `resultsInterpreter` (`firmanteDelInforme`).
+El portal lee ese `Practitioner` (la policy se lo deja) para «Firmado por <nombre>»; si no
+puede, dice «Firmado por el cardiólogo».
+
+**La Novedad** `informe-som-firmado` lleva a `/mi-segunda-opinion?solicitud=<id del about>`,
+que abre el informe de esa solicitud (y vuelve a pedir las búsquedas, por si la caché del
+cliente es de antes de la firma).
 
 ---
 
@@ -202,7 +276,10 @@ un DocumentReference) dispare el bot.
 
 ## 4. Pendiente de aplicar en el server
 
-- Desplegar los bots `som-solicitar` y `bot-som-report`.
+- Desplegar los bots `som-solicitar`, `bot-som-report` y `som-firmar-informe` (R-24:
+  `npm run deploy:bots` en recepcionistas).
+- Aplicar la policy de R-24 (`DiagnosticReport` sólo emitidos: `npm run seed` en
+  recepcionistas).
 - Crear la **Subscription** del punto 2.
 - Cargar el `Questionnaire` canónico `SOM_INTAKE_URL` (opcional; el portal arma la
   `QuestionnaireResponse` igual).

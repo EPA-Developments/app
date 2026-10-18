@@ -8,7 +8,8 @@
 //    su DiagnosticReport, una llegada con los valores que leyó (con o sin revisión médica; si
 //    el informe no se pudo leer, no se afirma ni una cosa ni la otra).
 //  - La Segunda Opinión (ServiceRequest): una salida por pedido y la llegada del informe del
-//    más nuevo (en camino, listo o firmado: firmado solo con la firma médica registrada).
+//    más nuevo (en camino, en revisión por el cardiólogo, listo o firmado: firmado solo con la
+//    firma médica registrada).
 //  - Los cuestionarios de hábitos y el de ingreso (QuestionnaireResponse).
 //  - Lo que se mide en casa y el laboratorio cargado a mano (Observation), por día de Argentina.
 //  - Las novedades (Communication), como llegadas.
@@ -20,11 +21,12 @@ import type {
   Observation,
   QuestionnaireResponse,
   ServiceRequest,
+  Task,
 } from '@medplum/fhirtypes';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
 import { estadoEstudio } from '../../fhir/estudios';
 import { destinoNotificacion, esNoLeida, tipoNotificacion } from '../../fhir/notificaciones';
-import { ESTADO_SOM } from '../../fhir/som';
+import { estadoSolicitudSOM, etiquetaSolicitudSOM } from '../../fhir/som';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { INTAKE_QUESTIONNAIRE_URL } from '../intake.questionnaire';
 import {
@@ -54,9 +56,12 @@ export const NOTA_LABORATORIO_SIN_REVISION =
   'Estos valores los leyó un agente de IA de tu PDF. Todavía no los revisó un médico.';
 /** El informe que todavía no llegó: sin plazos. */
 export const NOTA_INFORME_EN_CAMINO = 'Te avisamos en Novedades cuando esté listo.';
+/** El informe que espera la firma del cardiólogo (R-24): sin plazos. */
+export const NOTA_INFORME_EN_REVISION = 'Lo está revisando un cardiólogo. Te avisamos en Novedades cuando lo firme.';
 /**
- * El informe completado sin la firma médica registrada: lo prepara con IA el bot que completa
- * la orden (ver SegundaOpinionHome en tipos.ts). Nunca se dice «firmado» sin la firma.
+ * El informe completado sin la firma médica registrada: uno de antes de la firma del cardiólogo
+ * (R-24), que preparó con IA el bot que completaba la orden (ver SegundaOpinionHome en tipos.ts).
+ * Nunca se dice «firmado» sin la firma.
  */
 export const NOTA_INFORME_SIN_FIRMA = 'Preparado con IA. Todavía no tiene la firma de un médico.';
 
@@ -212,14 +217,17 @@ export function pedidosVigentes(pedidos: readonly ServiceRequest[]): ServiceRequ
 /**
  * Una salida por pedido (los MAX_PEDIDOS_SOM más nuevos, que llegan ordenados por fecha de
  * pedido; los cargados por error no van) y la llegada del informe del más nuevo: «En camino»
- * mientras está en análisis (sin fecha ni plazo) y, completado, «Firmado» solo con la firma
- * médica registrada; si no, «Listo». `informe` es el DiagnosticReport del más nuevo, si está
- * completado y se pudo leer: sin él, «Listo» en tono neutro, sin afirmar nada de la firma.
+ * mientras está en análisis, «En revisión por el cardiólogo» mientras espera la firma (los dos
+ * sin fecha ni plazo) y, completado, «Firmado» solo con la firma médica registrada; si no,
+ * «Listo». `informe` es el DiagnosticReport del más nuevo, si está completado y se pudo leer: sin
+ * él, «Listo» en tono neutro, sin afirmar nada de la firma. `tareasFirma`, las tareas de firma
+ * de la paciente (`estadoSolicitudSOM`: el mismo estado que Mi Segunda Opinión).
  */
 export function filasDeSegundaOpinion(
   pedidos: readonly ServiceRequest[],
   informe: DiagnosticReport | undefined,
-  producto: string
+  producto: string,
+  tareasFirma: readonly Task[] = []
 ): FilaTablero[] {
   const recientes = pedidosVigentes(pedidos);
   const filas: FilaTablero[] = recientes.map((p) => ({
@@ -230,7 +238,7 @@ export function filasDeSegundaOpinion(
     actualizada: p.meta?.lastUpdated,
     que: `Pedido de ${producto}`,
     ruta: 'Tu app → Agentes de IA y equipo médico',
-    estado: (ESTADO_SOM[p.status] ?? ESTADO_SOM.unknown).label,
+    estado: etiquetaSolicitudSOM(p, tareasFirma).label,
     tono: tonoPedido(p.status),
     href: RUTA_MI_SEGUNDA_OPINION,
   }));
@@ -242,14 +250,15 @@ export function filasDeSegundaOpinion(
     href: RUTA_MI_SEGUNDA_OPINION,
   } as const;
   if (ultimo?.status === 'active') {
-    // Todavía no hay recurso del informe: ni fecha ni plazo.
+    // Todavía no hay informe para la paciente (el borrador no le llega): ni fecha ni plazo.
+    const enRevision = estadoSolicitudSOM(ultimo, tareasFirma) === 'en-revision';
     filas.push({
       ...base,
       id: `ServiceRequest/${ultimo.id}#llegada`,
       recurso: 'ServiceRequest',
-      estado: 'En camino',
+      estado: enRevision ? etiquetaSolicitudSOM(ultimo, tareasFirma).label : 'En camino',
       tono: 'en-curso',
-      nota: NOTA_INFORME_EN_CAMINO,
+      nota: enRevision ? NOTA_INFORME_EN_REVISION : NOTA_INFORME_EN_CAMINO,
     });
   } else if (ultimo?.status === 'completed') {
     const firmado = informeFirmado(informe);
@@ -546,7 +555,12 @@ export interface EstudiosTablero {
 export interface SegundaOpinionTablero {
   readonly pedidos: readonly ServiceRequest[];
   readonly informe?: DiagnosticReport;
-  /** true si no se pudo leer el informe del más nuevo (completado): el tablero avisa que no trajo todo. */
+  /** Las tareas de firma de la paciente, si algún pedido está activo (para «En revisión por el cardiólogo»). */
+  readonly tareasFirma?: readonly Task[];
+  /**
+   * true si no se pudo leer el informe del más nuevo (completado) o las tareas de firma (con un
+   * pedido activo): el tablero avisa que no trajo todo.
+   */
   readonly incompleto?: boolean;
 }
 
@@ -585,7 +599,7 @@ export function filasTablero(fuentes: FuentesTablero, opciones: OpcionesTablero)
   const som = valor(fuentes.segundaOpinion);
   const filas = [
     ...(estudios ? filasDeEstudios(estudios.documentos, estudios.informes, opciones.ahora) : []),
-    ...(som ? filasDeSegundaOpinion(som.pedidos, som.informe, opciones.producto) : []),
+    ...(som ? filasDeSegundaOpinion(som.pedidos, som.informe, opciones.producto, som.tareasFirma) : []),
     ...filasDeCuestionarios(valor(fuentes.cuestionarios) ?? []),
     ...filasDeMediciones(valor(fuentes.mediciones) ?? []),
     ...filasDeLaboratorioManual((fuentes.laboratorioManual && valor(fuentes.laboratorioManual)) ?? []),

@@ -7,10 +7,11 @@ import type {
   Observation,
   QuestionnaireResponse,
   ServiceRequest,
+  Task,
 } from '@medplum/fhirtypes';
 import { CODIGOS_CASA } from '../../fhir/datosDeSalud';
 import { NOTIFICACION_SYSTEM } from '../../fhir/notificaciones';
-import { SOM_INTAKE_URL } from '../../fhir/som';
+import { SOM_INTAKE_URL, TAREA_FIRMA_INFORME } from '../../fhir/som';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { MARCA } from '../../marca';
 import { INTAKE_QUESTIONNAIRE_URL } from '../intake.questionnaire';
@@ -29,6 +30,7 @@ import {
   NOMBRE_MEDICION,
   nombreMediciones,
   NOTA_INFORME_EN_CAMINO,
+  NOTA_INFORME_EN_REVISION,
   NOTA_INFORME_SIN_FIRMA,
   NOTA_LABORATORIO_SIN_REVISION,
   NOTA_PDF_DEMORADO,
@@ -290,6 +292,42 @@ describe('filasDeSegundaOpinion: los pedidos y la llegada del informe', () => {
       },
     ]);
     expect(NOTA_INFORME_EN_CAMINO).toBe('Te avisamos en Novedades cuando esté listo.');
+  });
+
+  test('AC-8: activa con su tarea de firma pendiente, «En revisión por el cardiólogo» en la salida y la llegada', () => {
+    const firma = (srId: string, intent: Task['intent']): Task => ({
+      resourceType: 'Task',
+      status: 'requested',
+      intent,
+      code: {
+        coding: [{ system: 'https://segundaopinionmedica.org/fhir/CodeSystem/task-tipo', code: TAREA_FIRMA_INFORME }],
+      },
+      for: { reference: 'Patient/p1' },
+      basedOn: [{ reference: `ServiceRequest/${srId}` }],
+    });
+    const [salida, llegada] = filasDeSegundaOpinion(
+      [pedido('s1', 'active', '2026-09-28T13:00:00.000Z')],
+      undefined,
+      PRODUCTO,
+      [firma('s1', 'order')]
+    );
+    expect(salida).toMatchObject({ estado: 'En revisión por el cardiólogo', tono: 'en-curso' });
+    expect(llegada).toMatchObject({
+      id: 'ServiceRequest/s1#llegada',
+      estado: 'En revisión por el cardiólogo',
+      tono: 'en-curso',
+      nota: NOTA_INFORME_EN_REVISION,
+    });
+    expect(llegada?.fecha).toBeUndefined();
+
+    // AC-9: una tarea intent=plan de la paciente con el mismo código no cambia nada.
+    const [, conLaSuya] = filasDeSegundaOpinion(
+      [pedido('s1', 'active', '2026-09-28T13:00:00.000Z')],
+      undefined,
+      PRODUCTO,
+      [firma('s1', 'plan')]
+    );
+    expect(conLaSuya).toMatchObject({ estado: 'En camino', nota: NOTA_INFORME_EN_CAMINO });
   });
 
   test('completada sin firma médica registrada: «Listo» (nunca «Firmado») y preparado con IA', () => {

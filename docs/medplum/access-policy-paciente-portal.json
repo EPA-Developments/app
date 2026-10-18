@@ -35,7 +35,7 @@
     { "resourceType": "Coverage", "readonly": true, "criteria": "Coverage?beneficiary=%patient" },
     { "resourceType": "Coverage", "criteria": "Coverage?beneficiary=%patient&type=http://terminology.hl7.org/CodeSystem/v3-ActCode|HIP" },
     { "resourceType": "Invoice", "readonly": true, "criteria": "Invoice?subject=%patient" },
-    { "resourceType": "DiagnosticReport", "readonly": true, "criteria": "DiagnosticReport?subject=%patient" },
+    { "resourceType": "DiagnosticReport", "interaction": ["read", "search"], "criteria": "DiagnosticReport?subject=%patient&status=final,amended,corrected,appended" },
     { "resourceType": "ServiceRequest", "readonly": true, "criteria": "ServiceRequest?subject=%patient" },
     { "resourceType": "RiskAssessment", "readonly": true, "criteria": "RiskAssessment?subject=%patient" },
     { "resourceType": "MedicationRequest", "readonly": true, "criteria": "MedicationRequest?patient=%patient" },

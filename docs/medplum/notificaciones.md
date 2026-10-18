@@ -50,7 +50,7 @@ el contador filtra por nuestra `category`, así que los mensajes del chat (tambi
 
 | Campo | Regla |
 |---|---|
-| `category` | system `…/CodeSystem/notificacion`. Códigos: `reserva-confirmada` · `recordatorio` · `pago-recibido` · `resultados-listos` · `documento-nuevo` · `mensaje-nuevo` · `consentimiento-teleconsulta` · `general`. Un código nuevo se muestra igual, como aviso, con su `display` de título. |
+| `category` | system `…/CodeSystem/notificacion`. Códigos: `reserva-confirmada` · `recordatorio` · `pago-recibido` · `resultados-listos` · `documento-nuevo` · `mensaje-nuevo` · `consentimiento-teleconsulta` · `informe-som-firmado` · `general`. Un código nuevo se muestra igual, como aviso, con su `display` de título. |
 | `subject` | **Siempre** el Patient: es lo que usa la AccessPolicy para acotar. |
 | `recipient` | El Patient (el portal busca por `recipient`). |
 | `sent` | **Obligatorio**: el panel ordena por `-sent` y muestra "hace 5 minutos". |
@@ -68,6 +68,7 @@ A dónde lleva el toque (`destinoNotificacion`):
 | `MedicationRequest/<id>` | `/health-record/medications/<id>` |
 | `CarePlan` | `/care-plan` |
 | `ServiceRequest` | `/mi-segunda-opinion` |
+| `informe-som-firmado` (con `about: ServiceRequest/<id>`) | `/mi-segunda-opinion?solicitud=<id>`: abre el informe de esa Segunda Opinión. Va antes que la regla del `about` (nunca a Resultados de laboratorio). |
 | `Task` | `/get-care` (solicitudes de turno) |
 | `DocumentReference` | `/health-record` |
 | sin `about` | según el código: turnos/recordatorios/pagos → `/membership`; `resultados-listos` → `/health-record/biomarkers`; `general` no navega |
@@ -91,7 +92,12 @@ A dónde lleva el toque (`destinoNotificacion`):
    Bienvenida, el gate la desvía; con esta novedad sin leer, la primera firma del consentimiento
    informado la lleva a esa página en lugar del Cuestionario de ingreso. Al haber Consent, la
    página marca leídas todas las de este código.
-8. **Avisos generales**: `general` (cambios de horario, novedades).
+8. **Informe de Segunda Opinión firmado**: un cardiólogo firmó el informe (R-24, bot
+   `som-firmar-informe` de recepcionistas) → `informe-som-firmado` + `about: ServiceRequest/<id>`
+   (la solicitud, no el `DiagnosticReport`), con el texto «El cardiólogo ya firmó tu informe de
+   segunda opinión. Ya lo podés ver y descargar.». Una por solicitud. Ver
+   `bot-som-interface.md` §2 bis.
+9. **Avisos generales**: `general` (cambios de horario, novedades).
 
 ### Probar hoy sin bots
 

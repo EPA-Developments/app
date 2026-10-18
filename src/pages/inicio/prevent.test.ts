@@ -281,6 +281,15 @@ describe('preventDe: estimado con sus datos (sin revisión médica)', () => {
     expect(preventDe(datos, OPCIONES).acciones).toEqual([TRAE_EL_RIESGO, VER_SEGUNDA_OPINION]);
   });
 
+  test('con la Segunda Opinión en revisión por el cardiólogo: igual que en análisis', () => {
+    const datos = jorge({
+      preventEstimado: ESTIMADO,
+      segundaOpinion: { ...EN_ANALISIS, estado: 'en-revision', etiqueta: 'En revisión por el cardiólogo' },
+    });
+    expect(puedeOfrecerTeleconsulta(datos)).toBe(false);
+    expect(preventDe(datos, OPCIONES).acciones).toEqual([TRAE_EL_RIESGO, VER_SEGUNDA_OPINION]);
+  });
+
   test('con la Segunda Opinión en análisis y un turno: el turno y lo que va a traer su informe', () => {
     const datos = jorge({ preventEstimado: ESTIMADO, segundaOpinion: EN_ANALISIS, proximoTurno: TURNO });
     expect(preventDe(datos, OPCIONES).acciones).toEqual([TURNO_RESERVADO, TRAE_EL_RIESGO, VER_SEGUNDA_OPINION]);

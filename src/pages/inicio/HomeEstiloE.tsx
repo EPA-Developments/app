@@ -230,7 +230,9 @@ function fraseRosa(datos: DatosHomeE): string {
 function anillosDe(datos: DatosHomeE): AnillosRosa {
   const { laboratorio, segundaOpinion, equipo, plan } = datos;
   const estadoSom =
-    segundaOpinion?.estado === 'en-analisis' || segundaOpinion?.estado === 'completada'
+    segundaOpinion?.estado === 'en-analisis' ||
+    segundaOpinion?.estado === 'en-revision' ||
+    segundaOpinion?.estado === 'completada'
       ? segundaOpinion.estado
       : undefined;
   const nodos: NodoEquipo[] = [];
@@ -244,6 +246,7 @@ function anillosDe(datos: DatosHomeE): AnillosRosa {
     nodos.push('segunda-opinion');
   }
   return {
+    // En revisión la IA ya terminó: el informe espera la firma del cardiólogo.
     iaEnProceso: laboratorio?.estado === 'en-proceso' || estadoSom === 'en-analisis',
     laboratorioLeido: laboratorio?.estado === 'procesado',
     segundaOpinion: estadoSom,
@@ -593,8 +596,11 @@ function NovedadSegundaOpinion({
   if (segundaOpinion.estado === 'en-analisis') {
     texto =
       'La trabajan juntos nuestros agentes de IA y nuestro equipo médico; te avisamos en Novedades cuando esté lista.';
+  } else if (segundaOpinion.estado === 'en-revision') {
+    texto = 'Un cardiólogo de nuestro equipo está revisando tu informe; te avisamos en Novedades cuando lo firme.';
   } else if (segundaOpinion.estado === 'completada') {
-    // La orden la completa el bot que prepara el informe: «firmado» solo con la firma registrada.
+    // «Firmado» solo con la firma registrada: los informes de antes de la firma del cardiólogo
+    // (R-24) los completó el bot que los prepara con IA, sin ella.
     texto = segundaOpinion.firmada ? 'Tu informe está firmado.' : 'Tu informe está listo.';
   }
   return (

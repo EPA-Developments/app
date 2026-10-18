@@ -58,12 +58,21 @@ export function devolucionDada(datos: DatosHomeE): boolean {
 }
 
 /**
+ * ¿Su Segunda Opinión está en curso? En análisis (la IA prepara el informe) o en revisión por el
+ * cardiólogo (lo va a firmar): en los dos casos, la devolución llega con su informe.
+ */
+export function segundaOpinionEnCurso(datos: DatosHomeE): boolean {
+  const estado = datos.segundaOpinion?.estado;
+  return estado === 'en-analisis' || estado === 'en-revision';
+}
+
+/**
  * ¿Se le puede ofrecer reservar una teleconsulta para revisar sus datos? No si ya tiene un turno,
- * si su Segunda Opinión está en análisis (la devolución llega con su informe: no se la empuja a
+ * si su Segunda Opinión está en curso (la devolución llega con su informe: no se la empuja a
  * pagar otra revisión) o si ya tuvo una consulta después de subir sus datos.
  */
 export function puedeOfrecerTeleconsulta(datos: DatosHomeE): boolean {
-  return !datos.proximoTurno && datos.segundaOpinion?.estado !== 'en-analisis' && !devolucionDada(datos);
+  return !datos.proximoTurno && !segundaOpinionEnCurso(datos) && !devolucionDada(datos);
 }
 
 /**
@@ -134,6 +143,9 @@ export function caminosDe(datos: DatosHomeE, opciones: OpcionesCaminos): readonl
     const desde = fechaCorta(som.pedida, datos.hoy);
     if (som.estado === 'en-analisis') {
       estadoSom = desde ? `${som.etiqueta} desde el ${desde}` : som.etiqueta;
+    } else if (som.estado === 'en-revision') {
+      // Sin «desde»: la fecha es la del pedido, no la de cuando el cardiólogo lo empezó a revisar.
+      estadoSom = som.etiqueta;
     } else if (som.estado === 'completada') {
       // «Firmado» solo con la firma médica registrada (ver tipos.ts).
       estadoSom = som.firmada ? 'Tu informe está firmado' : 'Tu informe está listo';

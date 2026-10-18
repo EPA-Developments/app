@@ -148,6 +148,15 @@ describe('RosaLe8', () => {
     );
   });
 
+  test('en revisión por el cardiólogo: «en revisión», sin tramo y sin la IA girando', () => {
+    const rosa = renderRosa({
+      anillos: { ...SIN_ANILLOS, segundaOpinion: 'en-revision', equipo: ['segunda-opinion'] },
+    });
+    expect(screen.getByText('en revisión')).toBeInTheDocument();
+    expect(rosa.querySelector('[data-tramo="segunda-opinion"]')).not.toBeInTheDocument();
+    expect(rosa.getAttribute('aria-label')).toContain(`${MARCA.producto}, que está en revisión por el cardiólogo.`);
+  });
+
   test('con el informe listo pero sin firma médica registrada: «informe listo», nunca «firmada»', () => {
     const rosa = renderRosa({
       anillos: { ...SIN_ANILLOS, segundaOpinion: 'completada', equipo: ['segunda-opinion'] },
