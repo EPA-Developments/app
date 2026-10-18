@@ -147,6 +147,16 @@ test('Recepción pide el consentimiento de teleconsulta: sin `about`, lleva a su
   expect(destinoNotificacion(c)).toBe('/health-record/consent/teleconsulta');
 });
 
+test('AC-5: el informe firmado abre la Segunda Opinión de su `about`, no Resultados de laboratorio', () => {
+  const c = novedad('informe-som-firmado', { about: [{ reference: 'ServiceRequest/s1' }] });
+  expect(tipoNotificacion(c)).toEqual({ tipo: 'informe-som-firmado', titulo: 'Informe firmado' });
+  expect(destinoNotificacion(c)).toBe('/mi-segunda-opinion?solicitud=s1');
+  // Aunque traiga el informe en `about` (no es el contrato), no va a Resultados de laboratorio.
+  const conInforme = novedad('informe-som-firmado', { about: [{ reference: 'DiagnosticReport/dr1' }] });
+  expect(destinoNotificacion(conInforme)).toBe('/mi-segunda-opinion');
+  expect(destinoNotificacion(novedad('informe-som-firmado'))).toBe('/mi-segunda-opinion');
+});
+
 test('marcar leídas las de un tipo: solo las sin leer de ese código y de ese paciente', async () => {
   const medplum = await servidor();
   const pedido = await medplum.createResource(novedad('consentimiento-teleconsulta'));

@@ -9,8 +9,9 @@
 // Las reglas, en este orden:
 //  1. Un perfil que no es Patient: todo por recorrer, sin acción.
 //  2. Consentimiento sin firmar: el control se cierra (candado) y lo que sigue queda por recorrer.
-//  3. Segunda Opinión vigente: en análisis (agentes de IA y equipo médico juntos: no hay un
-//     estado intermedio registrado), completada (vuelve el informe) u otro estado.
+//  3. Segunda Opinión vigente: en análisis (agentes de IA y equipo médico juntos: el backend no
+//     registra en cuál de los dos está), en revisión por el cardiólogo (la IA ya terminó: lo
+//     registra la tarea de firma), completada (vuelve el informe) u otro estado.
 //  4. Sin Segunda Opinión, el último PDF de laboratorio: en proceso o demorado.
 //  5. Datos que ya volvieron (PDF leído o hábitos cargados): si nadie del equipo los revisó, el
 //     dibujo lo muestra (la estación del equipo queda por recorrer) y propone la teleconsulta,
@@ -88,6 +89,8 @@ export const TEXTO_CONTROL_NEUTRO =
 
 export const EXPLICACION_EN_ANALISIS =
   'Nuestros agentes de IA y nuestro equipo médico trabajan juntos en tu caso. Te avisamos en Novedades cuando esté listo.';
+export const EXPLICACION_EN_REVISION =
+  'Nuestros agentes de IA ya prepararon tu informe y un cardiólogo de nuestro equipo lo está revisando. Te avisamos en Novedades cuando lo firme.';
 export const EXPLICACION_SIN_REVISION =
   'Un agente de IA leyó tus datos y te los devolvió. Falta una estación: revisarlos con un profesional de nuestro equipo.';
 /**
@@ -168,6 +171,17 @@ function conSegundaOpinion(datos: DatosHomeE, som: SegundaOpinionHome, producto:
       etiquetaActiva: desde ? `En análisis · desde el ${desde}` : 'En análisis',
       enCurso: true,
       explicacion: EXPLICACION_EN_ANALISIS,
+      accion: verla,
+    };
+  }
+  if (som.estado === 'en-revision') {
+    return {
+      // La IA ya terminó: el informe espera la firma del equipo (la tarea de firma, R-24).
+      estados: { ...todas(HASTA_EL_CONTROL, 'recorrida'), ia: 'recorrida', equipo: 'activa' },
+      detalles: { equipo: 'revisa tu informe' },
+      etiquetaActiva: som.etiqueta,
+      enCurso: true,
+      explicacion: EXPLICACION_EN_REVISION,
       accion: verla,
     };
   }

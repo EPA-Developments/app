@@ -347,6 +347,30 @@ describe('VistaHomeE: los tres caminos', () => {
 });
 
 describe('VistaHomeE: lo que encontró la revisión', () => {
+  test('AC-8: en revisión por el cardiólogo, la Home E lo dice igual que Mi Segunda Opinión', async () => {
+    await mostrar(
+      laura({
+        segundaOpinion: {
+          id: 's1',
+          estado: 'en-revision',
+          etiqueta: 'En revisión por el cardiólogo',
+          pedida: '2026-09-28T13:00:00.000Z',
+          firmada: false,
+        },
+      })
+    );
+    expect(screen.getAllByText('En revisión por el cardiólogo').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        'Un cardiólogo de nuestro equipo está revisando tu informe; te avisamos en Novedades cuando lo firme.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('en revisión')).toBeInTheDocument();
+    // La devolución llega con su informe: no se empuja la teleconsulta.
+    const cambio = screen.getByRole('region', { name: 'Lo que cambió' });
+    expect(within(cambio).queryByRole('link', { name: /Revisarlos en una teleconsulta/ })).not.toBeInTheDocument();
+  });
+
   test('una Segunda Opinión completada sin firma médica registrada nunca dice «firmado»', async () => {
     await mostrar(
       laura({

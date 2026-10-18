@@ -154,7 +154,8 @@ export function paraHoy(datos: DatosHomeE, opciones: OpcionesParaHoy): ParaHoy {
     return {
       clave: 'informe',
       titulo: `Tu informe de ${opciones.producto} está listo`,
-      // «Firmó» solo con la firma médica registrada: la orden la completa el bot que prepara el informe.
+      // «Firmó» solo con la firma médica registrada: los informes de antes de la firma del
+      // cardiólogo (R-24) los completó el bot que los prepara con IA, sin ella.
       detalle: datos.segundaOpinion?.firmada
         ? 'Lo firmó tu equipo médico.'
         : 'Leelo con calma; si te surgen dudas, revisalo con un profesional en una teleconsulta.',

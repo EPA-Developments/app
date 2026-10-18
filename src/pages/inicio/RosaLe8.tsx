@@ -322,12 +322,16 @@ export function RosaLe8(props: RosaLe8Props): JSX.Element {
 }
 
 /**
- * «en análisis», «informe listo» o «firmada», debajo del nodo de la Segunda Opinión. «Firmada»
- * solo con la firma médica registrada: la orden la completa el bot que prepara el informe.
+ * «en análisis», «en revisión», «informe listo» o «firmada», debajo del nodo de la Segunda
+ * Opinión. «Firmada» solo con la firma médica registrada: los informes de antes de la firma del
+ * cardiólogo (R-24) completaron la orden sin ella.
  */
 function textoEstado(anillos: AnillosRosa): string | undefined {
   if (anillos.segundaOpinion === 'en-analisis') {
     return 'en análisis';
+  }
+  if (anillos.segundaOpinion === 'en-revision') {
+    return 'en revisión';
   }
   if (anillos.segundaOpinion === 'completada') {
     return anillos.segundaOpinionFirmada ? 'firmada' : 'informe listo';
@@ -369,14 +373,14 @@ function descripcion(props: RosaLe8Props): string {
     'el anillo punteado de nuestros agentes de IA' + (queHaceLaIa.length > 0 ? `, que ${enumerar(queHaceLaIa)}` : '');
   const nodos = NODOS.filter((nodo) => anillos.equipo.includes(nodo));
   const nombres = nodos.map((nodo) => (nodo === 'segunda-opinion' ? nombreSegundaOpinion : TEXTO_NODO[nodo]));
-  const estado =
-    anillos.segundaOpinion === 'en-analisis'
-      ? 'que está en análisis'
-      : anillos.segundaOpinion === 'completada'
-        ? anillos.segundaOpinionFirmada
-          ? 'ya firmada'
-          : 'con el informe listo'
-        : undefined;
+  let estado: string | undefined;
+  if (anillos.segundaOpinion === 'en-analisis') {
+    estado = 'que está en análisis';
+  } else if (anillos.segundaOpinion === 'en-revision') {
+    estado = 'que está en revisión por el cardiólogo';
+  } else if (anillos.segundaOpinion === 'completada') {
+    estado = anillos.segundaOpinionFirmada ? 'ya firmada' : 'con el informe listo';
+  }
   // La Segunda Opinión es el último nodo de la lista: su estado va pegado a su nombre.
   const conNodoSegundaOpinion = nodos.includes('segunda-opinion');
   const equipo =
@@ -386,7 +390,9 @@ function descripcion(props: RosaLe8Props): string {
   frases.push(`Alrededor, ${ia}, y ${equipo}.`);
   if (anillos.segundaOpinion && !conNodoSegundaOpinion) {
     let como = 'está en análisis';
-    if (anillos.segundaOpinion === 'completada') {
+    if (anillos.segundaOpinion === 'en-revision') {
+      como = 'está en revisión por el cardiólogo';
+    } else if (anillos.segundaOpinion === 'completada') {
       como = anillos.segundaOpinionFirmada ? 'ya está firmada' : 'ya tiene el informe listo';
     }
     frases.push(`Tu ${nombreSegundaOpinion} ${como}.`);

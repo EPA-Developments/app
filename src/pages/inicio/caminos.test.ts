@@ -79,6 +79,7 @@ function plan(cambios: Partial<PlanBienestar> = {}): PlanBienestar {
 function som(estado: SegundaOpinionHome['estado'], cambios: Partial<SegundaOpinionHome> = {}): SegundaOpinionHome {
   const etiqueta = {
     'en-analisis': 'En análisis',
+    'en-revision': 'En revisión por el cardiólogo',
     completada: 'Completada',
     cancelada: 'Cancelada',
     otro: 'En pausa',
@@ -175,6 +176,15 @@ describe('devolucionPendiente: algo concreto que revisar con un médico, sin tur
       laboratorio: LAB_SIN_REVISAR,
       preventEstimado: PREVENT_ESTIMADO,
       segundaOpinion: som('en-analisis'),
+    });
+    expect(devolucionPendiente(d)).toBe(false);
+  });
+
+  test('con la Segunda Opinión en revisión por el cardiólogo, tampoco', () => {
+    const d = datos({
+      laboratorio: LAB_SIN_REVISAR,
+      preventEstimado: PREVENT_ESTIMADO,
+      segundaOpinion: som('en-revision'),
     });
     expect(devolucionPendiente(d)).toBe(false);
   });
@@ -296,6 +306,14 @@ describe('caminosDe: los tres caminos, en orden', () => {
     test('en análisis: desde cuándo, y verla', () => {
       expect(camino(datos({ segundaOpinion: som('en-analisis') }), 'segunda-opinion')).toMatchObject({
         estado: 'En análisis desde el 1 de octubre',
+        cta: 'Ver mi Revisión Experta',
+        href: '/mi-segunda-opinion',
+      });
+    });
+
+    test('en revisión por el cardiólogo: su etiqueta, sin «desde» (la fecha es la del pedido), y verla', () => {
+      expect(camino(datos({ segundaOpinion: som('en-revision') }), 'segunda-opinion')).toMatchObject({
+        estado: 'En revisión por el cardiólogo',
         cta: 'Ver mi Revisión Experta',
         href: '/mi-segunda-opinion',
       });

@@ -98,9 +98,13 @@ Cubre todo lo que el portal lee/escribe:
   incluido en su plan, o tentativo con el link de la seña; ver `src/fhir/agenda.ts`), o
   pedir que Recepción coordine (`som-solicitar-turno`). La **Segunda Opinión** también es por *modelo de solicitud*:
   el paciente escribe su `QuestionnaireResponse` + `DocumentReference` y ejecuta el bot
-  `som-solicitar`, que crea la `ServiceRequest`; el informe (`DiagnosticReport`),
-  el score (`RiskAssessment`) y el PDF los genera el bot `bot-som-report` (ver
-  `bot-som-interface.md`) y el paciente solo los lee.
+  `som-solicitar`, que crea la `ServiceRequest`; el informe (`DiagnosticReport`) y el
+  score (`RiskAssessment`) los redacta el bot `bot-som-report`, y el informe le llega recién
+  cuando lo firma un cardiólogo, con el PDF (ver `bot-som-interface.md`): el paciente solo los
+  lee. **`DiagnosticReport`** va con `"interaction": ["read", "search"]` y sólo los emitidos
+  (`status=final,amended,corrected,appended`): el borrador `preliminary` de la IA no le llega.
+  Sin `vread` ni `history`: al firmar, el borrador pasa a `final` en el mismo recurso y su
+  historial guarda el texto de la IA (el portal no usa ninguno de los dos).
 - **Definicional / compartido** (`readonly`): `ActivityDefinition` (el catálogo de
   consultas, con precio y modalidades), `ObservationDefinition` (rangos),
   `Questionnaire`, `Schedule` y `Slot` (la agenda por profesional: horarios libres de

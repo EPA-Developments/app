@@ -7,6 +7,7 @@ import { NOTA_COSTO_TELECONSULTA } from './caminos';
 import {
   dibujoDe,
   EXPLICACION_EN_ANALISIS,
+  EXPLICACION_EN_REVISION,
   EXPLICACION_HABITOS_OTRA_CONSULTA,
   EXPLICACION_HABITOS_SIN_REVISION,
   EXPLICACION_NO_PACIENTE,
@@ -66,9 +67,13 @@ function datos(cambios: Partial<DatosHomeE> = {}): DatosHomeE {
 }
 
 function som(estado: SegundaOpinionHome['estado'], cambios: Partial<SegundaOpinionHome> = {}): SegundaOpinionHome {
-  const etiqueta = { 'en-analisis': 'En análisis', completada: 'Completada', cancelada: 'Cancelada', otro: 'En pausa' }[
-    estado
-  ];
+  const etiqueta = {
+    'en-analisis': 'En análisis',
+    'en-revision': 'En revisión por el cardiólogo',
+    completada: 'Completada',
+    cancelada: 'Cancelada',
+    otro: 'En pausa',
+  }[estado];
   return { id: 'som-1', estado, firmada: false, etiqueta, pedida: '2026-09-28', ...cambios };
 }
 
@@ -240,6 +245,26 @@ describe('rutaDe: la Segunda Opinión', () => {
       'Nuestros agentes de IA y nuestro equipo médico trabajan juntos en tu caso. Te avisamos en Novedades cuando esté listo.'
     );
     expect(ruta.explicacion).toBe(EXPLICACION_EN_ANALISIS);
+    expect(ruta.accion).toEqual({ texto: 'Ver mi Revisión Experta', href: RUTA_MI_SEGUNDA_OPINION });
+    expect(textos(ruta)).not.toMatch(/\d+ (días|horas|semanas)|plazo|demora/);
+  });
+
+  test('AC-8: en revisión por el cardiólogo: la IA ya pasó, el equipo activo, sin plazos', () => {
+    const ruta = rutaDe(datos({ segundaOpinion: som('en-revision') }), OPCIONES);
+    expect(estados(ruta)).toEqual({
+      app: 'recorrida',
+      historia: 'recorrida',
+      consentimiento: 'recorrida',
+      ia: 'recorrida',
+      equipo: 'activa',
+      informe: 'por-recorrer',
+      avisos: 'por-recorrer',
+      vos: 'por-recorrer',
+    });
+    expect(detalle(ruta, 'equipo')).toBe('revisa tu informe');
+    expect(ruta.etiquetaActiva).toBe('En revisión por el cardiólogo');
+    expect(ruta.enCurso).toBe(true);
+    expect(ruta.explicacion).toBe(EXPLICACION_EN_REVISION);
     expect(ruta.accion).toEqual({ texto: 'Ver mi Revisión Experta', href: RUTA_MI_SEGUNDA_OPINION });
     expect(textos(ruta)).not.toMatch(/\d+ (días|horas|semanas)|plazo|demora/);
   });

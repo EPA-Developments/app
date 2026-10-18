@@ -7,9 +7,12 @@
 // escribe SOLO lo que su AccessPolicy le permite (QuestionnaireResponse con sus
 // respuestas y DocumentReference con sus estudios, ambos en su compartimento) y luego
 // EJECUTA el bot `som-solicitar`, que es quien crea la orden clínica `ServiceRequest`
-// (status `active`). Esa orden dispara el bot `bot-som-report`, que genera el informe
-// (`DiagnosticReport`), el score (`RiskAssessment`) y el PDF. El portal nunca escribe
-// la orden ni el informe: solo los lee.
+// (status `active`). Esa orden dispara el bot `bot-som-report`, que redacta el informe
+// (`DiagnosticReport` `preliminary`, un borrador de la IA) y el score (`RiskAssessment`), y
+// deja una `Task` de firma para el equipo. Recién cuando un cardiólogo lo firma (R-24 de
+// Recepción) el informe pasa a `final`, nace el PDF y la orden pasa a `completed`. Mientras
+// tanto la paciente ve «En revisión por el cardiólogo» (`estadoSolicitudSOM`). El portal
+// nunca escribe la orden, la tarea ni el informe: solo los lee.
 //
 // Si el bot todavía no está desplegado en el server, `crearSolicitudSOM` no escribe
 // nada y devuelve un mensaje amable (igual que `crearSolicitud`).
@@ -19,10 +22,13 @@ import type {
   DiagnosticReport,
   DocumentReference,
   Patient,
+  Practitioner,
   QuestionnaireResponse,
   QuestionnaireResponseItem,
+  Reference,
   RiskAssessment,
   ServiceRequest,
+  Task,
 } from '@medplum/fhirtypes';
 import { MARCA } from '../marca';
 import { buscarBotSOM } from './bots';
@@ -212,13 +218,21 @@ export async function cargarMisSolicitudesSOM(medplum: MedplumClient, patient: P
   );
 }
 
+/** Los estados de un informe ya emitido (el borrador `preliminary` no está). */
+const ESTADOS_INFORME_EMITIDO = 'final,amended,corrected,appended';
+
 /** Informe + score + PDF asociados a una orden SOM completada. */
 export async function cargarInformeSOM(medplum: MedplumClient, serviceRequest: ServiceRequest): Promise<InformeSOM> {
   const srRef = getReferenceString(serviceRequest);
   const subjectRef = serviceRequest.subject?.reference;
 
   const [reports, docs, risks] = await Promise.all([
-    medplum.searchResources('DiagnosticReport', `based-on=${srRef}&_sort=-issued&_count=1`),
+    // Sólo los emitidos: el borrador `preliminary` de la IA no se le muestra a la paciente (la
+    // policy tampoco se lo devuelve; el filtro va igual por si la policy vieja sigue puesta).
+    medplum.searchResources(
+      'DiagnosticReport',
+      `based-on=${srRef}&status=${ESTADOS_INFORME_EMITIDO}&_sort=-issued&_count=1`
+    ),
     medplum.searchResources('DocumentReference', `related=${srRef}&_count=20`),
     // RiskAssessment no tiene search param `based-on` en R4: filtramos por basedOn del lado del cliente.
     subjectRef
@@ -264,3 +278,94 @@ export const ESTADO_SOM: Record<string, { label: string; color: string }> = {
   'entered-in-error': { label: 'Error', color: 'red' },
   unknown: { label: 'Pendiente', color: 'yellow' },
 };
+
+// ─── Firma del informe por el cardiólogo (R-24) ──────────────────────────────────────
+
+/** Tipo de tarea (`Task.code`): el mismo CodeSystem que usan agenda.ts y glp1.ts. */
+const TASK_TIPO_SYSTEM = `${SOM_SYSTEM}/task-tipo`;
+/** La tarea del equipo para firmar el informe de una solicitud (la crea `bot-som-report`). */
+export const TAREA_FIRMA_INFORME = 'firma-informe-som';
+
+/** Lo que ve la paciente mientras el cardiólogo revisa el informe. */
+export const ESTADO_EN_REVISION = { label: 'En revisión por el cardiólogo', color: 'segundaOpinion' } as const;
+
+/**
+ * ¿Es la tarea de firma del informe? Su código Y `intent=order`: la paciente da de alta `Task`
+ * `intent=plan` con cualquier código (los pasos de su plan), y una suya con el mismo código no
+ * puede cambiar el estado que ve.
+ */
+export function esTareaFirma(t: Task | undefined): boolean {
+  return (
+    t?.resourceType === 'Task' &&
+    t.intent === 'order' &&
+    (t.code?.coding ?? []).some((c) => c.system === TASK_TIPO_SYSTEM && c.code === TAREA_FIRMA_INFORME)
+  );
+}
+
+/**
+ * Las tareas de firma de la paciente, en UNA búsqueda para todas sus solicitudes (cada una se
+ * cruza con la suya por `basedOn`, en `estadoSolicitudSOM`). Son del equipo: sólo se leen.
+ */
+export async function cargarTareasFirma(medplum: MedplumClient, patient: Patient): Promise<Task[]> {
+  const tareas = await medplum.searchResources(
+    'Task',
+    `patient=${getReferenceString(patient)}&code=${TASK_TIPO_SYSTEM}|${TAREA_FIRMA_INFORME}&intent=order&_count=50`
+  );
+  return tareas.filter(esTareaFirma);
+}
+
+/** En qué está una solicitud, para la paciente. */
+export type EstadoSolicitudSOM = 'en-analisis' | 'en-revision' | 'completada' | 'cancelada' | 'otro';
+
+/**
+ * El estado de una solicitud con su tarea de firma (entre `tareas`, las de la paciente):
+ * - `active` sin tarea de firma: la IA está preparando el informe («En análisis»);
+ * - `active` con su tarea de firma: el borrador espera al cardiólogo («En revisión por el
+ *   cardiólogo»). También con la tarea ya `completed`: una firma que se cortó antes de completar
+ *   la orden todavía no le entregó el informe (volver a firmar completa lo que falta);
+ * - `completed`: el informe está para ver (firmado, o de antes de la firma: R-24 no los toca);
+ * - `revoked` o `entered-in-error`: cancelada; el resto (en pausa, borrador…), otro.
+ */
+export function estadoSolicitudSOM(sr: ServiceRequest, tareas: readonly Task[]): EstadoSolicitudSOM {
+  switch (sr.status) {
+    case 'active':
+      return tareaFirmaDe(sr, tareas) ? 'en-revision' : 'en-analisis';
+    case 'completed':
+      return 'completada';
+    case 'revoked':
+    case 'entered-in-error':
+      return 'cancelada';
+    default:
+      return 'otro';
+  }
+}
+
+/** La tarea de firma de una solicitud (por `basedOn`); una cargada por error no cuenta. */
+function tareaFirmaDe(sr: ServiceRequest, tareas: readonly Task[]): Task | undefined {
+  const ref = `ServiceRequest/${sr.id}`;
+  return tareas.find(
+    (t) => esTareaFirma(t) && t.status !== 'entered-in-error' && (t.basedOn ?? []).some((b) => b.reference === ref)
+  );
+}
+
+/** Etiqueta y color de una solicitud: «En revisión por el cardiólogo» o los de su status (ESTADO_SOM). */
+export function etiquetaSolicitudSOM(sr: ServiceRequest, tareas: readonly Task[]): { label: string; color: string } {
+  if (estadoSolicitudSOM(sr, tareas) === 'en-revision') {
+    return ESTADO_EN_REVISION;
+  }
+  return ESTADO_SOM[sr.status] ?? ESTADO_SOM.unknown;
+}
+
+/**
+ * Quién firmó el informe: el `Practitioner` de `resultsInterpreter` de un informe `final`. Los
+ * emitidos antes de la firma (R-24) no lo tienen, y se siguen mostrando igual.
+ */
+export function firmanteDelInforme(report: DiagnosticReport | undefined): Reference<Practitioner> | undefined {
+  if (report?.status !== 'final') {
+    return undefined;
+  }
+  // Se busca justo un Practitioner/: la referencia es de ese tipo.
+  return report.resultsInterpreter?.find((r) => r.reference?.startsWith('Practitioner/') ?? false) as
+    | Reference<Practitioner>
+    | undefined;
+}

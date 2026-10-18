@@ -26,7 +26,7 @@ import { CATEGORIA_OBSERVACION_SYSTEM } from '../../fhir/biomarkers';
 import { CODIGOS_CASA } from '../../fhir/datosDeSalud';
 import { cargarEstudiosEnviados } from '../../fhir/estudios';
 import { cargarNotificaciones, criteriaNotificaciones } from '../../fhir/notificaciones';
-import { cargarInformeSOM, cargarMisSolicitudesSOM } from '../../fhir/som';
+import { cargarInformeSOM, cargarMisSolicitudesSOM, cargarTareasFirma } from '../../fhir/som';
 import { MARCA } from '../../marca';
 import { tiempoRealHabilitado } from '../../utils/tiempoReal';
 import type { CargaTablero, EstudiosTablero, OpcionesTablero, SegundaOpinionTablero, TableroCargado } from './tablero';
@@ -94,21 +94,35 @@ async function cargarEstudios(medplum: MedplumClient, patient: Patient, recarga:
   }
 }
 
-/** Los pedidos más nuevos de la Segunda Opinión y, si el último está completado, su informe. */
+/**
+ * Los pedidos más nuevos de la Segunda Opinión; si alguno está activo, las tareas de firma (UNA
+ * búsqueda, para todos: «En revisión por el cardiólogo»); y si el último está completado, su
+ * informe. Lo que no se pudo leer queda afuera y el tablero avisa que no trajo todo.
+ */
 async function cargarSegundaOpinion(medplum: MedplumClient, patient: Patient): Promise<SegundaOpinionTablero> {
   // Los cargados por error no cuentan: la llegada es la del último pedido de verdad.
   const pedidos = pedidosVigentes(await cargarMisSolicitudesSOM(medplum, patient));
   const [ultimo] = pedidos;
-  if (ultimo?.status !== 'completed') {
-    return { pedidos };
+  const [tareas, informe] = await Promise.allSettled([
+    pedidos.some((p) => p.status === 'active') ? cargarTareasFirma(medplum, patient) : Promise.resolve(undefined),
+    ultimo?.status === 'completed' ? cargarInformeSOM(medplum, ultimo) : Promise.resolve(undefined),
+  ]);
+  if (tareas.status === 'rejected') {
+    // Sin las tareas, los activos se ven «En análisis», como antes de la firma.
+    console.warn('No se pudieron leer las tareas de firma de la Segunda Opinión del tablero.', tareas.reason);
   }
-  try {
+  if (informe.status === 'rejected') {
     // Sin el informe, la llegada igual se muestra («Listo», sin afirmar nada de la firma).
-    return { pedidos, informe: (await cargarInformeSOM(medplum, ultimo)).report };
-  } catch (err) {
-    console.warn('No se pudo leer el informe de la Segunda Opinión del tablero.', err);
-    return { pedidos, incompleto: true };
+    console.warn('No se pudo leer el informe de la Segunda Opinión del tablero.', informe.reason);
   }
+  const tareasFirma = tareas.status === 'fulfilled' ? tareas.value : undefined;
+  const report = informe.status === 'fulfilled' ? informe.value?.report : undefined;
+  return {
+    pedidos,
+    ...(report ? { informe: report } : {}),
+    ...(tareasFirma ? { tareasFirma } : {}),
+    ...(tareas.status === 'rejected' || informe.status === 'rejected' ? { incompleto: true } : {}),
+  };
 }
 
 /** Opciones de una carga del tablero. */

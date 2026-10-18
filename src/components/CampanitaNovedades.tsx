@@ -37,6 +37,7 @@ import {
   IconPaperclip,
   IconReceipt,
   IconReportMedical,
+  IconSignature,
   IconVideo,
 } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
@@ -72,6 +73,7 @@ const ICONOS: Record<TipoNotificacion, { icon: Icon; color: string }> = {
   'documento-nuevo': { icon: IconFileText, color: 'indigo' },
   'mensaje-nuevo': { icon: IconMessage, color: 'blue' },
   'consentimiento-teleconsulta': { icon: IconVideo, color: 'grape' },
+  'informe-som-firmado': { icon: IconSignature, color: 'segundaOpinion' },
   general: { icon: IconInfoCircle, color: 'gray' },
 };
 

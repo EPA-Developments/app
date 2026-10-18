@@ -21,7 +21,7 @@ import { bandaAscvd } from '@epa/careplan-menopausia';
 import type { PreventBanda } from '@epa/careplan-menopausia';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
 import { RUTA_DATOS_DE_SALUD } from '../../fhir/datosDeSalud';
-import { fechaHoraTurno, pidioSegundaOpinion, puedeOfrecerTeleconsulta } from './caminos';
+import { fechaHoraTurno, pidioSegundaOpinion, puedeOfrecerTeleconsulta, segundaOpinionEnCurso } from './caminos';
 import { fechaCorta, porcentaje } from './formato';
 import { RUTA_MI_SEGUNDA_OPINION, RUTA_RESERVAR_TELECONSULTA, RUTA_SOLICITAR_SEGUNDA_OPINION } from './rutas';
 import type { DatosHomeE, PreventFirmado, ProximoTurno } from './tipos';
@@ -167,15 +167,15 @@ function riesgosDe(valores: PreventFirmado): RiesgoPrevent[] {
  *   en una teleconsulta (o en otra, si ya tuvo una después de sus datos) y con la Segunda
  *   Opinión, que trae el riesgo en su informe (pedirla, o verla si ya la pidió);
  * - sin datos: mandar el laboratorio en PDF o cargar sus datos.
- * Con la Segunda Opinión en análisis no se empuja la teleconsulta: la devolución llega con su
- * informe (puedeOfrecerTeleconsulta, en caminos.ts).
+ * Con la Segunda Opinión en curso (en análisis o en revisión por el cardiólogo) no se empuja la
+ * teleconsulta: la devolución llega con su informe (puedeOfrecerTeleconsulta, en caminos.ts).
  */
 function accionesDe(
   datos: DatosHomeE,
   procedencia: ProcedenciaPrevent,
   producto: string
 ): { readonly recuadro?: RecuadroPrevent; readonly acciones: readonly AccionPrevent[] } {
-  const enAnalisis = datos.segundaOpinion?.estado === 'en-analisis';
+  const enAnalisis = segundaOpinionEnCurso(datos);
   const ofrecer = puedeOfrecerTeleconsulta(datos);
   const traeElRiesgo: AccionPrevent = { tipo: 'nota', texto: `Tu ${producto} va a traer tu riesgo en su informe.` };
   const verSegundaOpinion: AccionPrevent = {

@@ -9,6 +9,7 @@ import type {
   Patient,
   QuestionnaireResponse,
   ServiceRequest,
+  Task,
 } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import type { MockSubscriptionManager } from '@medplum/mock';
@@ -19,7 +20,7 @@ import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
 import { CATEGORIA_OBSERVACION_SYSTEM } from '../../fhir/biomarkers';
 import { CATEGORIA_LABORATORIO, DOCUMENTO_CATEGORY_SYSTEM } from '../../fhir/estudios';
 import { criteriaNotificaciones, NOTIFICACION_SYSTEM } from '../../fhir/notificaciones';
-import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM } from '../../fhir/som';
+import { SOM_SERVICE_CODE, SOM_SERVICE_SYSTEM, TAREA_FIRMA_INFORME } from '../../fhir/som';
 import { LE8_QUESTIONNAIRES } from '../../le8';
 import { MARCA } from '../../marca';
 import type { FilaTablero, TableroHomeD } from './tipos';
@@ -375,6 +376,58 @@ describe('useTableroHomeD: lecturas honestas y livianas', () => {
     expect(llegada).toMatchObject({ estado: 'Listo', tono: 'neutro' });
     expect(llegada?.nota).toBeUndefined();
     expect(result.current.incompleto).toBe(true);
+  });
+
+  test('AC-8: con la tarea de firma pendiente, «En revisión por el cardiólogo», con una sola búsqueda', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    const { pedido } = await cargarDatosDeJorge(medplum, patient);
+    await medplum.createResource<Task>({
+      resourceType: 'Task',
+      status: 'in-progress',
+      intent: 'order',
+      code: {
+        coding: [{ system: 'https://segundaopinionmedica.org/fhir/CodeSystem/task-tipo', code: TAREA_FIRMA_INFORME }],
+      },
+      for: referencia(patient),
+      basedOn: [{ reference: `ServiceRequest/${pedido}` }],
+    });
+    const buscar = vi.spyOn(medplum, 'searchResources');
+    const { result } = await montar(medplum);
+    const salida = result.current.filas.find((f) => f.id === `ServiceRequest/${pedido}`);
+    const llegada = result.current.filas.find((f) => f.que === `Informe de ${MARCA.producto}`);
+    expect(salida?.estado).toBe('En revisión por el cardiólogo');
+    expect(llegada).toMatchObject({ estado: 'En revisión por el cardiólogo', tono: 'en-curso' });
+    expect(result.current.incompleto).toBe(false);
+    const deFirma = buscar.mock.calls.filter(([tipo, q]) => tipo === 'Task' && String(q).includes(TAREA_FIRMA_INFORME));
+    expect(deFirma).toHaveLength(1);
+  });
+
+  test('un pedido viejo activo no tapa el informe del más nuevo, completado', async () => {
+    const medplum = new MockClient();
+    const patient = await paciente(medplum);
+    await cargarDatosDeJorge(medplum, patient); // su pedido, activo, del 28/9
+    const nuevo = await medplum.createResource<ServiceRequest>({
+      resourceType: 'ServiceRequest',
+      status: 'completed',
+      intent: 'order',
+      subject: referencia(patient),
+      code: { coding: [{ system: SOM_SERVICE_SYSTEM, code: SOM_SERVICE_CODE }] },
+      authoredOn: '2026-10-05T13:00:00.000Z',
+    });
+    await medplum.createResource<DiagnosticReport>({
+      resourceType: 'DiagnosticReport',
+      status: 'final',
+      code: { coding: [{ system: 'http://loinc.org', code: '11488-4' }] },
+      subject: referencia(patient),
+      basedOn: [{ reference: `ServiceRequest/${nuevo.id}` }],
+      issued: '2026-10-06T13:00:00.000Z',
+      resultsInterpreter: [{ reference: 'Practitioner/cardio' }],
+    });
+    const { result } = await montar(medplum);
+    const llegada = result.current.filas.find((f) => f.que === `Informe de ${MARCA.producto}`);
+    expect(llegada).toMatchObject({ estado: 'Firmado', tono: 'listo' });
+    expect(result.current.incompleto).toBe(false);
   });
 
   test('el laboratorio cargado a mano es una salida; lo que leyó el bot de un PDF, no', async () => {
