@@ -303,7 +303,7 @@ export interface VistaHomeEProps {
   readonly datos: DatosHomeE;
   /** Modo de color de los pétalos; por defecto, el de COLORES_PETALOS (rosa.ts). */
   readonly modoColor?: ModoColorPetalos;
-  /** «Tus valores» (el hGraph): hasta que se publique, sólo con `?hgraph=si` (hgraph.ts). */
+  /** «Tus valores» (el hGraph): `hgraphVisible()` (hgraph.ts), publicado desde el 23.10.2026. */
   readonly mostrarHgraph?: boolean;
 }
 

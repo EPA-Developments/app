@@ -710,7 +710,7 @@ describe('VistaHomeE: «Tus valores» (el hGraph)', () => {
     hoy: HOY,
   });
 
-  test('no se publica todavía: sin el pedido, no está', async () => {
+  test('apagado (sin mostrarHgraph), no está', async () => {
     await mostrar(laura({ hgraph: valores }));
     expect(screen.queryByRole('region', { name: 'Tus valores' })).not.toBeInTheDocument();
   });
