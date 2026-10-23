@@ -6,8 +6,9 @@
 // quién cargó cada valor, cuándo es viejo, la coma decimal y que los colores se ven en los dos
 // temas.
 // Pacientes sintéticas.
-import { metricasHgraph, ultimosValoresCkm } from '@epa/careplan-menopausia';
-import type { Observation } from '@medplum/fhirtypes';
+import { CODIGOS_LECTURA_CKM, metricasHgraph, ultimosValoresCkm } from '@epa/careplan-menopausia';
+import type { Observation, Patient } from '@medplum/fhirtypes';
+import { CAMPOS_CASA, observacionesDeCasa } from '../../fhir/datosDeSalud';
 import {
   BASICOS,
   caminoHgraph,
@@ -154,6 +155,34 @@ describe('el modelo', () => {
       'Tus valores: 1 en rango, 2 para mirar, 2 para hablar con tu médico. Faltan 8.'
     );
     expect(descripcionHgraph(modeloHgraph([], { hoy: HOY }))).toBe('Tus valores: todavía no hay datos.');
+  });
+});
+
+describe('lo que carga en «Mis datos» llega al hGraph', () => {
+  const paciente: Patient = { resourceType: 'Patient', id: 'p1', gender: 'female' };
+
+  test('la cintura (8280-0), el IMC y la presión, con su estado', () => {
+    // Como las guarda «Mis datos»; el servidor pone a la paciente como autora.
+    const cargadas = observacionesDeCasa(
+      { peso: 60, altura: 161, cintura: 86, sistolica: 110, diastolica: 70 },
+      paciente,
+      '2026-10-23T12:00:00.000Z'
+    ).map((o): Observation => ({ ...o, meta: { author: { reference: 'Patient/p1' } } }));
+    const modelo = modeloHgraph(cargadas, { sexo: 'female', hoy: '2026-10-23' });
+    const dato = (id: string) => modelo.puntos.find((p) => p.id === id)?.dato;
+    expect(dato('waist')).toMatchObject({ valor: '86', unidad: 'cm', estado: 'healthy', origen: 'vos' });
+    expect(dato('bmi')?.valor).toBe('23,1');
+    expect(dato('sbp')?.valor).toBe('110');
+    expect(dato('dbp')?.valor).toBe('70');
+  });
+
+  test('la Home pide todos los códigos que guarda «Mis datos» para el hGraph', () => {
+    // La consulta de las lecturas (ckmEquipo.ts) busca CODIGOS_LECTURA_CKM: la cintura de
+    // «Mis datos» (8280-0) no estaba, y el hGraph decía «Falta» aunque la hubiera cargado.
+    for (const key of ['cintura', 'sistolica', 'diastolica']) {
+      const codigo = CAMPOS_CASA.find((c) => c.key === key)?.loinc.code;
+      expect(CODIGOS_LECTURA_CKM, key).toContain(codigo);
+    }
   });
 });
 

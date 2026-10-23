@@ -55,8 +55,13 @@ export type ParametroHgraph = keyof typeof LOINC_PARAMETRO_CKM;
  * - Creatinina: 2160-0 es el LOINC de suero más frecuente.
  * - HbA1c: IFCC en mmol/mol (59261-8) además de NGSP en % (4548-4). El lector la
  *   convierte a % (`lectura.ts`), porque son escalas distintas.
+ * - Cintura: 8280-0 (a la altura del ombligo, con cinta) es la del Plan Bienestar
+ *   (`LOINC.waistCircumference`) y la que guarda la persona en «Mis datos» del portal; el
+ *   primario (56086-2) es el que carga el equipo en el dashboard. Sin esto, la cintura que
+ *   carga la persona no llegaba al hGraph (23/10/2026).
  */
 export const LOINC_SINONIMOS_CKM: Partial<Record<ParametroHgraph, readonly string[]>> = {
+  waist: ['8280-0'],
   egfr: ['98979-8', '98980-6'],
   ldlc: ['2089-1'],
   creatinine: ['2160-0'],
