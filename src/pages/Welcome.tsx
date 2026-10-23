@@ -187,8 +187,9 @@ export function Welcome(): JSX.Element {
     }
     setSaving(true);
     try {
-      // Una sola escritura: demografía + extensión onboarding-completed.
-      await marcarOnboardingCompleto(medplum, aplicarDemografia(patient, datos));
+      // Una sola escritura: demografía + extensión onboarding-completed, sobre el Patient
+      // releído (el del login puede ser viejo: guardarPatient).
+      await marcarOnboardingCompleto(medplum, patient.id as string, (leido) => aplicarDemografia(leido, datos));
       // Recarga completa (no SPA): el profile de MedplumClient se cachea al iniciar
       // sesión, y el Plan Bienestar evalúa la elegibilidad sobre ese profile — con
       // la recarga el sexo y la fecha recién guardados se ven de inmediato.

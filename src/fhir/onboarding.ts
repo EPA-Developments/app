@@ -6,9 +6,12 @@
 // - `patient-origin` la setea el BACKEND (Recepción o colega al invitar); el portal solo
 //   la lee. Ausente = paciente auto-registrado.
 // - `onboarding-completed` la escribe el PORTAL cuando el paciente termina la pantalla de
-//   Bienvenida/Onboarding (la AccessPolicy le permite escribir su propio Patient).
+//   Bienvenida/Onboarding (la AccessPolicy le permite escribir su propio Patient). Se guarda
+//   sobre el Patient releído (guardarPatient), no sobre el perfil del login: así no se pisan
+//   las extensiones que escribe el bot del equipo después de que inició sesión.
 import type { MedplumClient } from '@medplum/core';
 import type { Patient } from '@medplum/fhirtypes';
+import { guardarPatient } from './guardarPatient';
 
 /** Extensión canónica: origen del paciente (la setea el backend al invitar). */
 export const PATIENT_ORIGIN_EXT = 'https://segundaopinionmedica.org/fhir/StructureDefinition/patient-origin';
@@ -34,13 +37,25 @@ export function isOnboardingDone(patient: Patient): boolean {
 // flag cubre la sesión actual (tras recargar, el Patient ya viene con la extensión).
 let completadoEnEstaSesion = false;
 
-/** Marca el onboarding como completado (agrega la extensión al Patient del paciente). */
-export async function marcarOnboardingCompleto(medplum: MedplumClient, patient: Patient): Promise<Patient> {
+/** El Patient con `onboarding-completed` en `ahora` (reemplaza la que tuviera). Pura. */
+export function conOnboardingCompleto(patient: Patient, ahora: Date = new Date()): Patient {
   const rest = patient.extension?.filter((e) => e.url !== ONBOARDING_COMPLETED_EXT) ?? [];
-  const updated = await medplum.updateResource({
+  return {
     ...patient,
-    extension: [...rest, { url: ONBOARDING_COMPLETED_EXT, valueDateTime: new Date().toISOString() }],
-  });
+    extension: [...rest, { url: ONBOARDING_COMPLETED_EXT, valueDateTime: ahora.toISOString() }],
+  };
+}
+
+/**
+ * Marca el onboarding como completado, en una sola escritura con los cambios de la pantalla
+ * (`aplicar`, p. ej. la demografía de la Bienvenida), sobre el Patient releído.
+ */
+export async function marcarOnboardingCompleto(
+  medplum: MedplumClient,
+  patientId: string,
+  aplicar: (patient: Patient) => Patient = (patient) => patient
+): Promise<Patient> {
+  const updated = await guardarPatient(medplum, patientId, (leido) => conOnboardingCompleto(aplicar(leido)));
   completadoEnEstaSesion = true;
   return updated;
 }

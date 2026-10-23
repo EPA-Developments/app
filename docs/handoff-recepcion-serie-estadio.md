@@ -32,6 +32,18 @@
 >   prueba, antes de probar nada (ver «El 403 de `verify-prevent`», al final). Si el bot no
 >   escribe la serie, en SOM la paciente sólo ve el estadío que haya validado un médico.
 
+> **Respuesta de recepcionistas (recepcionistas#115, 23.10.2026).** El `readonlyFields` con
+> `Patient.extension('url')` del punto 3 **no funciona** en Medplum (5.1.42 y `main`):
+> `removeField` parte el path por `.`, no evalúa FHIRPath y lo ignora sin dar error. La
+> protección es una `writeConstraint` por extensión:
+> `%before.extension.where(url = '…') ~ %after.extension.where(url = '…')`.
+>
+> Con esa constraint, el portal tiene que guardar el Patient releído y con If-Match. Si no,
+> «Mis datos» y la Bienvenida reciben 403 cuando el bot escribió después del login. Eso lo
+> hace `src/fhir/guardarPatient.ts`, y el espejo de la policy ya tiene la constraint. El seed
+> de recepcionistas va **después** del deploy del portal. Detalle en
+> `docs/handoff-app-serie-ckm.md` de recepcionistas.
+
 ## Prompt (pegar en la sesión de `recepcionistas`)
 
 ```markdown
@@ -129,8 +141,9 @@ Hay un camino concreto para pisarlas sin querer: «Perfil» del portal guarda el
 (`updateResource({ ...profile, … })`) con el perfil que cargó al entrar. Si el bot escribió
 después, guardar el perfil vuelve las dos extensiones a sus valores viejos.
 
-**Propuesta:** `readonlyFields` sólo para esas dos extensiones, con la misma forma que ya usa
-`hiddenFields` en la policy de Recepción:
+**Propuesta** (no funcionó: ver la respuesta de recepcionistas#115, arriba):
+`readonlyFields` sólo para esas dos extensiones, con la misma forma que ya usa `hiddenFields`
+en la policy de Recepción:
 
     { resourceType: 'Patient', criteria: 'Patient?_id=%patient.id',
       readonlyFields: [

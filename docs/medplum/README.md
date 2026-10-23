@@ -22,7 +22,11 @@ Cubre todo lo que el portal lee/escribe:
 
 - **Compartimento del paciente** — **escritura** (autogestión): `Patient` (perfil, y la
   extensión `onboarding-completed` del Patient Journey; el origen `patient-origin` lo
-  setea el backend al invitar),
+  setea el backend al invitar). Con una `writeConstraint`: no puede cambiar, borrar ni
+  agregar las extensiones `CKMStage` y `hGraphData`, que escribe `ckm-recalculate`
+  (recepcionistas#115). Por eso el portal guarda su Patient releído y con If-Match
+  (`src/fhir/guardarPatient.ts`): sobre el perfil del login, un guardado recibiría 403
+  si el bot escribió después.
   `Observation` (biomarcadores y signos vitales), `QuestionnaireResponse`,
   `Communication` (mensajes) y `Consent` (la autorización para procesar cada estudio que
   manda). `DocumentReference` y `Binary`, acotados a lo que el portal escribe de verdad:
