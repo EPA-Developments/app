@@ -31,6 +31,9 @@ A, B, C y E y el escritorio de A.
 - **PREVENT**: el del informe firmado si lo hay; si no, la estimación con sus datos (la misma que mostraba la
   Home clásica) rotulada «Estimado con tus datos · sin revisión médica», con la teleconsulta y la Segunda Opinión
   como próximos pasos. Las reglas viven en un modelo que comparten E y D (`src/pages/inicio/prevent.ts`).
+  Todo número de PREVENT (firmado, del informe o estimado, y también en «Mi Segunda Opinión») va con la leyenda de
+  calibración, como en el dashboard: «Este cálculo se hizo con datos de personas de Estados Unidos. Todavía no se
+  sabe qué tan exacto es en la Argentina.» (`LEYENDA_CALIBRACION_PREVENT`, en `src/components/PreventScore.tsx`).
 - **La Home clásica ya no está**: la reemplazó el D. Su test «ninguna opción ofrece la Segunda Opinión» ya no mira
   el Inicio (el camino 2 es pedirla); sigue para el menú inferior y la guía CKM. Sus dos avisos (el consentimiento
   firmado en una versión anterior y el cuestionario de ingreso sin responder) también se borraron: los dos pasos los

@@ -18,6 +18,7 @@ import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
+import { LEYENDA_CALIBRACION_PREVENT } from '../components/PreventScore';
 import { SOM_SECTIONS_EXT, TAREA_FIRMA_INFORME } from '../fhir/som';
 import { MiSegundaOpinion, TEXTO_EN_REVISION } from './MiSegundaOpinion';
 
@@ -194,6 +195,7 @@ test('AC-3: completada, el informe con PREVENT, PDF y «Firmado por …»', asyn
   expect(await screen.findByText('Firmado por Dra. Cardióloga De Prueba')).toBeInTheDocument();
   expect(screen.getByText('Resumen de prueba.')).toBeInTheDocument();
   expect(screen.getByText('Score PREVENT (AHA 2023)')).toBeInTheDocument();
+  expect(screen.getByText(LEYENDA_CALIBRACION_PREVENT)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Descargar PDF' })).toBeInTheDocument();
 });
 

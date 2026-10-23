@@ -9,6 +9,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { JSX } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
+import { LEYENDA_CALIBRACION_PREVENT } from '../../components/PreventScore';
 import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import { RUTA_DATOS_DE_SALUD } from '../../fhir/datosDeSalud';
@@ -495,6 +496,7 @@ describe('VistaHomeD: los tres instrumentos', () => {
     expect(within(tarjeta).getByText('3,1%')).toBeInTheDocument();
     expect(within(tarjeta).getByText('18,7%')).toBeInTheDocument();
     expect(within(tarjeta).getByText('Riesgo intermedio')).toBeInTheDocument();
+    expect(within(tarjeta).getByText(LEYENDA_CALIBRACION_PREVENT)).toBeInTheDocument();
     expect(hrefDe('Ver mi informe', tarjeta)).toBe(RUTA_MI_SEGUNDA_OPINION);
     tieneLasAccionesDelModelo(datos, tarjeta);
   });
@@ -530,6 +532,7 @@ describe('VistaHomeD: los tres instrumentos', () => {
     expect(within(tarjeta).getByText('Estimado con tus datos · sin revisión médica')).toBeInTheDocument();
     expect(within(tarjeta).getByText('Es un cálculo automático')).toBeInTheDocument();
     expect(within(tarjeta).getByText('Para afinarlo nos falta: tu presión arterial.')).toBeInTheDocument();
+    expect(within(tarjeta).getByText(LEYENDA_CALIBRACION_PREVENT)).toBeInTheDocument();
     const reservar = within(tarjeta).getByRole('link', { name: 'Reservar mi teleconsulta' });
     expect(reservar).toHaveAttribute('href', RUTA_RESERVAR_TELECONSULTA);
     expect(reservar).toHaveAttribute('data-variante', 'primario');

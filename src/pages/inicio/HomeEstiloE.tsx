@@ -1009,6 +1009,7 @@ function LecturaPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Element 
           ))}
         </ul>
       )}
+      {modelo.calibracion && <p className={classes.nota}>{modelo.calibracion}</p>}
       {modelo.notaFaltantes && <p className={classes.nota}>{modelo.notaFaltantes}</p>}
       <AccionesPrevent modelo={modelo} />
     </article>
