@@ -378,11 +378,11 @@ describe('armarDatosHomeE', () => {
       status: 'final',
       code: { coding: [{ system: 'http://loinc.org', code: '56086-2' }] },
       effectiveDateTime: '2026-09-15',
-      valueQuantity: { value: 85, unit: 'cm' },
+      valueQuantity: { value: 95, unit: 'cm' },
     };
     const mujer = entrada({ perfil: { ...PACIENTE, gender: 'female' }, cargas: { ...CARGAS, lecturasCkm: [cintura] } });
     const varon = entrada({ perfil: { ...PACIENTE, gender: 'male' }, cargas: { ...CARGAS, lecturasCkm: [cintura] } });
-    // 85 cm: fuera del corte de la mujer (80), dentro del del varón (94).
+    // 95 cm: fuera del corte de la mujer (88), dentro del del varón (102).
     expect(armarDatosHomeE(mujer).hgraph?.puntos.find((p) => p.id === 'waist')?.dato?.estado).toBe('moderate');
     expect(armarDatosHomeE(varon).hgraph?.puntos.find((p) => p.id === 'waist')?.dato?.estado).toBe('healthy');
     // Sin lecturas (falló o todavía no llegó), no hay modelo; las cargas crudas no pasan a la Home.

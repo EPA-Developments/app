@@ -264,7 +264,7 @@ export interface VistaHomeDProps {
   readonly tema: TemaHomeD;
   /** Sin él, no se muestra el selector de tema (p. ej. en el visor de capturas). */
   readonly alCambiarTema?: (tema: TemaHomeD) => void;
-  /** «Tus valores» (el hGraph): hasta que se publique, sólo con `?hgraph=si` (hgraph.ts). */
+  /** «Tus valores» (el hGraph): `hgraphVisible()` (hgraph.ts), publicado desde el 23.10.2026. */
   readonly mostrarHgraph?: boolean;
 }
 

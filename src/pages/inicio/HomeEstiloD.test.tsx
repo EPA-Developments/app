@@ -941,7 +941,7 @@ describe('VistaHomeD: «Tus valores» (el hGraph)', () => {
     { sexo: 'male', hoy: HOY }
   );
 
-  test('no se publica todavía: sin el pedido, no está', async () => {
+  test('apagado (sin mostrarHgraph), no está', async () => {
     await mostrar(jorge({ hgraph: valores }));
     expect(screen.queryByRole('region', { name: 'Tus valores' })).not.toBeInTheDocument();
   });

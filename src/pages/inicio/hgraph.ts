@@ -9,12 +9,13 @@
 //   valor salen del core del Plan Bienestar (`ultimosValoresCkm`, `metricasHgraph`), el mismo
 //   que usa el dashboard: con los mismos datos, la paciente y su médico ven lo mismo. Acá sólo
 //   se ponen los nombres, los textos, el origen y la fecha de cada valor.
-// - **Los textos son provisorios** hasta que los valide el equipo médico (el borrador para el
-//   Dr. Barbagelata, 22.10.2026): los nombres, las palabras de los estados, «sin rojo» y qué
-//   se muestra cuando falta un dato. Por eso el hGraph no se publica todavía
-//   (`HGRAPH_PUBLICADO`): se ve con `?hgraph=si` en la URL de la Home.
-// - **Los básicos siempre están**: un valor sin dato queda en su eje con «Falta», para que sepa
-//   qué traer. Los ampliados (los pide el médico en casos puntuales) aparecen sólo si hay dato.
+// - **Validado por la dirección médica** (Dr. Barbagelata, 23.10.2026): los nombres, las palabras
+//   de los estados, «sin rojo» (naranja oscuro para «Para hablar con tu médico») y un solo juego
+//   de cortes, las bandas de guía de «Mis datos», que aplica el core. Con eso se publicó
+//   (`HGRAPH_PUBLICADO`).
+// - **Sólo los 13 básicos**, siempre: un valor sin dato queda en su eje con «Falta», para que
+//   sepa qué traer. Los ampliados (UACR, potasio, NT-proBNP, troponina, calcio) los ve el
+//   equipo en la ficha, no la paciente.
 // - **El origen va con el código de la rosa**: anillo punteado para lo que nadie del equipo
 //   cargó (lo cargó ella, o lo leyó la IA de su PDF), anillo sólido para lo que cargó el equipo.
 // - Un valor de hace más de un año (el laboratorio de rutina es anual) se muestra, pero se dice.
@@ -25,18 +26,21 @@ import { MESES_LABORATORIO_RUTINA } from '../../fhir/biomarkers';
 import { diaArgentinaDe } from './formato';
 
 /**
- * ¿Se muestra el hGraph en las Homes? No, hasta que el equipo médico valide los textos y los
- * cortes. Mientras tanto se ve con `?hgraph=si` (para revisarlo con datos reales).
+ * ¿Se muestra el hGraph en las Homes? Sí, desde la validación médica del 23.10.2026. Con
+ * `false` se apaga para todas, y vuelve a verse sólo con `?hgraph=si` en la URL de la Home.
  */
-export const HGRAPH_PUBLICADO = false;
+export const HGRAPH_PUBLICADO = true;
 
 /** El hGraph se ve si está publicado o si la URL lo pide (`?hgraph=si`). */
 export function hgraphVisible(parametro: string | null | undefined): boolean {
   return HGRAPH_PUBLICADO || parametro === 'si';
 }
 
-/** Los que suele traer un laboratorio de rutina, más lo que se mide en casa: siempre en el gráfico. */
-export const BASICOS: readonly ParametroHgraph[] = [
+/**
+ * Los que suele traer un laboratorio de rutina, más lo que se mide en casa: los únicos que ve
+ * la paciente, siempre (dirección médica, 23.10.2026).
+ */
+export const BASICOS = [
   'sbp',
   'dbp',
   'bmi',
@@ -50,13 +54,13 @@ export const BASICOS: readonly ParametroHgraph[] = [
   'triglycerides',
   'creatinine',
   'egfr',
-];
+] as const satisfies readonly ParametroHgraph[];
 
-/** Los que el médico pide en casos puntuales: sólo con dato. */
-export const AMPLIADOS: readonly ParametroHgraph[] = ['uacr', 'potassium', 'ntProBNP', 'hsCtnI', 'cac'];
+/** Un parámetro de los que ve la paciente. */
+export type ParametroBasico = (typeof BASICOS)[number];
 
-/** Cómo se lo nombramos a la paciente (provisorio: §2 del borrador). */
-export const NOMBRE_PACIENTE: Readonly<Record<ParametroHgraph, string>> = {
+/** Cómo se lo nombramos a la paciente (validado por la dirección médica, 23.10.2026). */
+export const NOMBRE_PACIENTE: Readonly<Record<ParametroBasico, string>> = {
   sbp: 'Presión máxima',
   dbp: 'Presión mínima',
   bmi: 'Peso para tu altura (IMC)',
@@ -70,15 +74,10 @@ export const NOMBRE_PACIENTE: Readonly<Record<ParametroHgraph, string>> = {
   triglycerides: 'Triglicéridos',
   creatinine: 'Creatinina',
   egfr: 'Función de los riñones (TFGe)',
-  uacr: 'Proteína en la orina (UACR)',
-  potassium: 'Potasio',
-  ntProBNP: 'NT-proBNP',
-  hsCtnI: 'Troponina',
-  cac: 'Calcio en las arterias del corazón',
 };
 
 /** El rótulo corto, alrededor del gráfico (el nombre entero va en la lista de abajo). */
-export const ROTULO_HGRAPH: Readonly<Record<ParametroHgraph, string>> = {
+export const ROTULO_HGRAPH: Readonly<Record<ParametroBasico, string>> = {
   sbp: 'Presión máx.',
   dbp: 'Presión mín.',
   bmi: 'IMC',
@@ -92,14 +91,9 @@ export const ROTULO_HGRAPH: Readonly<Record<ParametroHgraph, string>> = {
   triglycerides: 'Triglicéridos',
   creatinine: 'Creatinina',
   egfr: 'Riñones',
-  uacr: 'UACR',
-  potassium: 'Potasio',
-  ntProBNP: 'NT-proBNP',
-  hsCtnI: 'Troponina',
-  cac: 'Calcio',
 };
 
-/** Las palabras de cada estado (provisorio: §3 del borrador). */
+/** Las palabras de cada estado (validadas por la dirección médica, 23.10.2026). */
 export const TEXTO_ESTADO: Readonly<Record<EstadoMetricaHgraph, string>> = {
   healthy: 'En rango',
   moderate: 'Para mirar',
@@ -197,24 +191,23 @@ export interface DatoHgraph {
 
 /** Un eje del hGraph. */
 export interface PuntoHgraph {
-  readonly id: ParametroHgraph;
+  readonly id: ParametroBasico;
   readonly nombre: string;
   readonly rotulo: string;
-  readonly basico: boolean;
   /** Sin dato: el eje queda con «Falta». */
   readonly dato?: DatoHgraph;
 }
 
 export interface ModeloHgraph {
-  /** Los básicos siempre, y los ampliados con dato; en el orden de los ejes. */
+  /** Los 13 básicos, siempre, en el orden de los ejes. */
   readonly puntos: readonly PuntoHgraph[];
   readonly conDato: number;
-  /** Cuántos básicos faltan. */
+  /** Cuántos no tienen dato. */
   readonly faltan: number;
 }
 
 export interface OpcionesHgraph {
-  /** `Patient.gender`: algún corte depende del sexo (hoy, la cintura). */
+  /** `Patient.gender`: la cintura y el HDL tienen un corte para la mujer y otro para el varón. */
   readonly sexo?: string;
   /** Hoy en Argentina, AAAA-MM-DD. */
   readonly hoy: string;
@@ -228,11 +221,10 @@ export function modeloHgraph(observaciones: readonly Observation[], { sexo, hoy 
     valores[parametro] = lectura.valor;
   }
   const metricas = new Map(metricasHgraph(valores, sexo).map((m) => [m.id, m]));
-  const ejes = [...BASICOS, ...AMPLIADOS.filter((p) => metricas.has(p))];
-  const puntos = ejes.map((id): PuntoHgraph => {
+  const puntos = BASICOS.map((id): PuntoHgraph => {
     const metrica = metricas.get(id);
     const lectura = ganadoras[id];
-    const base = { id, nombre: NOMBRE_PACIENTE[id], rotulo: ROTULO_HGRAPH[id], basico: BASICOS.includes(id) };
+    const base = { id, nombre: NOMBRE_PACIENTE[id], rotulo: ROTULO_HGRAPH[id] };
     if (!metrica || !lectura) {
       return base;
     }
@@ -251,7 +243,7 @@ export function modeloHgraph(observaciones: readonly Observation[], { sexo, hoy 
     };
   });
   const conDato = puntos.filter((p) => p.dato).length;
-  return { puntos, conDato, faltan: puntos.filter((p) => p.basico && !p.dato).length };
+  return { puntos, conDato, faltan: puntos.length - conDato };
 }
 
 /** La frase que describe el gráfico entero (el aria-label del SVG). */
@@ -355,7 +347,7 @@ export interface ColoresHgraph {
 }
 
 /**
- * Sin rojo (provisorio: pregunta 2 del borrador): el alto va en naranja oscuro. Cada color de
+ * Sin rojo (dirección médica, 23.10.2026): el alto va en naranja oscuro. Cada color de
  * estado da ≥ 3:1 contra su fondo (lo verifica hgraph.test.ts), y además cambia la forma.
  */
 export const COLORES_HGRAPH: Readonly<Record<TemaHgraph, ColoresHgraph>> = {

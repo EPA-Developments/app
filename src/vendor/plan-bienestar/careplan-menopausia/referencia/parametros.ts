@@ -172,6 +172,23 @@ export const PARAMETROS_CKM: ParametroCkm[] = [
     ],
   },
   {
+    // El corte del varon (40) lo definio la direccion medica el 23/10/2026, junto con el
+    // de la mujer (50): el hGraph toma su estado de estas bandas.
+    key: 'hdl-hombre',
+    categoria: 'lipidos',
+    etiqueta: 'Colesterol HDL ("bueno")',
+    loinc: LOINC.hdlCholesterol,
+    unidad: 'mg/dL',
+    ucum: 'mg/dL',
+    direccion: 'mayor-mejor',
+    sexo: 'male',
+    nota: 'Un HDL mas alto protege. En hombres el objetivo es 40 mg/dL o mas.',
+    rangos: [
+      { etiqueta: 'Protector', min: 40, nivel: OK },
+      { etiqueta: 'Bajo', max: 40, nivel: ALTO },
+    ],
+  },
+  {
     key: 'ldl',
     categoria: 'lipidos',
     etiqueta: 'Colesterol LDL ("malo")',

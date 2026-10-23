@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // «Tus valores»: el modelo del hGraph de la paciente. Lo que se fija acá: que el valor y el
-// estado son los del core (los mismos que ve el equipo), que los básicos están siempre, quién
-// cargó cada valor, cuándo es viejo, la coma decimal y que los colores se ven en los dos temas.
+// estado son los del core (los mismos que ve el equipo), que se ven los 13 básicos y nada más,
+// quién cargó cada valor, cuándo es viejo, la coma decimal y que los colores se ven en los dos
+// temas.
 // Pacientes sintéticas.
 import { metricasHgraph, ultimosValoresCkm } from '@epa/careplan-menopausia';
 import type { Observation } from '@medplum/fhirtypes';
 import {
-  AMPLIADOS,
   BASICOS,
   caminoHgraph,
   COLORES_HGRAPH,
@@ -56,7 +56,7 @@ const LECTURAS: Observation[] = [
   lectura('59261-8', 48, 'mmol/mol', '2026-09-01', 'Practitioner/dr', 'hba1c'), // IFCC → %
   lectura('98979-8', 62, 'mL/min/1.73m2', '2026-09-01', 'Bot/lab', 'tfge'),
   lectura('8480-6', 150, 'mmHg', '2025-06-01', 'Patient/p1', 'pas-vieja'),
-  lectura('33762-6', 300, 'pg/mL', '2026-09-01', 'Practitioner/dr', 'bnp'), // ampliado con dato
+  lectura('33762-6', 300, 'pg/mL', '2026-09-01', 'Practitioner/dr', 'bnp'), // ampliado: no se muestra
 ];
 
 describe('el modelo', () => {
@@ -64,12 +64,28 @@ describe('el modelo', () => {
   const punto = (id: string) => modelo.puntos.find((p) => p.id === id);
 
   test('los valores y los estados son los del core, los mismos que ve el equipo', () => {
-    const delCore = metricasHgraph(ultimosValoresCkm(LECTURAS), 'female');
+    const basicos: readonly string[] = BASICOS;
+    const delCore = metricasHgraph(ultimosValoresCkm(LECTURAS), 'female').filter((m) => basicos.includes(m.id));
     for (const m of delCore) {
       expect(punto(m.id)?.dato?.estado, m.id).toBe(m.status);
       expect(punto(m.id)?.dato?.score, m.id).toBe(m.score);
     }
     expect(delCore.length).toBe(modelo.conDato);
+  });
+
+  test('el estado sale de las bandas de guía de «Mis datos»', () => {
+    expect(punto('hdlc')?.dato?.estado).toBe('healthy'); // 57, mujer: protector desde 50
+    expect(punto('glucoseFasting')?.dato?.estado).toBe('moderate'); // 104: 100 a 125
+    expect(punto('egfr')?.dato?.estado).toBe('moderate'); // 62: 60 a 89
+    expect(punto('hba1c')?.dato?.estado).toBe('high'); // 6,5 %: diabetes
+    expect(punto('sbp')?.dato?.estado).toBe('high'); // 150 mmHg
+  });
+
+  test('el HDL tiene un corte para la mujer (50) y otro para el varón (40)', () => {
+    const hdl45 = [lectura('2085-9', 45, 'mg/dL', '2026-09-01', 'Bot/lab')];
+    const delSexo = (sexo: string) => modeloHgraph(hdl45, { sexo, hoy: HOY }).puntos.find((p) => p.id === 'hdlc');
+    expect(delSexo('female')?.dato?.textoEstado).toBe('Para mirar');
+    expect(delSexo('male')?.dato?.textoEstado).toBe('En rango');
   });
 
   test('lecturasGanadoras elige exactamente lo mismo que ultimosValoresCkm', () => {
@@ -82,20 +98,20 @@ describe('el modelo', () => {
     expect(ganadoras.hdlc?.observation.id).toBe('hdl');
   });
 
-  test('los básicos están siempre (con «Falta»), y los ampliados sólo con dato', () => {
-    expect(modelo.puntos.slice(0, BASICOS.length).map((p) => p.id)).toEqual(BASICOS);
-    expect(modelo.puntos.map((p) => p.id)).toContain('ntProBNP');
-    expect(modelo.puntos.map((p) => p.id)).not.toContain('cac');
+  test('los 13 básicos, siempre (con «Falta») y nada más: los ampliados son del equipo', () => {
+    expect(BASICOS).toHaveLength(13);
+    expect(modelo.puntos.map((p) => p.id)).toEqual(BASICOS);
+    expect(punto('ntProBNP')).toBeUndefined();
     expect(punto('ldlc')?.dato).toBeUndefined();
-    expect(modelo.faltan).toBe(BASICOS.length - 5);
-    expect(modelo.conDato).toBe(6);
+    expect(modelo.conDato).toBe(5);
+    expect(modelo.faltan).toBe(8);
   });
 
   test('nombre y rótulo para la paciente, y el estado en sus palabras', () => {
     expect(punto('glucoseFasting')).toMatchObject({ nombre: 'Azúcar en ayunas', rotulo: 'Glucemia' });
     expect(punto('glucoseFasting')?.dato?.textoEstado).toBe('Para mirar');
     expect(punto('hdlc')?.dato?.textoEstado).toBe('En rango');
-    for (const id of [...BASICOS, ...AMPLIADOS]) {
+    for (const id of BASICOS) {
       expect(NOMBRE_PACIENTE[id], id).toBeTruthy();
       expect(ROTULO_HGRAPH[id], id).toBeTruthy();
     }
@@ -134,8 +150,8 @@ describe('el modelo', () => {
   });
 
   test('la descripción del gráfico cuenta los estados y lo que falta', () => {
-    expect(descripcionHgraph(modelo)).toMatch(
-      /^Tus valores: \d+ en rango, \d+ para mirar(, \d+ para hablar con tu médico)?\. Faltan 8\.$/
+    expect(descripcionHgraph(modelo)).toBe(
+      'Tus valores: 1 en rango, 2 para mirar, 2 para hablar con tu médico. Faltan 8.'
     );
     expect(descripcionHgraph(modeloHgraph([], { hoy: HOY }))).toBe('Tus valores: todavía no hay datos.');
   });
@@ -189,8 +205,8 @@ describe('los colores', () => {
   });
 });
 
-test('no se publica todavía: sólo con ?hgraph=si', () => {
-  expect(hgraphVisible(null)).toBe(false);
-  expect(hgraphVisible('no')).toBe(false);
+test('publicado desde la validación médica: se ve con o sin ?hgraph=si', () => {
+  expect(hgraphVisible(null)).toBe(true);
+  expect(hgraphVisible('no')).toBe(true);
   expect(hgraphVisible('si')).toBe(true);
 });
