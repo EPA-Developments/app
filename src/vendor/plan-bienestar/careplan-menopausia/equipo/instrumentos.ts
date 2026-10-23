@@ -20,8 +20,24 @@ import type { Condicion } from '../model/catalogo.js';
  * Los textos son adaptaciones al español rioplatense de los instrumentos originales,
  * sin tocar constructos ni puntajes; antes de usarlos con pacientes hay que cotejarlos
  * con las versiones validadas en español (tarea operativa, `docs/catalogo-pb100d`).
+ *
+ * Los tres últimos (ECG, clase funcional y síntomas) no son escalas sino registros
+ * clínicos estructurados: las evaluaciones del catálogo que no tienen un código LOINC
+ * verificado (E4-EVAL-03, E4-EVAL-06, E3-EVAL-11 y E4-EVAL-11) se cargan así, con
+ * opciones cerradas y sin inventar códigos. Registran el dato del control y no derivan
+ * condiciones: una fibrilación auricular en el ECG o un síntoma nuevo los registra el
+ * equipo como condición o como evento, porque cambian el plan (8.5 de
+ * `docs/plan-bienestar-ckm-items.md`).
  */
-export type ClaveInstrumento = 'stopBang' | 'psicologico' | 'ahcHrsn' | 'potenciadores' | 'reconciliacion';
+export type ClaveInstrumento =
+  | 'stopBang'
+  | 'psicologico'
+  | 'ahcHrsn'
+  | 'potenciadores'
+  | 'reconciliacion'
+  | 'ecg'
+  | 'claseFuncional'
+  | 'sintomas';
 
 /** Sufijos (bajo cualquier base aceptada) con que el día 0 y los detectores reconocen cada instrumento. */
 export const INSTRUMENTOS_EQUIPO: Record<ClaveInstrumento, string> = {
@@ -30,6 +46,9 @@ export const INSTRUMENTOS_EQUIPO: Record<ClaveInstrumento, string> = {
   ahcHrsn: 'Questionnaire/pb100d-ahc-hrsn-v1',
   potenciadores: 'Questionnaire/pb100d-potenciadores-v1',
   reconciliacion: 'Questionnaire/pb100d-reconciliacion-medicacion-v1',
+  ecg: 'Questionnaire/pb100d-ecg-v1',
+  claseFuncional: 'Questionnaire/pb100d-clase-funcional-v1',
+  sintomas: 'Questionnaire/pb100d-sintomas-cv-v1',
 };
 
 export const SYSTEM_INSTRUMENTOS = 'https://epa-bienestar.ar/fhir/CodeSystem/pb100d-instrumentos';
@@ -43,9 +62,16 @@ export interface OpcionInstrumento {
 export interface PreguntaInstrumento {
   linkId: string;
   text: string;
-  tipo: 'choice' | 'integer';
+  tipo: 'choice' | 'integer' | 'date';
   opciones?: readonly OpcionInstrumento[];
+  /** Varias opciones a la vez: el formulario las muestra como casillas, no como radio. */
   multiple?: boolean;
+  /**
+   * Obligatoria en el `Questionnaire`. El formulario de Medplum la hace cumplir en los
+   * radios y los campos; en las casillas sólo la marca. Lo que llega vacío igual lo ve el
+   * día 0 (`registroConDato`).
+   */
+  requerida?: boolean;
   /** linkId del grupo en que se muestra. */
   grupo?: string;
   /** Puntaje invertido (PSS-4: ítems 2 y 3). */
@@ -138,6 +164,42 @@ const CLASES_MEDICACION: readonly (OpcionInstrumento & { condicion?: Condicion }
   { code: 'obesidad', display: 'Fármaco para la obesidad (no GLP-1)', condicion: 'farmaco-obesidad' },
   { code: 'insulina', display: 'Insulina o sulfonilurea', condicion: 'riesgo-hipoglucemia' },
   { code: 'ninguna', display: 'No toma medicación' },
+];
+
+/** Ritmo del ECG. Cualquiera que no sea sinusal hace el ECG «con alteraciones». */
+const RITMO_ECG: readonly OpcionInstrumento[] = [
+  { code: 'sinusal', display: 'Sinusal' },
+  { code: 'fa', display: 'Fibrilación o aleteo auricular' },
+  { code: 'marcapasos', display: 'Ritmo de marcapasos' },
+  { code: 'otro', display: 'Otro ritmo' },
+];
+const HALLAZGOS_ECG: readonly OpcionInstrumento[] = [
+  { code: 'q', display: 'Ondas Q patológicas' },
+  { code: 'hvi', display: 'Hipertrofia ventricular izquierda' },
+  { code: 'bri', display: 'Bloqueo de rama izquierda' },
+  { code: 'brd', display: 'Bloqueo de rama derecha' },
+  { code: 'bav', display: 'Bloqueo auriculoventricular' },
+  { code: 'st-t', display: 'Alteraciones del ST o de la onda T' },
+  { code: 'qtc', display: 'QTc prolongado' },
+  { code: 'otro', display: 'Otra alteración' },
+  { code: 'ninguno', display: 'Ninguno de estos hallazgos' },
+];
+/** Clase funcional de la New York Heart Association; el valor es la clase. */
+const CLASE_NYHA: readonly OpcionInstrumento[] = [
+  { code: 'nyha-1', display: 'Clase I: sin limitación; la actividad habitual no le da cansancio, falta de aire ni palpitaciones', valor: 1 },
+  { code: 'nyha-2', display: 'Clase II: limitación leve; bien en reposo, la actividad habitual le da síntomas', valor: 2 },
+  { code: 'nyha-3', display: 'Clase III: limitación marcada; bien en reposo, una actividad menor que la habitual le da síntomas', valor: 3 },
+  { code: 'nyha-4', display: 'Clase IV: síntomas con cualquier actividad o en reposo', valor: 4 },
+];
+/** Los síntomas de E3-EVAL-11 y E4-EVAL-11, en una sola lista. */
+const SINTOMAS_CV: readonly OpcionInstrumento[] = [
+  { code: 'angina', display: 'Angina: dolor u opresión en el pecho' },
+  { code: 'disnea', display: 'Disnea: falta de aire mayor que la habitual' },
+  { code: 'palpitaciones', display: 'Palpitaciones' },
+  { code: 'sincope', display: 'Síncope o presíncope' },
+  { code: 'claudicacion', display: 'Claudicación: dolor en las piernas al caminar que se va con el reposo' },
+  { code: 'neurologico', display: 'Déficit neurológico: pérdida de fuerza, de sensibilidad, del habla o de la visión, aunque se haya ido' },
+  { code: 'ninguno', display: 'Ninguno' },
 ];
 
 function def(d: Omit<InstrumentoDef, 'url' | 'sufijo'>): InstrumentoDef {
@@ -261,9 +323,59 @@ export const INSTRUMENTOS: Readonly<Record<ClaveInstrumento, InstrumentoDef>> = 
       { linkId: 'automonitoreo', text: '¿Usa glucómetro o sensor para medirse la glucemia?', tipo: 'choice', opciones: SI_NO },
     ],
   }),
+  ecg: def({
+    clave: 'ecg',
+    version: '1.0',
+    nombre: 'PB100DEcg',
+    titulo: 'ECG de 12 derivaciones',
+    descripcion:
+      'Ritmo y hallazgos del ECG. Si el ECG no es de hoy (por ejemplo, uno que trae la persona), se carga su fecha: es la que cuenta para el control. Un hallazgo nuevo (por ejemplo, fibrilación auricular) se registra además como condición del catálogo.',
+    fuente: 'Catálogo PB100D, estadío 4 (E4-EVAL-03: días 0 y 100, después anual o por síntomas)',
+    preguntas: [
+      { linkId: 'ecg-fecha', text: 'Fecha del ECG, si no es de hoy', tipo: 'date' },
+      { linkId: 'ecg-ritmo', text: 'Ritmo', tipo: 'choice', opciones: RITMO_ECG, requerida: true },
+      { linkId: 'ecg-hallazgos', text: 'Hallazgos', tipo: 'choice', multiple: true, opciones: HALLAZGOS_ECG, requerida: true },
+    ],
+  }),
+  claseFuncional: def({
+    clave: 'claseFuncional',
+    version: '1.0',
+    nombre: 'PB100DClaseFuncional',
+    titulo: 'Clase funcional NYHA y marcha de 6 minutos',
+    descripcion:
+      'En insuficiencia cardíaca: la clase NYHA y los metros de la marcha de 6 minutos. En arteriopatía periférica: los metros hasta la claudicación. Se carga lo que se midió; la meta es la misma clase o mejor, 30 m o más en la marcha, o más metros hasta la claudicación.',
+    fuente: 'Guía IC 2022; Guía CKM 2026, Tabla 40 (E4-EVAL-06 y meta E4-META-08)',
+    preguntas: [
+      { linkId: 'nyha', text: 'Clase funcional NYHA', tipo: 'choice', opciones: CLASE_NYHA },
+      { linkId: 'marcha-6m', text: 'Marcha de 6 minutos: metros recorridos', tipo: 'integer' },
+      { linkId: 'claudicacion-m', text: 'Metros caminados hasta la claudicación', tipo: 'integer' },
+    ],
+  }),
+  sintomas: def({
+    clave: 'sintomas',
+    version: '1.0',
+    nombre: 'PB100DSintomasCardiovasculares',
+    titulo: 'Síntomas cardiovasculares',
+    descripcion:
+      'Los síntomas desde el último control, en cada contacto. Un síntoma nuevo o que empeoró se registra además como evento («Síntomas nuevos»): este registro no lo activa solo.',
+    fuente: 'Guía CKM 2026, Sección 6 (E3-EVAL-11 y E4-EVAL-11: cada contacto)',
+    preguntas: [
+      { linkId: 'sintomas', text: 'Síntomas desde el último control', tipo: 'choice', multiple: true, opciones: SINTOMAS_CV, requerida: true },
+      { linkId: 'sintomas-nuevos', text: '¿Alguno es nuevo o empeoró desde el último control?', tipo: 'choice', opciones: SI_NO },
+    ],
+  }),
 });
 
-export const CLAVES_INSTRUMENTO: readonly ClaveInstrumento[] = Object.freeze(['stopBang', 'psicologico', 'ahcHrsn', 'potenciadores', 'reconciliacion']);
+export const CLAVES_INSTRUMENTO: readonly ClaveInstrumento[] = Object.freeze([
+  'stopBang',
+  'psicologico',
+  'ahcHrsn',
+  'potenciadores',
+  'reconciliacion',
+  'ecg',
+  'claseFuncional',
+  'sintomas',
+]);
 
 /** `Questionnaire.url|version`, lo que guarda cada respuesta. */
 export function referenciaInstrumento(clave: ClaveInstrumento): string {
@@ -271,11 +383,22 @@ export function referenciaInstrumento(clave: ClaveInstrumento): string {
   return `${d.url}|${d.version}`;
 }
 
+/** Extensión estándar que le dice al formulario qué control usar. */
+const ITEM_CONTROL_URL = 'http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl';
+
 function itemDePregunta(p: PreguntaInstrumento): QuestionnaireItem {
   const item: QuestionnaireItem = { linkId: p.linkId, text: p.text, type: p.tipo };
+  if (p.requerida) item.required = true;
   if (p.tipo === 'choice') {
     item.answerOption = (p.opciones ?? []).map((o) => ({ valueCoding: { system: SYSTEM_INSTRUMENTOS, code: o.code, display: o.display } }));
-    if (p.multiple) item.repeats = true;
+    if (p.multiple) {
+      // `repeats` solo no alcanza: el formulario de Medplum dibuja un `choice` como radio
+      // (una sola respuesta) salvo que el ítem pida casillas.
+      item.repeats = true;
+      item.extension = [
+        { url: ITEM_CONTROL_URL, valueCodeableConcept: { coding: [{ system: 'http://hl7.org/fhir/questionnaire-item-control', code: 'check-box' }] } },
+      ];
+    }
   }
   return item;
 }
@@ -334,6 +457,14 @@ function valorDe(p: PreguntaInstrumento, r: QuestionnaireResponse): number | und
   if (!opcion || opcion.valor === undefined) return undefined;
   const maximo = Math.max(...(p.opciones ?? []).map((o) => o.valor ?? 0));
   return p.invertida ? maximo - opcion.valor : opcion.valor;
+}
+
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Una fecha completa (`AAAA-MM-DD`); lo demás (un campo borrado deja '') no es fecha. */
+function fecha(r: QuestionnaireResponse, linkId: string): string | undefined {
+  const valor = respuestas(r, linkId)[0]?.valueDate;
+  return valor && FECHA_ISO.test(valor) ? valor : undefined;
 }
 
 function entero(r: QuestionnaireResponse, linkId: string): number | undefined {
@@ -422,7 +553,152 @@ export function puntuarInstrumento(clave: ClaveInstrumento, r: QuestionnaireResp
       if (cantidad !== undefined) partes.push(`${cantidad} fármacos${cantidad >= 5 ? ' (polifarmacia)' : ''}`);
       return { clave, puntaje: cantidad, detalle: partes.join(' · '), positivo: condiciones.size > 0, condiciones: [...condiciones] };
     }
+    case 'ecg': {
+      const ritmo = codigos(r, 'ecg-ritmo')[0];
+      const respondidos = codigos(r, 'ecg-hallazgos');
+      const hallazgos = respondidos.filter((c) => c !== 'ninguno');
+      const nombreRitmo = RITMO_ECG.find((o) => o.code === ritmo)?.display;
+      const nombres = hallazgos.map((code) => HALLAZGOS_ECG.find((o) => o.code === code)?.display ?? code);
+      const alterado = (ritmo !== undefined && ritmo !== 'sinusal') || hallazgos.length > 0;
+      // «Sin alteraciones» sólo si se marcó «ninguno» con ritmo sinusal: no responder no es normal,
+      // y un ritmo no sinusal ya es una alteración.
+      const sinHallazgos = !respondidos.includes('ninguno')
+        ? 'hallazgos sin cargar'
+        : ritmo === 'sinusal'
+          ? 'sin alteraciones'
+          : ritmo === undefined
+            ? 'sin hallazgos'
+            : 'sin otros hallazgos';
+      const partes = [nombreRitmo ?? 'Ritmo sin cargar', nombres.length ? nombres.join(', ') : sinHallazgos];
+      return { clave, puntaje: hallazgos.length, detalle: partes.join(' · '), positivo: alterado, condiciones: [] };
+    }
+    case 'claseFuncional': {
+      const nyha = valorDe(pregunta(clave, 'nyha'), r);
+      const marcha = entero(r, 'marcha-6m');
+      const claudicacion = entero(r, 'claudicacion-m');
+      const partes: string[] = [];
+      if (nyha !== undefined) partes.push(`NYHA ${['I', 'II', 'III', 'IV'][nyha - 1]}`);
+      if (marcha !== undefined) partes.push(`${marcha} m en 6 minutos`);
+      if (claudicacion !== undefined) partes.push(`claudicación a los ${claudicacion} m`);
+      return {
+        clave,
+        ...(nyha !== undefined ? { puntaje: nyha } : {}),
+        detalle: partes.length ? partes.join(' · ') : 'Sin datos',
+        positivo: nyha !== undefined && nyha >= 3,
+        condiciones: [],
+      };
+    }
+    case 'sintomas': {
+      const respondidos = codigos(r, 'sintomas');
+      const marcados = respondidos.filter((c) => c !== 'ninguno');
+      const nombres = marcados.map((code) => SINTOMAS_CV.find((o) => o.code === code)?.display.split(':')[0] ?? code);
+      const nuevos = codigos(r, 'sintomas-nuevos')[0] === 'si';
+      // Un «sí, algo nuevo o peor» se muestra aunque no esté en la lista (edema, fatiga…).
+      const lista = marcados.length ? nombres.join(', ') : !respondidos.length ? 'Síntomas sin cargar' : nuevos ? 'Ninguno de la lista' : 'Sin síntomas';
+      const detalle = `${lista}${nuevos ? ' · alguno nuevo o peor' : ''}`;
+      return { clave, puntaje: marcados.length, detalle, positivo: marcados.length > 0 || nuevos, condiciones: [] };
+    }
   }
+}
+
+/**
+ * Qué trae el dato en la respuesta de un registro clínico, dicho como dato y no como
+ * código, para que Recepción lo evalúe igual con su propio motor (`exportar:instrumentos`
+ * lo exporta como `REGISTROS_PB100D`).
+ *
+ * - `conDato`: basta con una de estas preguntas respondida; si dice `codigos`, con alguno
+ *   de ellos. En síntomas, un «sí, algo nuevo o peor» es un dato aunque la lista quede
+ *   sin marcar; un «no» solo, no.
+ * - `fecha`: la pregunta con la fecha del estudio, si el registro la tiene (el ECG que
+ *   trae la persona). Vale si es una fecha completa y no es posterior a la carga.
+ */
+export interface DatoDeRegistro {
+  conDato: ReadonlyArray<{ linkId: string; codigos?: readonly string[] }>;
+  fecha?: string;
+}
+
+export const DATO_DE_REGISTRO: Readonly<Partial<Record<ClaveInstrumento, DatoDeRegistro>>> = Object.freeze({
+  ecg: { conDato: [{ linkId: 'ecg-ritmo' }, { linkId: 'ecg-hallazgos' }], fecha: 'ecg-fecha' },
+  claseFuncional: { conDato: [{ linkId: 'nyha' }, { linkId: 'marcha-6m' }, { linkId: 'claudicacion-m' }] },
+  sintomas: { conDato: [{ linkId: 'sintomas' }, { linkId: 'sintomas-nuevos', codigos: ['si'] }] },
+});
+
+/** Si la pregunta tiene alguna respuesta con valor (y, si se piden códigos, con alguno de ellos). */
+function respondida(r: QuestionnaireResponse, linkId: string, codigosValidos?: readonly string[]): boolean {
+  return respuestas(r, linkId).some((a) => {
+    if (codigosValidos) {
+      const code = a.valueCoding?.code ?? a.valueString;
+      return code !== undefined && codigosValidos.includes(code);
+    }
+    return Object.entries(a).some(([k, v]) => k.startsWith('value') && v !== undefined && v !== null && v !== '');
+  });
+}
+
+/**
+ * Si la respuesta de un registro clínico trae el dato. El formulario exige lo principal,
+ * pero una respuesta puede llegar vacía por otro camino (la API, Recepción) y no tiene
+ * que contar como cargada. Las escalas no cambian: siguen contando por existir.
+ */
+export function registroConDato(clave: ClaveInstrumento, r: QuestionnaireResponse): boolean {
+  const dato = DATO_DE_REGISTRO[clave];
+  if (!dato) return true;
+  return dato.conDato.some((p) => respondida(r, p.linkId, p.codigos));
+}
+
+/**
+ * La fecha clínica de la respuesta: la del estudio si se cargó (un ECG que trae la
+ * persona), si no la de la carga.
+ */
+export function fechaDeRespuesta(r: QuestionnaireResponse): string | undefined {
+  const carga = r.authored ?? r.meta?.lastUpdated;
+  const clave = instrumentoDeRespuesta(r);
+  const linkIdFecha = clave ? DATO_DE_REGISTRO[clave]?.fecha : undefined;
+  const estudio = linkIdFecha ? fecha(r, linkIdFecha) : undefined;
+  if (!estudio) return carga;
+  // Un estudio no puede ser posterior a su carga: una fecha futura es un error de tipeo.
+  return carga && estudio > carga.slice(0, 10) ? carga : estudio;
+}
+
+/**
+ * La última respuesta de un instrumento. En los registros con fecha del estudio (el ECG) manda esa fecha: un ECG
+ * viejo que se carga hoy no tapa uno más nuevo (a igual fecha, gana la carga más
+ * reciente, que es la corrección). Para los demás es `ultimaRespuesta`, sin cambios.
+ */
+export function ultimaRespuestaInstrumento(respuestas: QuestionnaireResponse[], sufijo: string, hasta?: string): QuestionnaireResponse | undefined {
+  const clave = CLAVES_INSTRUMENTO.find((c) => INSTRUMENTOS_EQUIPO[c] === sufijo);
+  if (!clave || !DATO_DE_REGISTRO[clave]?.fecha) return ultimaRespuesta(respuestas, sufijo, hasta);
+  let mejor: { r: QuestionnaireResponse; fecha: string; carga: string } | undefined;
+  for (const r of respuestas) {
+    // Los mismos filtros que `ultimaRespuesta` (estado, URL, `hasta`), de a una.
+    if (!ultimaRespuesta([r], sufijo, hasta)) continue;
+    const candidata = { r, fecha: (fechaDeRespuesta(r) ?? '').slice(0, 10), carga: r.authored ?? r.meta?.lastUpdated ?? '' };
+    if (!mejor || candidata.fecha > mejor.fecha || (candidata.fecha === mejor.fecha && candidata.carga >= mejor.carga)) mejor = candidata;
+  }
+  return mejor?.r;
+}
+
+const tieneValor = (a: QuestionnaireResponseItemAnswer): boolean =>
+  Object.entries(a).some(([k, v]) => k.startsWith('value') && v !== undefined && v !== null && v !== '');
+
+function limpiarItems(items: QuestionnaireResponseItem[] | undefined): QuestionnaireResponseItem[] {
+  return (items ?? []).flatMap((item) => {
+    const { answer, item: hijos, ...resto } = item;
+    const respuestasConValor = (answer ?? []).filter(tieneValor);
+    const hijosConValor = limpiarItems(hijos);
+    if (!respuestasConValor.length && !hijosConValor.length) return [];
+    return [{ ...resto, ...(respuestasConValor.length ? { answer: respuestasConValor } : {}), ...(hijosConValor.length ? { item: hijosConValor } : {}) }];
+  });
+}
+
+/**
+ * La respuesta sin lo vacío, antes de guardarla. Una casilla que se tilda y se destilda
+ * deja `answer: [{}]` y una fecha borrada `valueDate: ''`: el validador de FHIR rechaza
+ * las dos cosas. Se sacan esas respuestas y los ítems que quedan sin ninguna.
+ */
+export function limpiarRespuesta(r: QuestionnaireResponse): QuestionnaireResponse {
+  const { item, ...resto } = r;
+  const items = limpiarItems(item);
+  return items.length ? { ...resto, item: items } : resto;
 }
 
 /** A qué instrumento responde una `QuestionnaireResponse` (por la URL, en cualquier base aceptada). */
@@ -439,10 +715,10 @@ export interface UltimoInstrumento {
 
 /** La última respuesta de un instrumento y su resultado. */
 export function ultimoResultadoInstrumento(clave: ClaveInstrumento, respuestas: QuestionnaireResponse[], hasta?: string): UltimoInstrumento | undefined {
-  const respuesta = ultimaRespuesta(respuestas, INSTRUMENTOS_EQUIPO[clave], hasta);
+  const respuesta = ultimaRespuestaInstrumento(respuestas, INSTRUMENTOS_EQUIPO[clave], hasta);
   if (!respuesta) return undefined;
-  const fecha = respuesta.authored ?? respuesta.meta?.lastUpdated;
-  return { respuesta, resultado: puntuarInstrumento(clave, respuesta), ...(fecha ? { fecha } : {}) };
+  const cuando = fechaDeRespuesta(respuesta);
+  return { respuesta, resultado: puntuarInstrumento(clave, respuesta), ...(cuando ? { fecha: cuando } : {}) };
 }
 
 /** Las condiciones del catálogo que derivan de la última respuesta de cada instrumento. */
