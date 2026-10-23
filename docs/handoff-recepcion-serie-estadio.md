@@ -23,9 +23,14 @@
 > Ya no muestra el estadío del plan ni la estimación del portal: daban otro número que la
 > ficha.
 >
-> **El problema:** según el handoff del dashboard (`docs/handoff-serie-estadio-ckm.md` §3.3,
-> del 07.10.2026), en Segunda Opinión `ckm-recalculate` **no corre**. Si sigue así, en SOM la
-> paciente sólo va a ver el estadío que haya validado un médico.
+> **Lo que se sabe:**
+> - El handoff del dashboard (`docs/handoff-serie-estadio-ckm.md` §3.3, del 07.10.2026) decía
+>   que en Segunda Opinión `ckm-recalculate` no corría.
+> - El 23.10.2026, `npm run verify-prevent` del dashboard, conectado al proyecto de SOM,
+>   encontró el bot `ckm-recalculate` y su Subscription `active`.
+> - Falta saber si **escribe la serie**: el script cortó con un 403 al crear su paciente de
+>   prueba, antes de probar nada (ver «El 403 de `verify-prevent`», al final). Si el bot no
+>   escribe la serie, en SOM la paciente sólo ve el estadío que haya validado un médico.
 
 ## Prompt (pegar en la sesión de `recepcionistas`)
 
@@ -50,18 +55,23 @@ estadío CKM **del equipo**, nunca una estimación propia. Lo lee de las Observa
 Lo que escribió una paciente (`meta.author` Patient) no cuenta nunca: ni en el portal ni en el
 dashboard.
 
-Según el dashboard (`docs/handoff-serie-estadio-ckm.md` §3.3, 07.10.2026), en el proyecto de
-SOM `ckm-recalculate` no corre, y desplegarlo es "una decisión a tomar juntos". Si sigue sin
-correr, la paciente de SOM sólo ve el estadío que validó un médico.
+El 07.10.2026 el dashboard decía que en SOM `ckm-recalculate` no corría, y que desplegarlo era
+"una decisión a tomar juntos" (`docs/handoff-serie-estadio-ckm.md` §3.3). El 23.10.2026,
+`npm run verify-prevent` del dashboard encontró en el proyecto de SOM el bot y su Subscription
+`active`. No llegó a probar si escribe la serie: cortó con un 403 al crear su paciente de prueba.
+Si el bot no la escribe, la paciente de SOM sólo ve el estadío que validó un médico.
 
-OBJETIVO: saber qué hay hoy en el proyecto SOM, llevar la decisión de desplegar la serie a
-quien corresponde y proteger lo que el bot escribe en el Patient.
+OBJETIVO: saber si la serie se está escribiendo en SOM, llevar a quien corresponde lo que falte
+decidir y proteger lo que el bot escribe en el Patient.
 
 ## 1. Comprobar (sólo lectura, con el `.env` de SOM)
 Sólo cantidades: ningún dato de paciente en el chat ni en un commit.
 
-1. **¿Existe el bot?** `Bot?name=ckm-recalculate`. Si existe, ¿tiene una `Subscription`
-   activa con endpoint `Bot/<id>` y criteria `Observation?code=…`?
+1. **¿El bot corre?** El bot y su Subscription `active` ya aparecieron (`verify-prevent`,
+   23.10.2026). Falta ver que se ejecute y cómo le va: los últimos
+   `AuditEvent?entity=Bot/<id del bot>&_sort=-_lastUpdated&_count=10`, con su `outcome`.
+   Sin AuditEvents, la Subscription no dispara: revisar que el proyecto tenga la feature
+   `bots`.
 2. **¿Cuántas evaluaciones de la serie hay?**
    `Observation?code=https://epa-bienestar.ar/fhir/CodeSystem/plan-bienestar-100-dias|estadio-ckm&_tag=https://seguimiento.medplum.com.ar/fhir/CodeSystem/ckm-algoritmo|serie-tabla4-v1&_summary=count`
 3. **¿Cuántos estadíos validados hay?**
@@ -70,12 +80,17 @@ Sólo cantidades: ningún dato de paciente en el chat ni en un commit.
    suscribe `ServiceRequest` (`bot-som-report`) y `DocumentReference` (el laboratorio), así que
    la serie no dispara ningún bot de acá. Pero conviene ver qué hay en el servidor.
 
-Si 1 da que no hay bot, el resultado esperado es 0 en el punto 2.
+Cómo leer los resultados:
+- **El bot corre y el punto 2 da más de 0:** la serie se escribe.
+- **El bot corre pero el punto 2 da 0:** el bundle desplegado es anterior a la serie
+  (07.10.2026). Se vuelve a desplegar desde el dashboard: `npm run build:bots` y
+  `npm run deploy-bots-server -- --solo ckm-recalculate`, con la marca de SOM.
 
-## 2. La decisión (no la toma este repo solo)
-Desplegar `ckm-recalculate` en SOM cambia de dónde sale el estadío que ven la paciente y el
-equipo. Por la regla 4 de `CLAUDE.md`, se consulta con el Dr. Barbagelata y el
-Dr. D'Alessandro, y se acuerda con el dashboard.
+## 2. Lo que hay que decidir (no lo decide este repo solo)
+Con la serie en SOM cambia de dónde sale el estadío que ven la paciente y el equipo. El bot ya
+está desplegado, pero el 07.10 era "una decisión a tomar juntos". Por la regla 4 de
+`CLAUDE.md`, se confirma con el Dr. Barbagelata y el Dr. D'Alessandro, y se acuerda con el
+dashboard.
 
 **Lo que el bot hace:**
 - Escucha las Observations con los códigos CKM.
@@ -85,13 +100,15 @@ Dr. D'Alessandro, y se acuerda con el dashboard.
   `hGraphData` en el Patient.
 - No manda avisos: las alertas son de otro bot, que no hace falta desplegar.
 
-**Si se decide desplegarlo**, lo corre el dashboard, no este repo:
-- `npm run deploy-bots-server -- --solo ckm-recalculate`, con la marca de SOM.
-- Después, la reconstrucción de la historia: `npm run ckm-estadio-doctor -- --todos` (sólo
-  lee), y recién después `--todos --aplicar --confirmo-todos`.
+**Si se confirma:** el bot escribe la serie a medida que llegan datos nuevos, pero no
+reconstruye la historia de las pacientes que ya estaban. Eso lo corre el dashboard, no este
+repo, con credenciales de **admin del proyecto**:
+- primero `npm run ckm-estadio-doctor -- --todos`, que sólo lee;
+- después `--todos --aplicar --confirmo-todos`.
 
-**Si se decide no desplegarlo:** la única fuente del estadío en SOM es «Validar estadío». Que
-los médicos lo sepan: sin validación, la paciente no ve etapa.
+**Si no se confirma:** se saca el bot del proyecto, desde el admin, con su Subscription. La
+única fuente del estadío en SOM pasa a ser «Validar estadío». Que los médicos lo sepan: sin
+validación, la paciente no ve etapa.
 
 **Un dato para la misma charla.** En SOM hay hoy otro estadío más: el que calcula este repo
 (`src/lib/ckm.ts`). Lo usan el día 0 de Recepción cuando no hay uno validado, y la extensión
@@ -142,7 +159,7 @@ después, guardar el perfil vuelve las dos extensiones a sus valores viejos.
 
 ## Al terminar
 Avisá en la sesión del portal y en la del dashboard:
-- los cuatro resultados del punto 1;
+- los cuatro resultados del punto 1 (cantidades, sin datos de pacientes);
 - qué se decidió en el punto 2, y quién;
 - si la forma de `readonlyFields` funcionó, y el PR del punto 3.
 ```
@@ -157,3 +174,26 @@ Avisá en la sesión del portal y en la del dashboard:
 
 Ninguna respuesta pide cambiar código del portal: sólo cambia lo que se ve. Lo único que toca
 el portal es el espejo de la policy, si se aplica el punto 3.
+
+## El 403 de `verify-prevent`
+
+`verify-prevent` (dashboard) prueba el bot de punta a punta:
+1. Crea una paciente de referencia, «PREVENT Referencia».
+2. Le carga los datos.
+3. Espera a que el bot calcule.
+
+En SOM leyó el `Bot` y la `Subscription`, y cortó con `Forbidden` en el primer paso, el
+`upsertResource` del Patient (PUT condicional por identifier).
+
+**Qué quiere decir:** la AccessPolicy del ClientApplication con el que se corrió lo deja leer,
+pero no crear ni actualizar un `Patient`. No dice nada del bot: el bot corre con su propia
+identidad, no con la del script.
+
+**No hace falta darle ese permiso.** En SOM la paciente de prueba quedaría entre las pacientes
+reales, a la vista de Recepción. Para saber si el bot escribe la serie alcanza con leer (los
+puntos 1 a 3 del prompt), o con `npm run ckm-bots-doctor` del dashboard, que sólo mira bots,
+Subscriptions y AuditEvents.
+
+Si igual se quiere la prueba de punta a punta:
+- se corre con un ClientApplication admin del proyecto;
+- después se borra la paciente con `npm run verify-prevent -- --cleanup`.
