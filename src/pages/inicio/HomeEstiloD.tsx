@@ -63,7 +63,9 @@ import {
 } from './rutas';
 import { TableroSalidasLlegadas } from './TableroSalidasLlegadas';
 import type { CategoriaLe8, ClaveCamino, DatosHomeE, EstadioCkmHome, Camino, TableroHomeD, TemaHomeD } from './tipos';
-import { ETAPAS_CKM, useDatosHomeE } from './useDatosHomeE';
+import { HGraphPaciente, TEXTO_VALORES_SIN_LEER } from './HGraphPaciente';
+import { hgraphVisible } from './hgraph';
+import { ETAPAS_CKM, notaEstadioCkm, TEXTO_SIN_ESTADIO, useDatosHomeE } from './useDatosHomeE';
 import { useTableroHomeD } from './useTableroHomeD';
 
 const RUTA_RESERVAR_TURNO = '/get-care';
@@ -80,6 +82,7 @@ export const ID_HOME_D = {
   /** El ancla de «Ver salidas y llegadas». */
   seccionTablero: 'salidas-y-llegadas',
   tablero: 'home-d-tablero',
+  valores: 'home-d-valores',
   caminos: 'home-d-caminos',
   instrumentos: 'home-d-instrumentos',
   le8: 'home-d-le8',
@@ -173,7 +176,16 @@ export function HomeEstiloD(): JSX.Element {
   const tablero = useTableroHomeD();
   const [tema, cambiarTema] = useTemaHomeD();
   useFuentesHomeD();
-  return <VistaHomeD datos={datos} tablero={tablero} tema={tema} alCambiarTema={cambiarTema} />;
+  const [searchParams] = useSearchParams();
+  return (
+    <VistaHomeD
+      datos={datos}
+      tablero={tablero}
+      tema={tema}
+      alCambiarTema={cambiarTema}
+      mostrarHgraph={hgraphVisible(searchParams.get('hgraph'))}
+    />
+  );
 }
 
 // ─── Textos y formatos propios de D (los compartidos están en formato.ts) ───────────
@@ -252,6 +264,8 @@ export interface VistaHomeDProps {
   readonly tema: TemaHomeD;
   /** Sin él, no se muestra el selector de tema (p. ej. en el visor de capturas). */
   readonly alCambiarTema?: (tema: TemaHomeD) => void;
+  /** «Tus valores» (el hGraph): hasta que se publique, sólo con `?hgraph=si` (hgraph.ts). */
+  readonly mostrarHgraph?: boolean;
 }
 
 /**
@@ -259,12 +273,19 @@ export interface VistaHomeDProps {
  * Home mínima y neutra: la puerta, la ruta sin datos de nadie, los servicios y el cierre (sin
  * pedir firmas ni datos).
  */
-export function VistaHomeD({ datos, tablero, tema, alCambiarTema }: VistaHomeDProps): JSX.Element {
+export function VistaHomeD({
+  datos,
+  tablero,
+  tema,
+  alCambiarTema,
+  mostrarHgraph = false,
+}: VistaHomeDProps): JSX.Element {
   return (
     <div className={classes.raiz} data-tema={tema} aria-busy={datos.cargando || undefined}>
       <Puerta datos={datos} tema={tema} alCambiarTema={alCambiarTema} />
       {datos.esPaciente && (
         <>
+          {mostrarHgraph && <SeccionValores datos={datos} tema={tema} />}
           <SeccionTablero datos={datos} tablero={tablero} />
           <TresCaminos datos={datos} />
           <TusTresInstrumentos datos={datos} />
@@ -519,6 +540,40 @@ function SeccionTablero({
   );
 }
 
+// ─── 2 bis. Tus valores ──────────────────────────────────────────────────────────────
+
+/**
+ * El hGraph con sus valores, después de la puerta: el mismo mapa que ve su equipo en la ficha
+ * (hgraph.ts), con los colores del tema de la página.
+ */
+function SeccionValores({ datos, tema }: { readonly datos: DatosHomeE; readonly tema: TemaHomeD }): JSX.Element {
+  return (
+    <section aria-labelledby={ID.valores} className={classes.seccion}>
+      <div className={classes.contenedor}>
+        <div className={classes.encabezado}>
+          <h2 id={ID.valores} className={classes.tituloSeccion}>
+            Tus valores
+          </h2>
+          <p className={classes.bajadaSeccion}>
+            Tu presión, tu peso, tu azúcar, tu colesterol y tus riñones, en el mismo mapa que mira tu equipo médico.
+          </p>
+        </div>
+        {datos.cargando ? (
+          <Hueso className={classes.huesoInstrumento} />
+        ) : (
+          <div className={classes.tarjeta}>
+            {datos.hgraph ? (
+              <HGraphPaciente modelo={datos.hgraph} tema={tema} hoy={datos.hoy} />
+            ) : (
+              <p className={classes.texto}>{TEXTO_VALORES_SIN_LEER}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── 3. Tres caminos ─────────────────────────────────────────────────────────────────
 
 const ICONO_CAMINO: Readonly<Record<ClaveCamino, Icon>> = {
@@ -643,7 +698,7 @@ function TusTresInstrumentos({ datos }: { readonly datos: DatosHomeE }): JSX.Ele
         ) : (
           <div className={classes.instrumentos}>
             <InstrumentoLe8 datos={datos} />
-            <InstrumentoCkm ckm={datos.ckm} />
+            <InstrumentoCkm ckm={datos.ckm} hoy={datos.hoy} />
             <InstrumentoPrevent datos={datos} />
           </div>
         )}
@@ -764,7 +819,7 @@ function InstrumentoLe8({ datos }: { readonly datos: DatosHomeE }): JSX.Element 
   );
 }
 
-function InstrumentoCkm({ ckm }: { readonly ckm: EstadioCkmHome | undefined }): JSX.Element {
+function InstrumentoCkm({ ckm, hoy }: { readonly ckm: EstadioCkmHome | undefined; readonly hoy: string }): JSX.Element {
   return (
     <article aria-labelledby={ID.ckm} className={classes.tarjeta}>
       <div className={classes.instrumentoCabecera}>
@@ -805,10 +860,8 @@ function InstrumentoCkm({ ckm }: { readonly ckm: EstadioCkmHome | undefined }): 
         </p>
       </div>
       <div className={classes.lectura}>
-        <p className={classes.lecturaTitulo}>
-          {ckm ? ETAPAS_CKM[ckm.estadio] : 'Faltan datos para ubicar tu estadio.'}
-          {ckm?.origen === 'estimado' && <span className={classes.datoSecundario}> (estimado con tus datos)</span>}
-        </p>
+        <p className={classes.lecturaTitulo}>{ckm ? ETAPAS_CKM[ckm.estadio] : TEXTO_SIN_ESTADIO}</p>
+        {ckm && <p className={classes.texto}>{notaEstadioCkm(ckm, hoy)}</p>}
         <p className={classes.texto}>La escala de la AHA va de 0, zona saludable, a 4, cuidado activo.</p>
       </div>
       <Link to={RUTA_CKM} className={clases(classes.link, classes.linkTarjeta)}>

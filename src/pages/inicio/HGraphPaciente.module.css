@@ -1,0 +1,123 @@
+/* «Tus valores» (HGraphPaciente.tsx): el hGraph y la lista. Los colores del tema llegan como
+   --hg-* en línea; la tipografía se hereda de la Home. */
+
+.hgraph {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--hg-texto);
+}
+
+.cuerpo {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+
+  @mixin larger-than $mantine-breakpoint-md {
+    grid-template-columns: minmax(0, 11fr) minmax(0, 9fr);
+    gap: 32px;
+  }
+}
+
+.grafico {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+  font-variant-numeric: tabular-nums;
+}
+
+.rotulo {
+  font-size: 13px;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--hg-guia) 35%, transparent);
+}
+
+.nombre {
+  font-weight: 600;
+}
+
+.medida {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detalle {
+  grid-column: 1 / -1;
+  color: var(--hg-secundario);
+  font-size: 14px;
+}
+
+.falta {
+  text-align: end;
+  color: var(--hg-secundario);
+}
+
+.icono {
+  flex: none;
+}
+
+.leyenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 14px;
+  color: var(--hg-secundario);
+
+  & li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.nota,
+.vacio {
+  margin: 0;
+  color: var(--hg-secundario);
+  max-width: 60ch;
+}
+
+.acciones {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--hg-enlace);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

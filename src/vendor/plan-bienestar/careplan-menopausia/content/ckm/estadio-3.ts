@@ -1251,7 +1251,7 @@ export const E3_ITEMS = [
 ] as const;
 
 export const E3_EVALUACIONES = [
-  evaluacion({ codigo: 'E3-EVAL-01', label: 'Todo el bloque de evaluación del estadío 2 (E2-EVAL-01 a 25), heredado', estadios: E, momentos: ['dia-0', 'evento', 'dia-30', 'dia-60', 'dia-100'], despues: 'Según estadío 2', fuente: `${GUIA}, Figura 3` }),
+  evaluacion({ codigo: 'E3-EVAL-01', label: 'Todo el bloque de evaluación del estadío 2 (E2-EVAL-01 a 25), heredado', hereda: '2', estadios: E, momentos: ['dia-0', 'evento', 'dia-30', 'dia-60', 'dia-100'], despues: 'Según estadío 2', fuente: `${GUIA}, Figura 3` }),
   evaluacion({ codigo: 'E3-EVAL-02', label: 'LDL y perfil completo (día 60 = 4 a 12 semanas del inicio o ajuste)', code: LOINC.ldlCholesterol, unit: 'mg/dL', estadios: E, momentos: ['dia-0', 'dia-60', 'dia-100'], despues: 'Cada 3 a 12 meses hasta la meta, luego anual', fuente: 'Guía de dislipidemia 2026' }),
   evaluacion({ codigo: 'E3-EVAL-03', label: 'Documento del sustrato (calcio coronario, angio-TC, ITB, eco, biomarcadores)', estadios: E, momentos: ['dia-0'], despues: 'CAC no antes de 3 a 5 años', fuente: `${GUIA}, Tabla 4 y Sección 5.6.1; firma del estadío 3` }),
   evaluacion({ codigo: 'E3-EVAL-04', label: 'NT-proBNP o BNP', code: LOINC.ntProBnp, unit: 'pg/mL', estadios: E, algunaDe: ['pre-ic', 'erc-muy-alto-riesgo', 'prevent-alto'], momentos: D0_100, despues: 'Cada 6 a 12 meses', fuente: `${GUIA}, Tabla 16` }),

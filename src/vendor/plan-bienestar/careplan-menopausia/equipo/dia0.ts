@@ -8,22 +8,24 @@ import type {
 import { BASELINE_QUESTIONNAIRE_URL } from '../baseline/preguntas.js';
 import { evaluacionesAplicables } from '../catalogo/seleccion.js';
 import type { CkmResult } from '../ckm/types.js';
-import { CATALOGOS_POR_ESTADIO } from '../content/ckm/index.js';
-import { entradaLe8DesdeFhir, LE8_CUESTIONARIOS, ultimaRespuesta } from '../le8/desdeFhir.js';
+import { entradaLe8DesdeFhir, LE8_CUESTIONARIOS } from '../le8/desdeFhir.js';
 import { puntajeLe8 } from '../le8/puntaje.js';
 import type { Condicion, EstadioCkm, EvaluacionCatalogo, Momento } from '../model/catalogo.js';
 import { LOINC } from '../terminology/loinc.js';
 import { SYSTEM } from '../terminology/systems.js';
-import { INSTRUMENTOS_EQUIPO } from './instrumentos.js';
+import { INSTRUMENTOS_EQUIPO, fechaDeRespuesta, instrumentoDeRespuesta, registroConDato, ultimaRespuestaInstrumento } from './instrumentos.js';
 import { perfilDeLaPersona } from './perfil.js';
 import type { EstadioRegistrado } from './validacion.js';
 
 /**
  * Día 0: qué falta.
  *
- * La lista sale del catálogo firmado, no de una lista a mano: son las evaluaciones
- * (`CatalogoEstadio.evaluaciones`) del estadío de la persona con momento `dia-0` que
- * aplican a su perfil. Para cada una, un detector mira la historia FHIR y dice si el
+ * La lista sale del catálogo firmado, no de una lista a mano: son las evaluaciones con
+ * momento `dia-0` que aplican al perfil de la persona, con la misma selección que arma el
+ * plan (`evaluacionesAplicables`). La herencia se escribe en `estadios`: en los estadíos 3
+ * y 4 entra el bloque del estadío 2 (el 4 sin PREVENT), y el marcador que lo nombra
+ * («… heredado», `hereda`) no se cuenta, porque no es un dato que se cargue.
+ * Para cada una, un detector mira la historia FHIR y dice si el
  * dato está, está vencido, está a medias o falta, y quién lo carga: la persona (los
  * cuestionarios del portal), el consultorio (antropometría, presión), el laboratorio,
  * el equipo (instrumentos y registros clínicos) o el sistema (lo que se calcula).
@@ -121,6 +123,20 @@ const DEL_PORTAL: Record<string, string> = {
   [LOINC.sleepDuration.code!]: LE8_CUESTIONARIOS.sueno.sufijo,
 };
 
+/**
+ * Otros códigos del MISMO dato: cuentan como el principal (cargado, no a medias) y gana
+ * el más reciente de todos. El LDL llega calculado (13457-7) o sin método (2089-1),
+ * según el laboratorio; el dashboard ya los lee como sinónimos.
+ */
+const SINONIMOS: Record<string, string[]> = {
+  [LOINC.ldlCholesterol.code!]: [LOINC.ldlCholesterolGenerico.code!],
+};
+
+/** El código y sus sinónimos. */
+function conSinonimos(code: string): string[] {
+  return [code, ...(SINONIMOS[code] ?? [])];
+}
+
 /** Otros códigos que satisfacen la evaluación cuando el principal no está. */
 const ALTERNATIVAS: Record<string, string[]> = {
   [LOINC.nonHdlCholesterol.code!]: [LOINC.totalCholesterol.code!, LOINC.ldlCholesterol.code!, LOINC.triglycerides.code!],
@@ -167,6 +183,16 @@ function ultimaObs(observations: Observation[], codes: string[]): { observation:
   return undefined;
 }
 
+/** La última Observation (con valor, no anulada) de cualquiera de los códigos, sin orden de preferencia. */
+function ultimaDeCualquiera(observations: Observation[], codes: string[]): { observation: Observation; code: string; valor: number } | undefined {
+  let mejor: { observation: Observation; code: string; valor: number } | undefined;
+  for (const code of codes) {
+    const obs = ultimaObs(observations, [code]);
+    if (obs && (!mejor || fechaObs(obs.observation) >= fechaObs(mejor.observation))) mejor = obs;
+  }
+  return mejor;
+}
+
 function diasEntre(desdeIso: string, hastaIso: string): number {
   const desde = Date.parse(desdeIso);
   const hasta = Date.parse(hastaIso);
@@ -197,7 +223,9 @@ type Deteccion = Pick<DatoDia0, 'estado' | 'quien' | 'fecha' | 'detalle'>;
 
 function conVigencia(ctx: Interno, fecha: string, quien: QuienCarga, detalle?: string): Deteccion {
   if (!fecha) return { estado: 'cargado', quien, ...(detalle ? { detalle } : {}) };
-  if (ctx.desde && fecha < ctx.desde) {
+  // Por día: un `desde` con hora no deja afuera un dato de ese mismo día. (`seguimientoDelPlan`
+  // ya lo pasa sin hora, así que en «Controles» no cambia nada.)
+  if (ctx.desde && fecha.slice(0, 10) < ctx.desde.slice(0, 10)) {
     return { estado: 'vencido', quien, fecha, detalle: `Última carga ${fechaCorta(fecha)}, anterior a este control` };
   }
   const dias = diasEntre(fecha, `${ctx.hoy}T23:59:59Z`);
@@ -208,23 +236,29 @@ function conVigencia(ctx: Interno, fecha: string, quien: QuienCarga, detalle?: s
 }
 
 function porCuestionario(ctx: Interno, sufijo: string, quien: QuienCarga, nombre: string): Deteccion {
-  const r = ultimaRespuesta(ctx.respuestas, sufijo);
+  const r = ultimaRespuestaInstrumento(ctx.respuestas, sufijo);
   if (!r) return { estado: 'falta', quien, detalle: `Sin ${nombre}` };
-  return conVigencia(ctx, r.authored ?? r.meta?.lastUpdated ?? '', quien, nombre);
+  const d = conVigencia(ctx, fechaDeRespuesta(r) ?? '', quien, nombre);
+  const clave = instrumentoDeRespuesta(r);
+  if (d.estado === 'cargado' && clave && !registroConDato(clave, r)) {
+    return { ...d, estado: 'parcial', detalle: `${nombre}: guardado sin el dato` };
+  }
+  return d;
 }
 
 function porCodigo(ctx: Interno, evaluacion: EvaluacionCatalogo, code: string): Deteccion {
   const quien: QuienCarga = CONSULTORIO.has(code) ? 'consultorio' : code in DEL_PORTAL ? 'persona' : 'laboratorio';
-  const obs = ultimaObs(ctx.observations, [code, ...(ALTERNATIVAS[code] ?? [])]);
+  const principal = ultimaDeCualquiera(ctx.observations, conSinonimos(code));
+  const obs = principal ?? ultimaObs(ctx.observations, (ALTERNATIVAS[code] ?? []).flatMap(conSinonimos));
   const sufijoPortal = DEL_PORTAL[code];
   if (!obs && sufijoPortal) {
     return porCuestionario(ctx, sufijoPortal, 'persona', 'cuestionario del portal');
   }
   if (!obs) return { estado: 'falta', quien };
-  const unidad = evaluacion.unit && obs.code === code ? ` ${evaluacion.unit}` : '';
-  const detalle = obs.code === code ? `${obs.valor}${unidad}` : `Sólo ${LOINC_LABEL[obs.code] ?? obs.code}: ${obs.valor}`;
+  const unidad = evaluacion.unit && principal ? ` ${evaluacion.unit}` : '';
+  const detalle = principal ? `${obs.valor}${unidad}` : `Sólo ${LOINC_LABEL[obs.code] ?? obs.code}: ${obs.valor}`;
   const d = conVigencia(ctx, fechaObs(obs.observation), quien, detalle);
-  return obs.code === code || d.estado !== 'cargado' ? d : { ...d, estado: 'parcial' };
+  return principal || d.estado !== 'cargado' ? d : { ...d, estado: 'parcial' };
 }
 
 const LOINC_LABEL: Record<string, string> = Object.fromEntries(
@@ -271,8 +305,13 @@ export type DetectorEvaluacion = 'loinc' | 'cuestionario' | 'fib4' | 'prevent' |
 export interface ClasificacionEvaluacion {
   quien: QuienCarga;
   detector: DetectorEvaluacion;
-  /** LOINC del dato principal y sus alternativas, en orden de preferencia (`loinc`). */
+  /**
+   * LOINC del dato principal, sus sinónimos y sus alternativas, en ese orden (`loinc`).
+   * Los sinónimos (`sinonimosLoinc`) cuentan como el principal; las alternativas, a medias.
+   */
   codigosLoinc?: string[];
+  /** Los códigos de `codigosLoinc` que son el mismo dato que el principal (cargado, no a medias). */
+  sinonimosLoinc?: string[];
   /** Sufijo del `Questionnaire` (bajo cualquier base aceptada) cuya última respuesta satisface la evaluación (`cuestionario`, o `loinc` de los cuestionarios LE8). */
   cuestionario?: string;
   /** Nombre corto de lo que falta ("STOP-BANG", "MEDAS-14 del portal"). */
@@ -287,11 +326,19 @@ const POR_LABEL: ReadonlyArray<{ re: RegExp } & Omit<ClasificacionEvaluacion, 'c
   { re: /PHQ|GAD|PSS/i, detector: 'cuestionario', quien: 'equipo', cuestionario: INSTRUMENTOS_EQUIPO.psicologico, nombre: 'PHQ-2, GAD-2 y PSS-4' },
   { re: /AHC-HRSN|determinantes sociales/i, detector: 'cuestionario', quien: 'equipo', cuestionario: INSTRUMENTOS_EQUIPO.ahcHrsn, nombre: 'AHC-HRSN' },
   { re: /FIB-4/i, detector: 'fib4', quien: 'laboratorio', nombre: 'AST, ALT y plaquetas' },
-  { re: /PREVENT/i, detector: 'prevent', quien: 'sistema' },
+  // Sólo las que SON el PREVENT: «Todo el bloque … sin PREVENT, heredado» (E4-EVAL-01)
+  // nombra el PREVENT para excluirlo y no se cumple con calcularlo.
+  { re: /^PREVENT/i, detector: 'prevent', quien: 'sistema' },
   { re: /potenciadores/i, detector: 'cuestionario', quien: 'equipo', cuestionario: INSTRUMENTOS_EQUIPO.potenciadores, nombre: 'registro de potenciadores' },
   { re: /estadificaci[oó]n .*validad/i, detector: 'validacion', quien: 'equipo' },
   { re: /reconciliaci[oó]n de medicaci[oó]n/i, detector: 'cuestionario', quien: 'equipo', cuestionario: INSTRUMENTOS_EQUIPO.reconciliacion, nombre: 'reconciliación de medicación' },
   { re: /puntaje LE8/i, detector: 'le8', quien: 'sistema' },
+  // Registros clínicos del equipo (sin LOINC verificado). Las regex son estrictas a
+  // propósito: «Índice tobillo-brazo y síntomas de claudicación», «Síntomas musculares
+  // con estatina» y «Registro de palpitaciones y trazados de dispositivo» no son esto.
+  { re: /^ECG$/, detector: 'cuestionario', quien: 'equipo', cuestionario: INSTRUMENTOS_EQUIPO.ecg, nombre: 'ECG' },
+  { re: /NYHA/, detector: 'cuestionario', quien: 'equipo', cuestionario: INSTRUMENTOS_EQUIPO.claseFuncional, nombre: 'clase NYHA y marcha de 6 minutos' },
+  { re: /^S[ií]ntomas:? (de )?angina/i, detector: 'cuestionario', quien: 'equipo', cuestionario: INSTRUMENTOS_EQUIPO.sintomas, nombre: 'registro de síntomas' },
 ];
 
 /**
@@ -303,7 +350,14 @@ export function clasificarEvaluacion(evaluacion: EvaluacionCatalogo): Clasificac
   if (code && evaluacion.code?.system === SYSTEM.loinc) {
     const quien: QuienCarga = CONSULTORIO.has(code) ? 'consultorio' : code in DEL_PORTAL ? 'persona' : 'laboratorio';
     const sufijoPortal = DEL_PORTAL[code];
-    return { quien, detector: 'loinc', codigosLoinc: [code, ...(ALTERNATIVAS[code] ?? [])], ...(sufijoPortal ? { cuestionario: sufijoPortal } : {}) };
+    const sinonimos = SINONIMOS[code] ?? [];
+    return {
+      quien,
+      detector: 'loinc',
+      codigosLoinc: [...conSinonimos(code), ...(ALTERNATIVAS[code] ?? []).flatMap(conSinonimos)],
+      ...(sinonimos.length ? { sinonimosLoinc: sinonimos } : {}),
+      ...(sufijoPortal ? { cuestionario: sufijoPortal } : {}),
+    };
   }
   const porLabel = POR_LABEL.find((d) => d.re.test(evaluacion.label));
   if (porLabel) {
@@ -355,10 +409,9 @@ export function evaluarDia0(ctx: ContextoDia0): ResultadoDia0 {
   const estadioReferencia: EstadioCkm = estadio ?? '0';
   const condiciones = new Set<Condicion>([...persona.condiciones, ...(ctx.condicionesRegistradas ?? [])]);
   const momento: Momento = ctx.momento ?? 'dia-0';
-  const evaluaciones = evaluacionesAplicables(
-    { estadio: estadioReferencia, condiciones },
-    CATALOGOS_POR_ESTADIO[estadioReferencia].evaluaciones,
-  ).filter((e) => e.momentos.includes(momento));
+  const evaluaciones = evaluacionesAplicables({ estadio: estadioReferencia, condiciones }).filter(
+    (e) => !e.hereda && e.momentos.includes(momento),
+  );
 
   const le8 = puntajeLe8(
     entradaLe8DesdeFhir({

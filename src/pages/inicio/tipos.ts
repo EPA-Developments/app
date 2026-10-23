@@ -11,6 +11,7 @@ import type { CategoriaLe8, Le8Domain, PuntajeDominio, ResultadoLe8 } from '@epa
 import type { EquipoDeSalud } from '../../fhir/equipo';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import type { EstadoSolicitudSOM } from '../../fhir/som';
+import type { ModeloHgraph } from './hgraph';
 
 /** Estilo de la Home: E («Vos en el centro») o D («Salidas y llegadas»). */
 export type EstiloHome = 'E' | 'D';
@@ -18,10 +19,18 @@ export type EstiloHome = 'E' | 'D';
 /** Estado del consentimiento informado de la paciente. */
 export type EstadoConsentimiento = 'cargando' | 'falta' | 'desactualizado' | 'firmado';
 
-/** Estadio CKM (0-4) y de dónde sale: el del plan (lo registró el equipo) o el estimado con sus datos. */
+/**
+ * Estadio CKM (0-4) del equipo, nunca una estimación del portal (src/fhir/ckmEquipo.ts): el de
+ * la serie que calcula el sistema del equipo (el que ve el médico en la ficha) o, sin serie, el
+ * que validó un médico.
+ */
 export interface EstadioCkmHome {
   readonly estadio: 0 | 1 | 2 | 3 | 4;
-  readonly origen: 'plan' | 'estimado';
+  readonly origen: 'serie' | 'validado';
+  /** Fecha clínica de la evaluación (o de la validación). */
+  readonly fecha?: string;
+  /** La serie lo marca provisorio cuando falta algún dato («al menos este estadio»). */
+  readonly provisorio: boolean;
 }
 
 /** La Segunda Opinión más reciente de la paciente (ServiceRequest de SOM). */
@@ -141,7 +150,10 @@ export interface DatosHomeE {
   readonly le8Inicial?: ResultadoLe8;
   /** Plan Bienestar · 100 días; undefined si no está inscripta. */
   readonly plan?: PlanBienestar;
+  /** El estadio CKM del equipo; undefined si el equipo todavía no registró uno. */
   readonly ckm?: EstadioCkmHome;
+  /** «Tus valores» (hgraph.ts); undefined mientras carga o si no se pudieron leer. */
+  readonly hgraph?: ModeloHgraph;
   readonly segundaOpinion?: SegundaOpinionHome;
   readonly laboratorio?: LaboratorioHome;
   readonly equipo?: EquipoDeSalud;

@@ -30,6 +30,9 @@ export const LOINC = {
   totalCholesterol: loinc('2093-3', 'Cholesterol [Mass/volume] in Serum or Plasma'),
   hdlCholesterol: loinc('2085-9', 'Cholesterol in HDL [Mass/volume] in Serum or Plasma'),
   ldlCholesterol: loinc('13457-7', 'Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation'),
+  // El mismo LDL sin método especificado: lo informan así los laboratorios que lo miden
+  // directo o no aclaran cómo. Se lee como sinónimo del calculado; se escribe el calculado.
+  ldlCholesterolGenerico: loinc('2089-1', 'Cholesterol in LDL [Mass/volume] in Serum or Plasma'),
   nonHdlCholesterol: loinc('43396-1', 'Cholesterol non HDL [Mass/volume] in Serum or Plasma'),
   triglycerides: loinc('2571-8', 'Triglyceride [Mass/volume] in Serum or Plasma'),
 

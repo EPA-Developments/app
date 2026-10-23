@@ -31,6 +31,8 @@ import {
   RUTA_TABLERO_LE8,
 } from './rutas';
 import type { DatosHomeE, ResultadoLe8, TableroHomeD } from './tipos';
+import { TEXTO_SIN_ESTADIO } from './useDatosHomeE';
+import { modeloHgraph } from './hgraph';
 
 const HOY = '2026-10-10'; // un sábado
 const ESPERA = { timeout: 10000 };
@@ -86,7 +88,7 @@ function jorge(cambios: Partial<DatosHomeE> = {}): DatosHomeE {
     le8: le8(PUNTAJES_HOY, 64),
     le8Inicial: le8(PUNTAJES_DIA0, 58),
     plan: PLAN,
-    ckm: { estadio: 2, origen: 'plan' },
+    ckm: { estadio: 2, origen: 'serie', fecha: '2026-09-15', provisorio: false },
     laboratorio: {
       estado: 'procesado',
       fecha: '2026-10-03',
@@ -437,12 +439,14 @@ describe('VistaHomeD: los tres instrumentos', () => {
     expect(within(le8Tarjeta).getByText('Con 5 de 8 hábitos')).toBeInTheDocument();
   });
 
-  test('CKM: el estadio, «estimado con tus datos» si es estimado, la escala y su link', async () => {
-    await mostrar(jorge({ ckm: { estadio: 2, origen: 'estimado' } }));
+  test('CKM: el estadio del equipo, de dónde sale, la escala y su link', async () => {
+    await mostrar(jorge({ ckm: { estadio: 2, origen: 'serie', fecha: '2026-09-15', provisorio: false } }));
     const ckm = screen.getByRole('article', { name: 'Salud CKM' });
     expect(within(ckm).getByText('Estadio 2')).toBeInTheDocument();
     expect(within(ckm).getByText('Estadio 2, en una escala de 0 a 4.')).toBeInTheDocument();
-    expect(ckm).toHaveTextContent('Factores de riesgo activos (estimado con tus datos)');
+    expect(within(ckm).getByText('Factores de riesgo activos')).toBeInTheDocument();
+    expect(within(ckm).getByText('Según tu equipo, con tus datos del 15 de septiembre.')).toBeInTheDocument();
+    expect(ckm).not.toHaveTextContent(/estimad/);
     expect(
       within(ckm).getByText('La escala de la AHA va de 0, zona saludable, a 4, cuidado activo.')
     ).toBeInTheDocument();
@@ -452,7 +456,7 @@ describe('VistaHomeD: los tres instrumentos', () => {
   test('CKM sin datos', async () => {
     await mostrar(jorge({ ckm: undefined }));
     const ckm = screen.getByRole('article', { name: 'Salud CKM' });
-    expect(within(ckm).getByText('Faltan datos para ubicar tu estadio.')).toBeInTheDocument();
+    expect(within(ckm).getByText(TEXTO_SIN_ESTADIO)).toBeInTheDocument();
   });
 
   /** Todas las acciones del modelo (prevent.ts) están en la tarjeta, con su href. */
@@ -910,5 +914,52 @@ describe('HomePage: la Home D para todos los que no ven la E', () => {
   test('?estilo=d con una mujer de 50 años muestra la D', async () => {
     await enElInicio(await conPaciente('female', 50), '/?estilo=d');
     await veLaD();
+  });
+});
+
+describe('VistaHomeD: «Tus valores» (el hGraph)', () => {
+  const valores = modeloHgraph(
+    [
+      {
+        resourceType: 'Observation',
+        status: 'final',
+        code: { coding: [{ system: 'http://loinc.org', code: '85354-9' }] },
+        effectiveDateTime: '2026-09-15',
+        component: [
+          {
+            code: { coding: [{ system: 'http://loinc.org', code: '8480-6' }] },
+            valueQuantity: { value: 128, unit: 'mmHg' },
+          },
+          {
+            code: { coding: [{ system: 'http://loinc.org', code: '8462-4' }] },
+            valueQuantity: { value: 78, unit: 'mmHg' },
+          },
+        ],
+        meta: { author: { reference: 'Patient/jorge' } },
+      },
+    ],
+    { sexo: 'male', hoy: HOY }
+  );
+
+  test('no se publica todavía: sin el pedido, no está', async () => {
+    await mostrar(jorge({ hgraph: valores }));
+    expect(screen.queryByRole('region', { name: 'Tus valores' })).not.toBeInTheDocument();
+  });
+
+  test('pedido, va después de la puerta y antes de «Salidas y llegadas»', async () => {
+    await mostrar(jorge({ hgraph: valores }), { mostrarHgraph: true, tema: 'claro' });
+    const valoresSeccion = seccion('Tus valores');
+    expect(puerta().compareDocumentPosition(valoresSeccion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      valoresSeccion.compareDocumentPosition(seccion('Salidas y llegadas de tus datos')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(within(valoresSeccion).getByText('Presión máxima')).toBeInTheDocument();
+    expect(within(valoresSeccion).getByRole('img', { name: /^Tus valores: / })).toBeInTheDocument();
+  });
+
+  test('con un perfil que no es paciente no aparece', async () => {
+    await mostrar({ ...jorge({ hgraph: valores }), esPaciente: false }, { mostrarHgraph: true });
+    expect(screen.queryByRole('region', { name: 'Tus valores' })).not.toBeInTheDocument();
   });
 });

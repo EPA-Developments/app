@@ -4,25 +4,28 @@
 // Los datos de la Home E, cargados UNA sola vez y pasados por props a cada sección (la
 // página es un solo árbol responsive: si cada tarjeta consultara lo suyo, se repetirían
 // las consultas).
-//  - LE8 (hoy y día 0) y el estadio CKM del plan: hook `useTableroLe8` del vendor.
-//  - El estadio CKM estimado con sus datos, si el plan no trae uno: hook `useCkm`.
+//  - LE8 (hoy y día 0): hook `useTableroLe8` del vendor.
+//  - El estadio CKM del equipo (la serie que calcula su sistema, o el que validó un médico;
+//    src/fhir/ckmEquipo.ts). Nunca una estimación del portal: si el equipo no registró uno, la
+//    Home no muestra estadio (decisión del 22.10.2026, supone supervisión médica).
 //  - PREVENT estimado con sus datos (sin revisión médica): hook `useRiesgoPrevent`, el mismo
 //    cálculo que mostraba la Home clásica; hoy lo muestran E y D con el modelo de prevent.ts.
 //  - El resto, en un solo efecto con `Promise.allSettled`: el Plan Bienestar, la Segunda
 //    Opinión más reciente (si está activa, con su tarea de firma, para saber si está en revisión
 //    por el cardiólogo; si está completada, con su PREVENT), el último PDF de laboratorio, el
-//    equipo, las novedades sin leer, el consentimiento y el cuestionario de ingreso. Si una
-//    consulta falla, la Home sigue sin ese dato.
+//    equipo, las novedades sin leer, el consentimiento, el cuestionario de ingreso, el estadio
+//    del equipo y las lecturas de «Tus valores» (el hGraph, hgraph.ts). Si una consulta falla,
+//    la Home sigue sin ese dato.
 // La combinación es pura (`armarDatosHomeE`, `cargasHomeE`) y se prueba sin red.
-import type { CkmStage, EstadioCkm } from '@epa/careplan-menopausia';
-import { useCkm, useRiesgoPrevent, useTableroLe8 } from '@epa/plan-bienestar-react';
-import type { Ckm, RiesgoPrevent, TableroLe8Estado } from '@epa/plan-bienestar-react';
+import { useRiesgoPrevent, useTableroLe8 } from '@epa/plan-bienestar-react';
+import type { RiesgoPrevent, TableroLe8Estado } from '@epa/plan-bienestar-react';
 import type { MedplumClient, ProfileResource, WithId } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
 import type {
   Appointment,
   DiagnosticReport,
   DocumentReference,
+  Observation,
   Patient,
   QuestionnaireResponse,
   ServiceRequest,
@@ -32,6 +35,8 @@ import { useMedplum, useMedplumProfile } from '@medplum/react';
 import { useEffect, useMemo, useState } from 'react';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import { cargarPlanBienestar } from '../../fhir/bienestar';
+import type { EstadioDelEquipo } from '../../fhir/ckmEquipo';
+import { cargarEstadioDelEquipo, cargarLecturasCkm } from '../../fhir/ckmEquipo';
 import { buscarConsentimiento, consentimientoAlDia } from '../../fhir/consentimiento';
 import type { EquipoDeSalud } from '../../fhir/equipo';
 import { cargarEquipoDeSalud } from '../../fhir/equipo';
@@ -52,6 +57,8 @@ import {
   firmanteDelInforme,
 } from '../../fhir/som';
 import { VERSION_CONSENTIMIENTO } from '../health-record/InformedConsent.data';
+import { fechaCorta } from './formato';
+import { modeloHgraph } from './hgraph';
 import type {
   DatosHomeE,
   EstadioCkmHome,
@@ -66,8 +73,6 @@ import type {
 
 // ─── Traducciones puras ──────────────────────────────────────────────────────────────
 
-const ESTADIO_NUMERO: Record<EstadioCkm, EstadioCkmHome['estadio']> = { '0': 0, '1': 1, '2': 2, '3': 3, '4': 4 };
-
 /** Las etapas CKM, de 0 a 4, como las lee la persona (las mismas en las Homes E y D). */
 export const ETAPAS_CKM: readonly string[] = [
   'Zona saludable',
@@ -77,15 +82,29 @@ export const ETAPAS_CKM: readonly string[] = [
   'Cuidado activo',
 ];
 
-/** El estadio CKM de la Home: el del plan (lo registró el equipo) o, si no hay, el estimado. */
-export function estadioCkmHome(
-  delPlan: EstadioCkm | undefined,
-  estimado: CkmStage | undefined
-): EstadioCkmHome | undefined {
-  if (delPlan !== undefined) {
-    return { estadio: ESTADIO_NUMERO[delPlan], origen: 'plan' };
+/** El estadio CKM de la Home: el del equipo, o ninguno (nunca una estimación del portal). */
+export function estadioCkmHome(delEquipo: EstadioDelEquipo | undefined): EstadioCkmHome | undefined {
+  if (!delEquipo) {
+    return undefined;
   }
-  return estimado === undefined ? undefined : { estadio: estimado, origen: 'estimado' };
+  return {
+    estadio: delEquipo.estadio,
+    origen: delEquipo.origen,
+    provisorio: delEquipo.provisorio,
+    ...(delEquipo.fecha ? { fecha: delEquipo.fecha } : {}),
+  };
+}
+
+/** Lo que dice la Home cuando el equipo todavía no registró un estadio. */
+export const TEXTO_SIN_ESTADIO = 'Tu equipo todavía no definió tu etapa.';
+
+/** De dónde sale el estadio, en una línea (las Homes E y D). */
+export function notaEstadioCkm(ckm: EstadioCkmHome, hoy: string): string {
+  const fecha = fechaCorta(ckm.fecha, hoy);
+  if (ckm.origen === 'validado') {
+    return fecha ? `La validó tu médico el ${fecha}.` : 'La validó tu médico.';
+  }
+  return fecha ? `Según tu equipo, con tus datos del ${fecha}.` : 'Según tu equipo.';
 }
 
 /**
@@ -311,6 +330,10 @@ export interface ResultadosHomeE {
   readonly turno?: PromiseSettledResult<ProximoTurno | undefined>;
   /** Opcional, como `turno`. */
   readonly ultimaConsulta?: PromiseSettledResult<UltimaConsulta | undefined>;
+  /** Opcional: si falta o falló, la Home no muestra estadio. */
+  readonly estadioEquipo?: PromiseSettledResult<EstadioDelEquipo | undefined>;
+  /** Opcional: si falta o falló, no hay «Tus valores». */
+  readonly lecturasCkm?: PromiseSettledResult<Observation[]>;
 }
 
 /** Lo que trajo el efecto, ya traducido para la Home. */
@@ -326,6 +349,8 @@ export interface CargasHomeE {
   readonly ingresoPendiente: boolean;
   readonly proximoTurno?: ProximoTurno;
   readonly ultimaConsulta?: UltimaConsulta;
+  readonly estadioEquipo?: EstadioDelEquipo;
+  readonly lecturasCkm?: readonly Observation[];
 }
 
 /** Mientras el efecto no terminó: nada que pedir ni que avisar todavía. */
@@ -355,6 +380,8 @@ export function cargasHomeE(r: ResultadosHomeE): CargasHomeE {
     ingresoPendiente: r.ingreso.status === 'fulfilled' && r.ingreso.value === undefined,
     proximoTurno: r.turno ? valor(r.turno) : undefined,
     ultimaConsulta: r.ultimaConsulta ? valor(r.ultimaConsulta) : undefined,
+    estadioEquipo: r.estadioEquipo ? valor(r.estadioEquipo) : undefined,
+    lecturasCkm: r.lecturasCkm ? valor(r.lecturasCkm) : undefined,
   };
 }
 
@@ -366,18 +393,31 @@ export async function cargarHomeE(
 ): Promise<CargasHomeE> {
   const recipient = getReferenceString(patient);
   const turnos = cargarTurnos(medplum, patient, hoy);
-  const [plan, segundaOpinion, laboratorio, equipo, novedadesSinLeer, consentimiento, ingreso, turno, ultimaConsulta] =
-    await Promise.allSettled([
-      cargarPlanBienestar(medplum, patient),
-      cargarSegundaOpinion(medplum, patient),
-      cargarLaboratorio(medplum, patient),
-      cargarEquipoDeSalud(medplum, patient),
-      recipient ? contarNoLeidas(medplum, recipient) : Promise.resolve(0),
-      buscarConsentimiento(medplum, patient),
-      buscarUltimoIngreso(medplum, patient),
-      turnos.then((t) => proximoTurnoDe(t)),
-      turnos.then((t) => ultimaConsultaDe(t)),
-    ]);
+  const [
+    plan,
+    segundaOpinion,
+    laboratorio,
+    equipo,
+    novedadesSinLeer,
+    consentimiento,
+    ingreso,
+    turno,
+    ultimaConsulta,
+    estadioEquipo,
+    lecturasCkm,
+  ] = await Promise.allSettled([
+    cargarPlanBienestar(medplum, patient),
+    cargarSegundaOpinion(medplum, patient),
+    cargarLaboratorio(medplum, patient),
+    cargarEquipoDeSalud(medplum, patient),
+    recipient ? contarNoLeidas(medplum, recipient) : Promise.resolve(0),
+    buscarConsentimiento(medplum, patient),
+    buscarUltimoIngreso(medplum, patient),
+    turnos.then((t) => proximoTurnoDe(t)),
+    turnos.then((t) => ultimaConsultaDe(t)),
+    cargarEstadioDelEquipo(medplum, patient),
+    cargarLecturasCkm(medplum, patient),
+  ]);
   return cargasHomeE({
     plan,
     segundaOpinion,
@@ -388,6 +428,8 @@ export async function cargarHomeE(
     ingreso,
     turno,
     ultimaConsulta,
+    estadioEquipo,
+    lecturasCkm,
   });
 }
 
@@ -397,8 +439,7 @@ export interface EntradaHomeE {
   readonly perfil: ProfileResource | undefined;
   /** Hoy en Argentina, AAAA-MM-DD. */
   readonly hoy: string;
-  readonly tablero: Pick<TableroLe8Estado, 'cargando' | 'le8' | 'le8Inicial' | 'estadio'>;
-  readonly ckm: Pick<Ckm, 'cargando' | 'resultado'>;
+  readonly tablero: Pick<TableroLe8Estado, 'cargando' | 'le8' | 'le8Inicial'>;
   /** PREVENT estimado del vendor; sin él (tests viejos), la Home no muestra estimación. */
   readonly prevent?: Pick<RiesgoPrevent, 'cargando' | 'resultado' | 'faltantes'>;
   /** Lo que trajo el efecto; undefined mientras carga. */
@@ -406,7 +447,7 @@ export interface EntradaHomeE {
 }
 
 /** Junta los hooks del vendor y el efecto en lo que muestra la Home E. Pura. */
-export function armarDatosHomeE({ perfil, hoy, tablero, ckm, prevent, cargas }: EntradaHomeE): DatosHomeE {
+export function armarDatosHomeE({ perfil, hoy, tablero, prevent, cargas }: EntradaHomeE): DatosHomeE {
   if (perfil?.resourceType !== 'Patient') {
     // Un profesional (u otro perfil) no tiene datos de paciente: valores neutros, sin
     // pedirle que firme el consentimiento ni que complete el ingreso.
@@ -419,16 +460,17 @@ export function armarDatosHomeE({ perfil, hoy, tablero, ckm, prevent, cargas }: 
       novedadesSinLeer: 0,
     };
   }
+  const { estadioEquipo, lecturasCkm, ...resto } = cargas ?? CARGAS_PENDIENTES;
   return {
-    ...(cargas ?? CARGAS_PENDIENTES),
-    cargando: !cargas || tablero.cargando || ckm.cargando || Boolean(prevent?.cargando),
+    ...resto,
+    cargando: !cargas || tablero.cargando || Boolean(prevent?.cargando),
     esPaciente: true,
     nombre: perfil.name?.[0]?.given?.[0]?.trim() || undefined,
     hoy,
     le8: tablero.le8,
     le8Inicial: tablero.le8Inicial,
-    // Mientras el tablero no dijo si el plan trae estadio, no se adelanta el estimado.
-    ckm: estadioCkmHome(tablero.estadio, tablero.cargando ? undefined : ckm.resultado?.stage),
+    ckm: estadioCkmHome(estadioEquipo),
+    hgraph: lecturasCkm ? modeloHgraph(lecturasCkm, { sexo: perfil.gender, hoy }) : undefined,
     preventEstimado: prevent ? preventEstimado(prevent.resultado, prevent.faltantes) : undefined,
     preventFaltantes: prevent && !prevent.resultado ? prevent.faltantes : undefined,
   };
@@ -467,7 +509,6 @@ export function useDatosHomeE(): DatosHomeE {
 
   // Los hooks del vendor van siempre (reglas de hooks); sin paciente no consultan nada.
   const tablero = useTableroLe8({ patient });
-  const ckm = useCkm({ patient });
   const riesgo = useRiesgoPrevent({ patient });
 
   // Las cargas quedan atadas a la paciente para la que se pidieron: si cambia el perfil,
@@ -494,8 +535,7 @@ export function useDatosHomeE(): DatosHomeE {
 
   const hoy = hoyArgentina();
   const vigentes = cargas && cargas.ref === ref ? cargas.cargas : undefined;
-  const { cargando: tableroCargando, le8, le8Inicial, estadio } = tablero;
-  const { cargando: ckmCargando, resultado } = ckm;
+  const { cargando: tableroCargando, le8, le8Inicial } = tablero;
   const { cargando: preventCargando, resultado: preventResultado, faltantes: preventFaltantes } = riesgo;
 
   return useMemo(
@@ -503,24 +543,10 @@ export function useDatosHomeE(): DatosHomeE {
       armarDatosHomeE({
         perfil,
         hoy,
-        tablero: { cargando: tableroCargando, le8, le8Inicial, estadio },
-        ckm: { cargando: ckmCargando, resultado },
+        tablero: { cargando: tableroCargando, le8, le8Inicial },
         prevent: { cargando: preventCargando, resultado: preventResultado, faltantes: preventFaltantes },
         cargas: vigentes,
       }),
-    [
-      perfil,
-      hoy,
-      tableroCargando,
-      le8,
-      le8Inicial,
-      estadio,
-      ckmCargando,
-      resultado,
-      preventCargando,
-      preventResultado,
-      preventFaltantes,
-      vigentes,
-    ]
+    [perfil, hoy, tableroCargando, le8, le8Inicial, preventCargando, preventResultado, preventFaltantes, vigentes]
   );
 }

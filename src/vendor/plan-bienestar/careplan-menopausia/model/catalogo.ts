@@ -308,6 +308,13 @@ export interface EvaluacionCatalogo extends Aplicabilidad {
   /** Cadencia después del plan, en palabras. */
   despues?: string;
   fuente: string;
+  /**
+   * Marcador del catálogo firmado que nombra un bloque heredado de otro estadío («Todo el
+   * bloque de evaluación del estadío 2 …, heredado»). No es un dato: las evaluaciones de ese
+   * bloque ya llevan este estadío en `estadios` (la herencia se escribe explícita) y se
+   * piden solas, así que el día 0 y los controles no lo cuentan.
+   */
+  hereda?: EstadioCkm;
 }
 
 /** El catálogo de un estadío, tal como se firmó. */
