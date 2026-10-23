@@ -8,7 +8,14 @@
   },
   "name": "Paciente SOM — Portal",
   "resource": [
-    { "resourceType": "Patient", "criteria": "Patient?_id=%patient.id" },
+    {
+      "resourceType": "Patient",
+      "criteria": "Patient?_id=%patient.id",
+      "writeConstraint": [
+        { "language": "text/fhirpath", "expression": "%before.extension.where(url = 'https://seguimiento.medplum.com.ar/fhir/StructureDefinition/CKMStage') ~ %after.extension.where(url = 'https://seguimiento.medplum.com.ar/fhir/StructureDefinition/CKMStage')" },
+        { "language": "text/fhirpath", "expression": "%before.extension.where(url = 'https://seguimiento.medplum.com.ar/fhir/StructureDefinition/hGraphData') ~ %after.extension.where(url = 'https://seguimiento.medplum.com.ar/fhir/StructureDefinition/hGraphData')" }
+      ]
+    },
     { "resourceType": "Observation", "criteria": "Observation?subject=%patient" },
     { "resourceType": "QuestionnaireResponse", "criteria": "QuestionnaireResponse?subject=%patient" },
     { "resourceType": "DocumentReference", "readonly": true, "criteria": "DocumentReference?subject=%patient" },

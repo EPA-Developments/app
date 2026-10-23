@@ -4,6 +4,8 @@
 // Perfil (eje Usuario): datos personales y de contacto del Patient.
 // Cuidados FHIR: nunca mandar elementos vacíos ("" o {}) — un address sin campos o
 // un gender "" hacen fallar la validación del server. Todo lo vacío se omite.
+// Se guarda sobre el Patient releído (guardarPatient), no sobre el perfil del login: el bot
+// del equipo puede haber escrito el Patient después, y lo que escribió no se pisa.
 import { Box, Button, LoadingOverlay, NativeSelect, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { formatFamilyName, formatGivenName, normalizeErrorString } from '@medplum/core';
@@ -13,6 +15,7 @@ import { IconCircleCheck, IconCircleOff } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useState } from 'react';
 import { InfoSection } from '../../components/InfoSection';
+import { guardarPatient } from '../../fhir/guardarPatient';
 import {
   V2_0131,
   celularValido,
@@ -154,24 +157,26 @@ export function Profile(): JSX.Element | null {
       telefono: formData.contactoTelefono,
       email: formData.contactoEmail,
     });
-    const otrosContactos = (profile.contact ?? []).filter((c) => !esContactoEmergencia(c));
-    const contactos = [...otrosContactos, ...(emergencia ? [emergencia] : [])];
-    const newProfile: Patient = {
-      ...profile,
-      // Sin nombre nuevo se conserva el existente (nunca mandar name con "" adentro).
-      name:
-        given || family
-          ? [{ use: 'official', ...(given ? { given: [given] } : {}), ...(family ? { family } : {}) }]
-          : profile.name,
-      birthDate: formData.birthDate || undefined,
-      gender: (formData.gender || undefined) as Patient['gender'],
-      address: domicilio ? [domicilio] : undefined,
-      contact: contactos.length > 0 ? contactos : undefined,
-      // Mismo dato que pide la Bienvenida: Patient.telecom phone/mobile.
-      telecom: conCelular(profile.telecom, formData.whatsapp),
+    // Sólo los campos de esta pantalla, sobre el Patient recién leído.
+    const aplicar = (leido: Patient): Patient => {
+      const otrosContactos = (leido.contact ?? []).filter((c) => !esContactoEmergencia(c));
+      const contactos = [...otrosContactos, ...(emergencia ? [emergencia] : [])];
+      return {
+        ...leido,
+        // Sin nombre nuevo se conserva el existente (nunca mandar name con "" adentro).
+        name:
+          given || family
+            ? [{ use: 'official', ...(given ? { given: [given] } : {}), ...(family ? { family } : {}) }]
+            : leido.name,
+        birthDate: formData.birthDate || undefined,
+        gender: (formData.gender || undefined) as Patient['gender'],
+        address: domicilio ? [domicilio] : undefined,
+        contact: contactos.length > 0 ? contactos : undefined,
+        // Mismo dato que pide la Bienvenida: Patient.telecom phone/mobile.
+        telecom: conCelular(leido.telecom, formData.whatsapp),
+      };
     };
-    const updatedProfile = await medplum
-      .updateResource(newProfile)
+    const updatedProfile = await guardarPatient(medplum, profile.id as string, aplicar)
       .then((profile) => {
         showNotification({
           icon: <IconCircleCheck />,
