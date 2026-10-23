@@ -19,7 +19,7 @@ A, B, C y E y el escritorio de A.
 - **Para probar**: `/?estilo=e` o `/?estilo=d` fuerzan un estilo con cualquier usuario; `/?petalos=tinta`,
   `dominio` o `banda` cambian cómo se pintan los pétalos de la rosa (`COLORES_PETALOS` en
   `src/pages/inicio/rosa.ts`; hoy, `tinta`); `/?tema=claro` o `/?tema=oscuro` fuerzan el tema de la D sin
-  guardarlo.
+  guardarlo; `/?hgraph=si` muestra «Tus valores» (el hGraph) mientras no esté publicado.
 - **Los tres caminos** (decisión del negocio, `src/pages/inicio/caminos.ts`). La Home ofrece, en este orden:
   1. **Plan Bienestar · 100 días**: sumarse o seguirlo.
   2. **Segunda Opinión**: pedirla, o seguir la que ya pidió.
@@ -65,6 +65,24 @@ A, B, C y E y el escritorio de A.
   posterior al laboratorio (con solo hábitos no hay fecha con qué comparar: queda por recorrer); con el informe
   completado sin firma, la estación dice «sin firma registrada». El pulso de luz de la ruta hace una sola pasada
   (como mucho 4 s): en loop, sin forma de pausarlo, no cumplía WCAG 2.2.2.
+- **El estadio CKM es el del equipo** (decisión del 22.10.2026, supone supervisión médica;
+  `src/fhir/ckmEquipo.ts`). Las dos Homes muestran el estadio que registró el equipo: la evaluación más nueva de
+  la serie que calcula el bot `ckm-recalculate` del dashboard (el número que el médico ve en la ficha) o, sin
+  serie, el último que validó un médico en «Validar estadío», con la fecha y de dónde sale («Según tu equipo, con
+  tus datos del …» o «La validó tu médico el …»). Ya no se muestra el estadio del plan ni la estimación del
+  portal: daban otro número que la ficha. Sin estadio del equipo, el escenario de la E no muestra etapa y las
+  tarjetas CKM dicen «Tu equipo todavía no definió tu etapa». Lo escrito por la paciente (`meta.author` Patient)
+  nunca cuenta, y no se lee la extensión CKMStage del Patient: la paciente puede escribir su Patient.
+- **«Tus valores»: el hGraph** (`hgraph.ts`, `HGraphPaciente.tsx`). El mismo mapa de valores que ve el equipo en
+  la ficha: qué lectura gana, el puntaje y el estado salen del core del Plan Bienestar
+  (`@epa/careplan-menopausia` 0.18.0, `src/hgraph/`), el mismo cálculo que usa el dashboard. En la E va en la zona
+  clara, antes de las tres lecturas (la rosa queda como está); en la D, después de la puerta y antes de «Salidas y
+  llegadas». El componente toma el tema (`claro` u `oscuro`) y hereda la tipografía: sirve igual a los estilos A,
+  B y C cuando existan. Los 13 básicos están siempre (con «Falta» y cómo traerlos), los ampliados sólo con dato; el
+  anillo de cada punto es punteado si nadie del equipo lo cargó y sólido si lo cargó el equipo, como en la rosa.
+  **No está publicado** (`HGRAPH_PUBLICADO = false`): los nombres, las palabras de los estados, el «sin rojo» y
+  los cortes esperan la validación del Dr. Barbagelata, y los cortes del hGraph no coinciden con las bandas que la
+  paciente ya ve en «Mis datos» del plan. Se ve con `/?hgraph=si`.
 - **Para acordar con Recepción**: (1) registrar la firma médica del informe de la Segunda Opinión y la revisión
   del laboratorio (`resultsInterpreter`); (2) una consulta de «revisión de resultados» con los profesionales del
   equipo de la paciente y la referencia al `DiagnosticReport` en el pedido de turno.

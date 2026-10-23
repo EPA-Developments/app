@@ -87,7 +87,9 @@ import type {
   PuntajeDominio,
   SegundaOpinionHome,
 } from './tipos';
-import { ETAPAS_CKM, NOTA_PDF_DEMORADO, useDatosHomeE } from './useDatosHomeE';
+import { HGraphPaciente, TEXTO_VALORES_SIN_LEER } from './HGraphPaciente';
+import { hgraphVisible } from './hgraph';
+import { ETAPAS_CKM, NOTA_PDF_DEMORADO, notaEstadioCkm, TEXTO_SIN_ESTADIO, useDatosHomeE } from './useDatosHomeE';
 
 const RUTA_CUESTIONARIOS = '/health-record/cuestionarios';
 const RUTA_BIOMARCADORES = '/health-record/biomarkers';
@@ -106,6 +108,7 @@ const ID = {
   laboratorio: 'home-e-laboratorio',
   segundaOpinion: 'home-e-segunda-opinion',
   caminos: 'home-e-caminos',
+  valores: 'home-e-valores',
   lecturas: 'home-e-lecturas',
   le8: 'home-e-le8',
   ckm: 'home-e-ckm',
@@ -158,7 +161,13 @@ export function HomeEstiloE(): JSX.Element {
   const datos = useDatosHomeE();
   const [searchParams] = useSearchParams();
   useFuentesHomeE();
-  return <VistaHomeE datos={datos} modoColor={modoColorDe(searchParams.get('petalos'))} />;
+  return (
+    <VistaHomeE
+      datos={datos}
+      modoColor={modoColorDe(searchParams.get('petalos'))}
+      mostrarHgraph={hgraphVisible(searchParams.get('hgraph'))}
+    />
+  );
 }
 
 // ─── Textos (los formatos de fechas y números están en formato.ts) ───────────────────
@@ -294,10 +303,12 @@ export interface VistaHomeEProps {
   readonly datos: DatosHomeE;
   /** Modo de color de los pétalos; por defecto, el de COLORES_PETALOS (rosa.ts). */
   readonly modoColor?: ModoColorPetalos;
+  /** «Tus valores» (el hGraph): hasta que se publique, sólo con `?hgraph=si` (hgraph.ts). */
+  readonly mostrarHgraph?: boolean;
 }
 
 /** La Home E con los datos ya cargados (presentacional). */
-export function VistaHomeE({ datos, modoColor }: VistaHomeEProps): JSX.Element {
+export function VistaHomeE({ datos, modoColor, mostrarHgraph = false }: VistaHomeEProps): JSX.Element {
   return (
     <div className={classes.home} aria-busy={datos.cargando || undefined}>
       {/* ESCENARIO: vos en el centro, con tus dos anillos. */}
@@ -309,7 +320,6 @@ export function VistaHomeE({ datos, modoColor }: VistaHomeEProps): JSX.Element {
               <p className={classes.chipEtapa}>
                 <IconStack2 size={18} stroke={1.75} aria-hidden="true" />
                 Tu etapa CKM: {datos.ckm.estadio}
-                {datos.ckm.origen === 'estimado' ? ' (estimada)' : ''}
               </p>
             )}
             <TarjetaParaHoy datos={datos} />
@@ -322,6 +332,7 @@ export function VistaHomeE({ datos, modoColor }: VistaHomeEProps): JSX.Element {
       {/* ZONA CLARA */}
       <div className={classes.zonaClara}>
         <TresCaminos datos={datos} />
+        {mostrarHgraph && datos.esPaciente && <TusValores datos={datos} />}
         <TusTresLecturas datos={datos} />
         <SeccionPlan datos={datos} />
         <TuEquipo datos={datos} />
@@ -752,6 +763,42 @@ function TarjetaCamino({ camino }: { readonly camino: Camino }): JSX.Element {
   );
 }
 
+// ─── Zona clara: tus valores ─────────────────────────────────────────────────────────
+
+/**
+ * El hGraph con sus valores: el mismo mapa que ve su equipo en la ficha (hgraph.ts). Va antes de
+ * las tres lecturas porque es lo que las alimenta. La rosa de arriba son sus hábitos; esto, sus
+ * valores.
+ */
+function TusValores({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
+  return (
+    <section aria-labelledby={ID.valores} className={clases(classes.banda, classes.bandaBlanca)}>
+      <div className={classes.contenedor}>
+        <div className={classes.encabezado}>
+          <p className={classes.overline}>Tu mapa de valores</p>
+          <h2 id={ID.valores} className={classes.tituloSeccion}>
+            Tus valores
+          </h2>
+          <p className={classes.bajada}>
+            Tu presión, tu peso, tu azúcar, tu colesterol y tus riñones, en el mismo mapa que mira tu equipo médico.
+          </p>
+        </div>
+        {datos.cargando ? (
+          <Skeleton height={440} radius={20} />
+        ) : (
+          <div className={classes.tarjeta}>
+            {datos.hgraph ? (
+              <HGraphPaciente modelo={datos.hgraph} tema="claro" hoy={datos.hoy} />
+            ) : (
+              <p className={classes.texto}>{TEXTO_VALORES_SIN_LEER}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Zona clara: tus tres lecturas ───────────────────────────────────────────────────
 
 function TusTresLecturas({ datos }: { readonly datos: DatosHomeE }): JSX.Element {
@@ -778,7 +825,7 @@ function TusTresLecturas({ datos }: { readonly datos: DatosHomeE }): JSX.Element
           <>
             <div className={classes.lecturas}>
               <LecturaLe8 datos={datos} />
-              <LecturaCkm ckm={datos.ckm} />
+              <LecturaCkm ckm={datos.ckm} hoy={datos.hoy} />
               <LecturaPrevent datos={datos} />
             </div>
             <TablaHabitos datos={datos} />
@@ -875,7 +922,7 @@ function redondo(puntaje: number | undefined): number | undefined {
   return puntaje === undefined ? undefined : Math.round(Math.min(100, Math.max(0, puntaje)));
 }
 
-function LecturaCkm({ ckm }: { readonly ckm: EstadioCkmHome | undefined }): JSX.Element {
+function LecturaCkm({ ckm, hoy }: { readonly ckm: EstadioCkmHome | undefined; readonly hoy: string }): JSX.Element {
   return (
     <article aria-labelledby={ID.ckm} className={classes.tarjeta}>
       <div className={classes.tarjetaCabecera}>
@@ -904,8 +951,7 @@ function LecturaCkm({ ckm }: { readonly ckm: EstadioCkmHome | undefined }): JSX.
           );
         })}
       </ol>
-      {ckm?.origen === 'estimado' && <p className={classes.nota}>Estimado con tus datos, sin revisión médica.</p>}
-      {!ckm && <p className={classes.nota}>Faltan datos para ubicar tu etapa.</p>}
+      <p className={classes.nota}>{ckm ? notaEstadioCkm(ckm, hoy) : TEXTO_SIN_ESTADIO}</p>
       <Anchor component={Link} to={RUTA_CKM} underline="always" className={classes.link}>
         Entendé tu salud CKM
         <Flecha tamano={18} />

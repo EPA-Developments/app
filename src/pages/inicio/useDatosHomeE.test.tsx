@@ -5,6 +5,7 @@ import type {
   DiagnosticReport,
   DocumentReference,
   Extension,
+  Observation,
   Patient,
   QuestionnaireResponse,
   RiskAssessment,
@@ -34,6 +35,7 @@ import {
   estudioVigente,
   informeFirmado,
   laboratorioHome,
+  notaEstadioCkm,
   preventEstimado,
   preventFirmado,
   proximoTurnoDe,
@@ -309,18 +311,16 @@ function entrada(cambios: Partial<EntradaHomeE> = {}): EntradaHomeE {
     perfil: PACIENTE,
     hoy: HOY,
     tablero: { cargando: false },
-    ckm: { cargando: false },
     cargas: CARGAS,
     ...cambios,
   };
 }
 
 describe('armarDatosHomeE', () => {
-  test('cargando hasta que terminan el efecto y los dos hooks del vendor', () => {
+  test('cargando hasta que terminan el efecto y el tablero del vendor', () => {
     expect(armarDatosHomeE(entrada()).cargando).toBe(false);
     expect(armarDatosHomeE(entrada({ cargas: undefined })).cargando).toBe(true);
     expect(armarDatosHomeE(entrada({ tablero: { cargando: true } })).cargando).toBe(true);
-    expect(armarDatosHomeE(entrada({ ckm: { cargando: true } })).cargando).toBe(true);
   });
 
   test('también espera al PREVENT estimado', () => {
@@ -361,14 +361,35 @@ describe('armarDatosHomeE', () => {
     expect(armarDatosHomeE(entrada({ perfil: { resourceType: 'Patient' } })).nombre).toBeUndefined();
   });
 
-  test('el estadio CKM del plan gana sobre el estimado', () => {
-    const resultado = { stage: 1 as const, criterios: [], faltantes: [], datosSuficientes: true };
-    const ckm = { cargando: false, resultado };
-    const conPlan = entrada({ tablero: { cargando: false, estadio: '3' }, ckm });
-    expect(armarDatosHomeE(conPlan).ckm).toEqual({ estadio: 3, origen: 'plan' });
-    expect(armarDatosHomeE(entrada({ ckm })).ckm).toEqual({ estadio: 1, origen: 'estimado' });
-    // Mientras el tablero no dijo si el plan trae estadio, no se adelanta el estimado.
-    expect(armarDatosHomeE(entrada({ tablero: { cargando: true }, ckm })).ckm).toBeUndefined();
+  test('el estadio CKM es el del equipo; sin él, no hay estadio (nunca una estimación)', () => {
+    const estadioEquipo = { estadio: 3 as const, origen: 'serie' as const, fecha: '2026-09-15', provisorio: true };
+    expect(armarDatosHomeE(entrada({ cargas: { ...CARGAS, estadioEquipo } })).ckm).toEqual({
+      estadio: 3,
+      origen: 'serie',
+      fecha: '2026-09-15',
+      provisorio: true,
+    });
+    expect(armarDatosHomeE(entrada()).ckm).toBeUndefined();
+  });
+
+  test('«Tus valores»: el modelo sale de las lecturas, con el sexo de la paciente', () => {
+    const cintura: Observation = {
+      resourceType: 'Observation',
+      status: 'final',
+      code: { coding: [{ system: 'http://loinc.org', code: '56086-2' }] },
+      effectiveDateTime: '2026-09-15',
+      valueQuantity: { value: 85, unit: 'cm' },
+    };
+    const mujer = entrada({ perfil: { ...PACIENTE, gender: 'female' }, cargas: { ...CARGAS, lecturasCkm: [cintura] } });
+    const varon = entrada({ perfil: { ...PACIENTE, gender: 'male' }, cargas: { ...CARGAS, lecturasCkm: [cintura] } });
+    // 85 cm: fuera del corte de la mujer (80), dentro del del varón (94).
+    expect(armarDatosHomeE(mujer).hgraph?.puntos.find((p) => p.id === 'waist')?.dato?.estado).toBe('moderate');
+    expect(armarDatosHomeE(varon).hgraph?.puntos.find((p) => p.id === 'waist')?.dato?.estado).toBe('healthy');
+    // Sin lecturas (falló o todavía no llegó), no hay modelo; las cargas crudas no pasan a la Home.
+    const sin = armarDatosHomeE(entrada());
+    expect(sin.hgraph).toBeUndefined();
+    expect(armarDatosHomeE(mujer)).not.toHaveProperty('lecturasCkm');
+    expect(armarDatosHomeE(mujer)).not.toHaveProperty('estadioEquipo');
   });
 
   test('un perfil que no es Patient: valores neutros', () => {
@@ -531,10 +552,29 @@ describe('traducciones para la Home', () => {
     expect(preventFirmado({ hf10: 0.031 })).toEqual({ ascvd10: undefined, hf10: 0.031, total30: undefined });
   });
 
-  test('estadioCkmHome: el del plan o el estimado', () => {
-    expect(estadioCkmHome('0', 2)).toEqual({ estadio: 0, origen: 'plan' });
-    expect(estadioCkmHome(undefined, 4)).toEqual({ estadio: 4, origen: 'estimado' });
-    expect(estadioCkmHome(undefined, undefined)).toBeUndefined();
+  test('estadioCkmHome: el del equipo, o ninguno', () => {
+    expect(estadioCkmHome({ estadio: 0, origen: 'validado', fecha: '2026-08-02', provisorio: false })).toEqual({
+      estadio: 0,
+      origen: 'validado',
+      fecha: '2026-08-02',
+      provisorio: false,
+    });
+    expect(estadioCkmHome({ estadio: 4, origen: 'serie', provisorio: false })).toEqual({
+      estadio: 4,
+      origen: 'serie',
+      provisorio: false,
+    });
+    expect(estadioCkmHome(undefined)).toBeUndefined();
+  });
+
+  test('notaEstadioCkm: de dónde sale el estadio, con la fecha si la hay', () => {
+    expect(notaEstadioCkm({ estadio: 2, origen: 'serie', fecha: '2026-09-15', provisorio: false }, HOY)).toBe(
+      'Según tu equipo, con tus datos del 15 de septiembre.'
+    );
+    expect(notaEstadioCkm({ estadio: 2, origen: 'validado', fecha: '2025-12-01', provisorio: false }, HOY)).toBe(
+      'La validó tu médico el 1 de diciembre de 2025.'
+    );
+    expect(notaEstadioCkm({ estadio: 2, origen: 'serie', provisorio: false }, HOY)).toBe('Según tu equipo.');
   });
 
   describe('laboratorioHome', () => {

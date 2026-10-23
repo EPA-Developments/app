@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { categoriaLe8, LE8_DOMINIOS } from '@epa/careplan-menopausia';
 import { MantineProvider } from '@mantine/core';
-import type { Patient, Practitioner } from '@medplum/fhirtypes';
+import type { Observation, Patient, Practitioner } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
 import { act, render, screen, within } from '@testing-library/react';
@@ -14,9 +14,12 @@ import { MARCA } from '../../marca';
 import { simularPantalla } from '../../testing/pantalla';
 import { HomePage } from '../HomePage';
 import { HomeEstiloE, modoColorDe, URL_FUENTES_HOME_E, VistaHomeE } from './HomeEstiloE';
+import { TEXTO_VALORES_SIN_LEER } from './HGraphPaciente';
+import { modeloHgraph } from './hgraph';
 import { paraHoy } from './paraHoy';
 import { COLORES_PETALOS } from './rosa';
 import type { DatosHomeE, ModoColorPetalos, ResultadoLe8 } from './tipos';
+import { TEXTO_SIN_ESTADIO } from './useDatosHomeE';
 
 const HOY = '2026-10-10'; // un sábado
 const ESPERA = { timeout: 10000 };
@@ -72,7 +75,7 @@ function laura(cambios: Partial<DatosHomeE> = {}): DatosHomeE {
     le8: le8(PUNTAJES_HOY, 64),
     le8Inicial: le8(PUNTAJES_DIA0, 58),
     plan: PLAN,
-    ckm: { estadio: 2, origen: 'plan' },
+    ckm: { estadio: 2, origen: 'serie', fecha: '2026-09-15', provisorio: false },
     laboratorio: {
       estado: 'procesado',
       fecha: '2026-10-03',
@@ -100,14 +103,15 @@ function laura(cambios: Partial<DatosHomeE> = {}): DatosHomeE {
 async function mostrar(
   datos: DatosHomeE,
   modoColor?: ModoColorPetalos,
-  medplum: MockClient = new MockClient()
+  medplum: MockClient = new MockClient(),
+  mostrarHgraph = false
 ): Promise<void> {
   await act(async () => {
     render(
       <MemoryRouter>
         <MedplumProvider medplum={medplum}>
           <MantineProvider>
-            <VistaHomeE datos={datos} modoColor={modoColor} />
+            <VistaHomeE datos={datos} modoColor={modoColor} mostrarHgraph={mostrarHgraph} />
           </MantineProvider>
         </MedplumProvider>
       </MemoryRouter>
@@ -421,9 +425,23 @@ describe('VistaHomeE: lo que encontró la revisión', () => {
     expect(screen.queryByText(/está leyendo tu PDF/)).not.toBeInTheDocument();
   });
 
-  test('la etapa CKM estimada se rotula como estimada en el escenario', async () => {
-    await mostrar(laura({ ckm: { estadio: 3, origen: 'estimado' } }));
-    expect(screen.getByText('Tu etapa CKM: 3 (estimada)')).toBeInTheDocument();
+  test('la etapa CKM es la del equipo, y dice de dónde sale', async () => {
+    await mostrar(laura({ ckm: { estadio: 3, origen: 'serie', fecha: '2026-09-15', provisorio: false } }));
+    expect(screen.getByText('Tu etapa CKM: 3')).toBeInTheDocument();
+    expect(screen.queryByText(/estimad/)).not.toBeInTheDocument();
+    expect(screen.getByText('Según tu equipo, con tus datos del 15 de septiembre.')).toBeInTheDocument();
+  });
+
+  test('la etapa que validó un médico lo dice', async () => {
+    await mostrar(laura({ ckm: { estadio: 1, origen: 'validado', fecha: '2026-08-02', provisorio: false } }));
+    expect(screen.getByText('Tu etapa CKM: 1')).toBeInTheDocument();
+    expect(screen.getByText('La validó tu médico el 2 de agosto.')).toBeInTheDocument();
+  });
+
+  test('sin estadio del equipo no hay etapa en el escenario', async () => {
+    await mostrar(laura({ ckm: undefined }));
+    expect(screen.queryByText(/^Tu etapa CKM: /)).not.toBeInTheDocument();
+    expect(screen.getByText(TEXTO_SIN_ESTADIO)).toBeInTheDocument();
   });
 });
 
@@ -510,7 +528,7 @@ describe('VistaHomeE: otros estados', () => {
     await mostrar(laura({ le8: le8([60, undefined, 100]), plan: undefined, ckm: undefined }));
     expect(screen.getAllByText('Falta').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sin dato').length).toBeGreaterThan(0);
-    expect(screen.getByText('Faltan datos para ubicar tu etapa.')).toBeInTheDocument();
+    expect(screen.getByText(TEXTO_SIN_ESTADIO)).toBeInTheDocument();
   });
 
   test('sin novedades, sin plan, sin equipo y sin LE8: estados vacíos con su link', async () => {
@@ -538,7 +556,7 @@ describe('VistaHomeE: otros estados', () => {
         'Tu forma todavía no está completa. Respondé tus cuestionarios de hábitos y la vas a ver crecer.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByText('Faltan datos para ubicar tu etapa.')).toBeInTheDocument();
+    expect(screen.getByText(TEXTO_SIN_ESTADIO)).toBeInTheDocument();
     const seccionPlan = screen.getByRole('region', { name: 'Plan Bienestar · 100 días' });
     expect(hrefDe(/^Empezar mi Plan Bienestar/, seccionPlan)).toBe('/care-plan/plan-100-dias');
     expect(hrefDe(/Escribir a mi equipo/, seccionPlan)).toBe('/Communication/nuevo');
@@ -675,5 +693,41 @@ describe('HomePage elige la Home E', () => {
       );
     });
     expect(document.head.querySelectorAll('link#fuentes-home-e')).toHaveLength(1);
+  });
+});
+
+describe('VistaHomeE: «Tus valores» (el hGraph)', () => {
+  const lectura = (code: string, value: number, unit: string): Observation => ({
+    resourceType: 'Observation',
+    status: 'final',
+    code: { coding: [{ system: 'http://loinc.org', code }] },
+    effectiveDateTime: '2026-09-15',
+    valueQuantity: { value, unit },
+    meta: { author: { reference: 'Patient/laura' } },
+  });
+  const valores = modeloHgraph([lectura('2085-9', 58, 'mg/dL'), lectura('1558-6', 104, 'mg/dL')], {
+    sexo: 'female',
+    hoy: HOY,
+  });
+
+  test('no se publica todavía: sin el pedido, no está', async () => {
+    await mostrar(laura({ hgraph: valores }));
+    expect(screen.queryByRole('region', { name: 'Tus valores' })).not.toBeInTheDocument();
+  });
+
+  test('pedido, va antes de las tres lecturas, con el gráfico y la lista', async () => {
+    await mostrar(laura({ hgraph: valores }), undefined, new MockClient(), true);
+    const seccion = screen.getByRole('region', { name: 'Tus valores' });
+    const lecturas = screen.getByRole('region', { name: 'Tus tres lecturas' });
+    expect(seccion.compareDocumentPosition(lecturas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(seccion).getByRole('img', { name: /^Tus valores: 1 en rango, 1 para mirar\./ })).toBeInTheDocument();
+    expect(within(seccion).getByText('Azúcar en ayunas')).toBeInTheDocument();
+    expect(within(seccion).getAllByText('Falta').length).toBeGreaterThan(0);
+  });
+
+  test('si las lecturas no se pudieron leer, lo dice (y no queda cargando)', async () => {
+    await mostrar(laura({ hgraph: undefined }), undefined, new MockClient(), true);
+    const seccion = screen.getByRole('region', { name: 'Tus valores' });
+    expect(within(seccion).getByText(TEXTO_VALORES_SIN_LEER)).toBeInTheDocument();
   });
 });
