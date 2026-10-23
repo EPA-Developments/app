@@ -939,6 +939,7 @@ function InstrumentoPrevent({ datos }: { readonly datos: DatosHomeE }): JSX.Elem
           ))}
         </dl>
       )}
+      {modelo.calibracion && <p className={classes.nota}>{modelo.calibracion}</p>}
       {modelo.notaFaltantes && <p className={classes.nota}>{modelo.notaFaltantes}</p>}
       <AccionesPrevent modelo={modelo} />
     </article>

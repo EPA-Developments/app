@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Segunda Opinión Médica
 // SPDX-License-Identifier: Apache-2.0
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
+import { LEYENDA_CALIBRACION_PREVENT } from '../../components/PreventScore';
 import { RUTA_DATOS_DE_SALUD } from '../../fhir/datosDeSalud';
 import { fechaHoraTurno, puedeOfrecerTeleconsulta } from './caminos';
 import { ETIQUETA_PREVENT, preventDe, procedenciaPrevent, TITULO_PREVENT } from './prevent';
@@ -395,6 +396,15 @@ describe('preventDe: reglas para todas las procedencias', () => {
       expect(textos).not.toContain('[');
       expect(textos).not.toMatch(/\b(horas|días hábiles|plazo)\b/i);
     }
+  });
+
+  test('todo número de PREVENT va con la leyenda de calibración; sin número, no', () => {
+    for (const datos of CASOS) {
+      const modelo = preventDe(datos, OPCIONES);
+      const conNumero = modelo.riesgos.some((r) => r.porcentaje);
+      expect(modelo.calibracion, modelo.procedencia).toBe(conNumero ? LEYENDA_CALIBRACION_PREVENT : undefined);
+    }
+    expect(LEYENDA_CALIBRACION_PREVENT).toMatch(/Estados Unidos.*Argentina/);
   });
 
   test('«firmado» solo cuando el informe tiene la firma médica registrada', () => {

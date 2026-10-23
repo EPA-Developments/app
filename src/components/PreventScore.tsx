@@ -3,6 +3,9 @@
 //
 // Visual simple del score PREVENT (AHA 2023): tres anillos con las probabilidades de
 // riesgo. La interpretación clínica detallada va en el informe; acá es solo un resumen.
+//
+// El número de PREVENT nunca se muestra sin la leyenda de calibración (como en el dashboard):
+// las ecuaciones salen de cohortes de Estados Unidos y no están verificadas en la Argentina.
 import { Group, RingProgress, Stack, Text } from '@mantine/core';
 import type { JSX } from 'react';
 import type { PreventValores } from '../fhir/som';
@@ -11,6 +14,14 @@ interface Riesgo {
   readonly key: keyof PreventValores;
   readonly label: string;
 }
+
+/**
+ * La leyenda de calibración, en palabras de la paciente: va con todo número de PREVENT (acá y en
+ * las Homes, prevent.ts). En el dashboard: «PREVENT se derivó en cohortes estadounidenses. Su
+ * calibración en población argentina no está verificada».
+ */
+export const LEYENDA_CALIBRACION_PREVENT =
+  'Este cálculo se hizo con datos de personas de Estados Unidos. Todavía no se sabe qué tan exacto es en la Argentina.';
 
 const RIESGOS: readonly Riesgo[] = [
   { key: 'ascvd10', label: 'ASCVD 10 años' },
@@ -67,6 +78,9 @@ export function PreventScore({ valores }: { valores: PreventValores }): JSX.Elem
       </Group>
       <Text size="xs" c="dimmed" ta="center">
         Estimación automática. La interpretación clínica está en el informe.
+      </Text>
+      <Text size="xs" c="dimmed" ta="center">
+        {LEYENDA_CALIBRACION_PREVENT}
       </Text>
     </Stack>
   );

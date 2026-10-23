@@ -7,6 +7,7 @@ import { MockClient } from '@medplum/mock';
 import { MedplumProvider } from '@medplum/react';
 import { act, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
+import { LEYENDA_CALIBRACION_PREVENT } from '../../components/PreventScore';
 import { indexarDefinicionesFhir } from '../../fhir/__fixtures__/glp1';
 import type { PlanBienestar } from '../../fhir/bienestar';
 import { hoyArgentina } from '../../fhir/glp1';
@@ -404,6 +405,7 @@ describe('VistaHomeE: lo que encontró la revisión', () => {
     );
     const prevent = screen.getByRole('article', { name: 'Tu riesgo cardiovascular' });
     expect(within(prevent).getByText('Del informe firmado por tu equipo médico el 5 de octubre.')).toBeInTheDocument();
+    expect(within(prevent).getByText(LEYENDA_CALIBRACION_PREVENT)).toBeInTheDocument();
   });
 
   test('un LE8 parcial dice con cuántos hábitos se calculó, sin banda en la rosa', async () => {
@@ -482,6 +484,7 @@ describe('VistaHomeE: otros estados', () => {
     expect(within(prevent).getByText('8,1%')).toBeInTheDocument();
     expect(within(prevent).getByText('Riesgo intermedio')).toBeInTheDocument();
     expect(within(prevent).getByText('Para afinarlo nos falta: presión arterial.')).toBeInTheDocument();
+    expect(within(prevent).getByText(LEYENDA_CALIBRACION_PREVENT)).toBeInTheDocument();
     expect(within(prevent).queryByText('Del informe firmado por tu equipo médico.')).not.toBeInTheDocument();
     // Oportunidad de venta: un cálculo automático se revisa con un médico.
     expect(within(prevent).getByText('Es un cálculo automático')).toBeInTheDocument();

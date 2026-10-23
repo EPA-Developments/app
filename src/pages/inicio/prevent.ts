@@ -12,6 +12,9 @@
 //  3. `estimado`: la estimación con los datos de la persona, sin revisión médica;
 //  4. `sin-datos`: no alcanzan los datos; se dice qué falta.
 //
+// Con número (las tres primeras), siempre la leyenda de calibración (LEYENDA_CALIBRACION_PREVENT):
+// PREVENT salió de cohortes de Estados Unidos y no está verificado en la Argentina.
+//
 // Y qué hacer con eso (la regla del negocio: quien sube datos recibe una devolución). Un cálculo
 // automático se revisa con un médico: en una teleconsulta con un profesional de nuestro equipo
 // (o en el turno que ya tiene) y con la Segunda Opinión, que trae el riesgo en su informe. No se
@@ -20,6 +23,7 @@
 import { bandaAscvd } from '@epa/careplan-menopausia';
 import type { PreventBanda } from '@epa/careplan-menopausia';
 import { RUTA_ENVIAR_ESTUDIOS } from '../../components/AccionesRapidas';
+import { LEYENDA_CALIBRACION_PREVENT } from '../../components/PreventScore';
 import { RUTA_DATOS_DE_SALUD } from '../../fhir/datosDeSalud';
 import { fechaHoraTurno, pidioSegundaOpinion, puedeOfrecerTeleconsulta, segundaOpinionEnCurso } from './caminos';
 import { fechaCorta, porcentaje } from './formato';
@@ -92,6 +96,8 @@ export interface ModeloPrevent {
   readonly destacado?: string;
   /** De dónde sale y cómo leerlo (en `sin-datos`, qué falta). Va después de `destacado`. */
   readonly texto: string;
+  /** La leyenda de calibración: con todo número (firmado, del informe o estimado); no en `sin-datos`. */
+  readonly calibracion?: string;
   /** Fecha del informe («5 de octubre»), solo en `firmado` e `informe-ia`, si el informe la trae. */
   readonly fecha?: string;
   /** Los tres riesgos, en orden; vacío en `sin-datos`. */
@@ -262,6 +268,7 @@ export function preventDe(datos: DatosHomeE, opciones: OpcionesPrevent): ModeloP
         fecha,
         riesgos,
         faltantes: [],
+        calibracion: LEYENDA_CALIBRACION_PREVENT,
       };
     }
     return {
@@ -271,6 +278,7 @@ export function preventDe(datos: DatosHomeE, opciones: OpcionesPrevent): ModeloP
       fecha,
       riesgos,
       faltantes: [],
+      calibracion: LEYENDA_CALIBRACION_PREVENT,
     };
   }
 
@@ -282,6 +290,7 @@ export function preventDe(datos: DatosHomeE, opciones: OpcionesPrevent): ModeloP
       texto: 'Lo calculamos con la fórmula PREVENT de la AHA. Es orientativo: no es un diagnóstico.',
       riesgos: riesgosDe(datos.preventEstimado),
       faltantes,
+      calibracion: LEYENDA_CALIBRACION_PREVENT,
       notaFaltantes: faltantes.length > 0 ? `Para afinarlo nos falta: ${faltantes.join(', ')}.` : undefined,
     };
   }
