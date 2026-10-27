@@ -1,4 +1,11 @@
-import { EXT_SUFIJO, MOMENTO_LABEL, coincide, type Momento } from '@epa/careplan-menopausia';
+import {
+  CODIGO_TASK_ACCION,
+  EXT_SUFIJO,
+  MOMENTO_LABEL,
+  SYSTEM_ACCIONES,
+  coincide,
+  type Momento,
+} from '@epa/careplan-menopausia';
 import type { Goal, Quantity, Task } from '@medplum/fhirtypes';
 
 function cantidad(quantity: Quantity | undefined): string | undefined {
@@ -35,8 +42,68 @@ export function claveDeTipo(texto: string | undefined): string {
  * normalised so both spell the same group.
  */
 export function tipoDePaso(paso: Task): string | undefined {
+  if (esAccionDeBiblioteca(paso)) return 'accion';
   const texto = paso.businessStatus?.text;
   return texto ? claveDeTipo(texto) : undefined;
+}
+
+/**
+ * An action of the library (Anexo C / C bis) the team activated for the person: a Task
+ * with the action's code in `pb100d-acciones`. Its businessStatus carries the annex and
+ * the pillar (`Anexo C bis · Presión y corazón`), not a step kind, so it is told apart by
+ * its code.
+ */
+export function esAccionDeBiblioteca(paso: Task): boolean {
+  return (paso.code?.coding ?? []).some(
+    (c) =>
+      c.system === SYSTEM_ACCIONES ||
+      coincide(c.system, 'CodeSystem/pb100d-acciones') ||
+      c.code === CODIGO_TASK_ACCION,
+  );
+}
+
+/** Statuses of a step that no longer belongs to the plan (the team cancelled it, or it was an error). */
+const ESTADOS_FUERA_DEL_PLAN = new Set<Task['status']>(['cancelled', 'entered-in-error', 'rejected', 'failed']);
+
+/** Whether a step is still part of the plan: an action the team deactivated is cancelled and not shown. */
+export function pasoVigente(paso: Task): boolean {
+  return !ESTADOS_FUERA_DEL_PLAN.has(paso.status);
+}
+
+export interface ProgresoDelPlan {
+  completados: number;
+  total: number;
+  /** 0 to 100, rounded. */
+  porcentaje: number;
+}
+
+/**
+ * The one progress count of the plan, for the home card and the plan page alike: the
+ * steps the person ticks (library actions included), without the team's evaluations
+ * (she reads them, she does not tick them) and without the steps no longer in the plan.
+ */
+export function progresoDelPlan(pasos: readonly Task[]): ProgresoDelPlan {
+  const marcables = pasos.filter((paso) => pasoVigente(paso) && tipoDePaso(paso) !== 'evaluacion');
+  const completados = marcables.filter((paso) => paso.status === 'completed').length;
+  const total = marcables.length;
+  return { completados, total, porcentaje: total > 0 ? Math.round((completados / total) * 100) : 0 };
+}
+
+/**
+ * The step as the person leaves it when she ticks or unticks it: the status, when it
+ * changed (`lastModified`) and, when ticked, the day she did it (`executionPeriod.end`),
+ * so that the plan's progress over time can be read back. Unticking removes that day.
+ */
+export function pasoMarcado(paso: Task, completado: boolean, ahora: string): Task {
+  const { end: _end, ...periodo } = paso.executionPeriod ?? {};
+  const executionPeriod = completado ? { ...periodo, end: ahora } : periodo;
+  const marcado: Task = { ...paso, status: completado ? 'completed' : 'requested', lastModified: ahora };
+  if (Object.keys(executionPeriod).length > 0) {
+    marcado.executionPeriod = executionPeriod;
+  } else {
+    delete marcado.executionPeriod;
+  }
+  return marcado;
 }
 
 /** Patient-friendly grouping of plan steps, in presentation order. */
@@ -51,6 +118,12 @@ export interface GrupoDePasos {
 }
 
 export const GRUPOS_DE_PASOS: GrupoDePasos[] = [
+  {
+    tipo: 'accion',
+    emoji: '✅',
+    titulo: 'Tus acciones',
+    descripcion: 'Las eligió tu equipo para vos. Marcalas cuando las hagas.',
+  },
   {
     tipo: 'monitoreo',
     emoji: '📋',

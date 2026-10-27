@@ -26,6 +26,7 @@ import type {
 import { useMedplum } from '@medplum/react';
 import { useCallback, useEffect, useState } from 'react';
 import { usePaciente } from '../PlanBienestarContext';
+import { pasoMarcado, pasoVigente, progresoDelPlan } from '../fhirTexto';
 
 export interface UsePlanBienestarOptions {
   /** Patient override; defaults to provider config or the logged-in profile. */
@@ -42,7 +43,10 @@ export interface PlanBienestar {
   cargando: boolean;
   /** Active CarePlan of the program, if the patient has one (either PlanDefinition). */
   carePlan?: CarePlan;
-  /** Action items (FHIR Tasks) of the plan, in plan order. */
+  /**
+   * Action items (FHIR Tasks) of the plan, in plan order: the catalog steps and the library
+   * actions the team activated. Steps no longer in the plan (cancelled) are left out.
+   */
   pasos: Task[];
   /** Goals of the plan. */
   metas: Goal[];
@@ -51,6 +55,7 @@ export interface PlanBienestar {
    * not be loaded. The plan is still shown.
    */
   errorDetalles: boolean;
+  /** Steps the person ticked, out of `total` (`progresoDelPlan`: without the team's evaluations). */
   completados: number;
   total: number;
   /**
@@ -66,7 +71,7 @@ export interface PlanBienestar {
    * not enough data for either.
    */
   empezarPlan: () => Promise<CarePlan | undefined>;
-  /** Marks a step (Task) as completed / back to requested. */
+  /** Marks a step (Task) as completed / back to requested, with the day she did it (`pasoMarcado`). */
   completarPaso: (paso: Task, completado?: boolean) => Promise<void>;
   refrescar: () => void;
 }
@@ -220,7 +225,7 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
       ]);
       if (cancelado) return;
 
-      setPasos(tareas);
+      setPasos(tareas.filter(pasoVigente));
       setMetas(objetivos.filter((objetivo) => objetivo !== undefined));
       setErrorDetalles(objetivos.some((objetivo) => objetivo === undefined));
       setCargando(false);
@@ -308,16 +313,13 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
 
   const completarPaso = useCallback(
     async (paso: Task, completado = true): Promise<void> => {
-      await medplum.updateResource<Task>({
-        ...paso,
-        status: completado ? 'completed' : 'requested',
-      });
+      await medplum.updateResource<Task>(pasoMarcado(paso, completado, new Date().toISOString()));
       refrescar();
     },
     [medplum, refrescar],
   );
 
-  const completados = pasos.filter((paso) => paso.status === 'completed').length;
+  const { completados, total } = progresoDelPlan(pasos);
 
   return {
     cargando,
@@ -326,7 +328,7 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
     metas,
     errorDetalles,
     completados,
-    total: pasos.length,
+    total,
     faltantesParaEmpezar,
     empezarPlan,
     completarPaso,

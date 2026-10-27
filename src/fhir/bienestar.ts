@@ -14,7 +14,7 @@
 import { esCarePlanDelPrograma } from '@epa/careplan-menopausia';
 import type { MedplumClient } from '@medplum/core';
 import { getReferenceString } from '@medplum/core';
-import type { CarePlan, Coverage, Observation, Patient, QuestionnaireResponse } from '@medplum/fhirtypes';
+import type { CarePlan, Coverage, Observation, Patient, QuestionnaireResponse, Task } from '@medplum/fhirtypes';
 import { measurementsMeta } from '../pages/health-record/Measurement.data';
 import { PANEL_SYSTEM } from './biomarkers';
 import { RUTA_CONSENTIMIENTO } from './consentimiento';
@@ -125,6 +125,17 @@ function detectarInicio(carePlans: CarePlan[], coverages: Coverage[]): { inicio?
   return {};
 }
 
+/**
+ * Días en que la persona marcó un paso o una acción de su plan: el `executionPeriod.end` que
+ * escribe el módulo del plan al marcarlo (`pasoMarcado`). Solo las `Task` de la persona
+ * (`intent: plan`) completadas con ese día; las marcadas antes de que se guardara no cuentan.
+ */
+export function fechasDePasosMarcados(tareas: Task[]): Date[] {
+  return tareas
+    .filter((t) => t.intent === 'plan' && t.status === 'completed' && t.executionPeriod?.end)
+    .map((t) => new Date(t.executionPeriod!.end!));
+}
+
 const VITAL_CODES = new Set(
   Object.values(measurementsMeta).flatMap((m) => [m.code, ...m.chartDatasets.map((d) => d.code ?? '')])
 );
@@ -139,7 +150,8 @@ export async function cargarPlanBienestar(
 ): Promise<PlanBienestar | undefined> {
   const ref = getReferenceString(patient);
 
-  const [carePlans, coverages, observations, respuestas, consentimientos, solicitudesTurno, turnos] = await Promise.all([
+  const [carePlans, coverages, observations, respuestas, consentimientos, solicitudesTurno, turnos, pasosMarcados] =
+    await Promise.all([
     medplum.searchResources('CarePlan', `subject=${ref}&_count=20`),
     medplum.searchResources('Coverage', `beneficiary=${ref}&status=active&_count=20`),
     medplum.searchResources('Observation', `patient=${ref}&_sort=-date&_count=200`),
@@ -147,6 +159,7 @@ export async function cargarPlanBienestar(
     medplum.searchResources('DocumentReference', `subject=${ref}&type=${CONSENT_TYPE}&_count=1`),
     cargarMisSolicitudes(medplum, patient).catch(() => []),
     medplum.searchResources('Appointment', `patient=${ref}&_count=1`).catch(() => []),
+    medplum.searchResources('Task', `patient=${ref}&status=completed&_count=200`).catch(() => []),
   ]);
 
   const { inicio, fin } = detectarInicio(carePlans as CarePlan[], coverages as Coverage[]);
@@ -206,10 +219,11 @@ export async function cargarPlanBienestar(
     },
   ];
 
-  // Actividad = cualquier registro que el propio paciente genera.
+  // Actividad = cualquier registro que el propio paciente genera, también marcar un paso del plan.
   const fechasActividad: Date[] = [
     ...obs.map((o) => new Date(o.effectiveDateTime ?? o.meta?.lastUpdated ?? '')),
     ...qrs.map((r) => new Date(r.authored ?? r.meta?.lastUpdated ?? '')),
+    ...fechasDePasosMarcados(pasosMarcados as Task[]),
   ];
   const { semanasActivas, rachaActual } = calcularRachaSemanal(fechasActividad, inicioDate);
 

@@ -87,8 +87,13 @@ export {
   pasoConCuestionario,
   momentosDePaso,
   etiquetasDeMomentos,
+  esAccionDeBiblioteca,
+  pasoVigente,
+  progresoDelPlan,
+  pasoMarcado,
   GRUPOS_DE_PASOS,
   type GrupoDePasos,
+  type ProgresoDelPlan,
 } from './fhirTexto';
 
 // Re-exports handy for seeding and advanced use.

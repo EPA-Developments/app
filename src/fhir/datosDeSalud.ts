@@ -81,6 +81,54 @@ export const CAMPOS_CASA: readonly CampoSalud[] = [
   },
 ];
 
+/** Un renglón de «Cuándo medir»: qué se mide y cada cuánto. */
+export interface CuandoMedir {
+  readonly key: string;
+  readonly que: string;
+  readonly cuando: string;
+}
+
+/**
+ * «Cuándo medir»: sólo el esquema firmado en el Anexo C bis (03/10/2026). Peso R01, cintura
+ * R02 (con su técnica), presión P01 (los 2 días antes de cada control) y P02 (además semanal,
+ * sólo con hipertensión). La presión semanal para todas es una propuesta sin firmar: no va.
+ * La ayuda del campo cintura («A la altura del ombligo», 8280-0) no se toca: la diferencia con
+ * R02 la resuelven los médicos. Si cambia la firma, se cambia acá.
+ */
+export const CUANDO_MEDIR: readonly CuandoMedir[] = [
+  {
+    key: 'peso',
+    que: 'Peso',
+    cuando:
+      'Una vez por semana, siempre el mismo día: a la mañana, después de orinar, con la misma balanza y la misma ropa.',
+  },
+  {
+    key: 'cintura',
+    que: 'Cintura',
+    cuando:
+      'Una vez por semana, siempre el mismo día: de pie, al final de una espiración normal, en el punto medio entre la ' +
+      'última costilla y el hueso de la cadera (cresta ilíaca). Medila dos veces y anotá el promedio.',
+  },
+  {
+    key: 'presion',
+    que: 'Presión',
+    cuando:
+      'Los 2 días antes de cada control: dos tomas a la mañana y dos a la noche, sentada, con 5 minutos de reposo, la ' +
+      'espalda apoyada, el brazo a la altura del corazón y sin hablar. Anotá las cuatro.',
+  },
+  {
+    key: 'presion-hta',
+    que: 'Si tenés hipertensión',
+    cuando:
+      'Además, una vez por semana entre controles, un día fijo: dos tomas a la mañana y dos a la noche, con la misma técnica.',
+  },
+  {
+    key: 'altura',
+    que: 'Altura',
+    cuando: 'Una sola vez alcanza: si ya la cargaste, no hace falta repetirla.',
+  },
+];
+
 export const CAMPOS_LABORATORIO: readonly CampoSalud[] = [
   {
     key: 'colesterolTotal',

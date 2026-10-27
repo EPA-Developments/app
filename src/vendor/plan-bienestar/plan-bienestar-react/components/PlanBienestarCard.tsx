@@ -106,6 +106,7 @@ export function PlanBienestarCard(props: PlanBienestarCardProps): ReactElement |
   }
 
   if (plan.carePlan) {
+    // Misma cuenta que la página del plan (`progresoDelPlan`, vía el hook).
     const progreso = plan.total > 0 ? Math.round((plan.completados / plan.total) * 100) : 0;
     return (
       <Card withBorder radius="lg" p="lg" data-testid="plan-bienestar-card">

@@ -32,6 +32,7 @@ import {
   IconCalculator,
   IconCheck,
   IconCircleCheck,
+  IconClock,
   IconFileUpload,
   IconHourglass,
   IconRuler2,
@@ -45,6 +46,7 @@ import {
   CAMPOS_CASA,
   CAMPOS_LABORATORIO,
   CODIGOS_CASA,
+  CUANDO_MEDIR,
   calcularImc,
   egfrDeLaCreatinina,
   hayDatos,
@@ -142,6 +144,7 @@ export function DatosDeSalud(): JSX.Element {
   const [valores, setValores] = useState<ValoresSalud>({});
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [manual, setManual] = useState(false);
+  const [verCuando, setVerCuando] = useState(false);
   const [fechaLaboratorio, setFechaLaboratorio] = useState(hoyISO());
   const [pdf, setPdf] = useState<File | null>(null);
   const [autorizado, setAutorizado] = useState(false);
@@ -318,6 +321,25 @@ export function DatosDeSalud(): JSX.Element {
           {imc !== undefined && (
             <Calculado>Índice de masa corporal: {imc.toLocaleString('es-AR')} · se calcula solo</Calculado>
           )}
+          {/* El esquema firmado de cada cuánto medir (CUANDO_MEDIR), plegado para no tapar el formulario. */}
+          <Anchor size="sm" onClick={() => setVerCuando((v) => !v)} aria-expanded={verCuando}>
+            <Group gap={6} wrap="nowrap" component="span">
+              <IconClock size={16} />
+              Cuándo medir
+            </Group>
+          </Anchor>
+          <Collapse in={verCuando}>
+            <Stack gap={6} data-testid="cuando-medir">
+              {CUANDO_MEDIR.map((m) => (
+                <Text key={m.key} size="sm">
+                  <Text span fw={600}>
+                    {m.que}:
+                  </Text>{' '}
+                  {m.cuando}
+                </Text>
+              ))}
+            </Stack>
+          </Collapse>
         </Seccion>
 
         <Seccion icono={<IconTestPipe size={18} />} titulo="2. Tu último laboratorio">

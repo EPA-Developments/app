@@ -107,6 +107,21 @@ test('paso 5 de 5: lo de casa con un solo Guardar, y el cierre del Plan Bienesta
   expect(await screen.findByText('tablero de 8 hábitos')).toBeInTheDocument();
 });
 
+test('«Cuándo medir» se despliega con el esquema firmado', async () => {
+  const { medplum } = await paciente();
+  await renderPaso(medplum);
+  const toggle = screen.getByText('Cuándo medir');
+  expect(toggle.closest('[aria-expanded]')).toHaveAttribute('aria-expanded', 'false');
+  await act(async () => fireEvent.click(toggle));
+  expect(toggle.closest('[aria-expanded]')).toHaveAttribute('aria-expanded', 'true');
+  const cuando = screen.getByTestId('cuando-medir');
+  expect(cuando).toHaveTextContent('Peso: Una vez por semana, siempre el mismo día');
+  expect(cuando).toHaveTextContent('Cintura: Una vez por semana, siempre el mismo día');
+  expect(cuando).toHaveTextContent('Presión: Los 2 días antes de cada control');
+  expect(cuando).toHaveTextContent('Si tenés hipertensión: Además, una vez por semana entre controles');
+  expect(cuando).toHaveTextContent('Altura: Una sola vez alcanza');
+});
+
 test('sin datos ni PDF no guarda; los errores se marcan en el campo', async () => {
   const { medplum, patient } = await paciente();
   await renderPaso(medplum);

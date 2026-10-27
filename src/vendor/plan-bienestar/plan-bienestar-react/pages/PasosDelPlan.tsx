@@ -20,7 +20,14 @@ import { useBasePath } from '../PlanBienestarContext';
 import { useBaseline } from '../hooks/useBaseline';
 import { useCobertura } from '../hooks/useCobertura';
 import { usePlanBienestar } from '../hooks/usePlanBienestar';
-import { etiquetasDeMomentos, fraseDeAliento, GRUPOS_DE_PASOS, pasoConCuestionario, tipoDePaso } from '../fhirTexto';
+import {
+  etiquetasDeMomentos,
+  fraseDeAliento,
+  GRUPOS_DE_PASOS,
+  pasoConCuestionario,
+  progresoDelPlan,
+  tipoDePaso,
+} from '../fhirTexto';
 
 export interface PasosDelPlanProps {
   patient?: Patient;
@@ -180,10 +187,8 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
     );
   }
 
-  // Los pasos que la persona marca; los controles del equipo se listan aparte.
-  const marcables = plan.pasos.filter((paso) => tipoDePaso(paso) !== 'evaluacion');
-  const completados = marcables.filter((paso) => paso.status === 'completed').length;
-  const progreso = marcables.length > 0 ? Math.round((completados / marcables.length) * 100) : 0;
+  // Los pasos que la persona marca (acciones incluidas); los controles del equipo se listan aparte.
+  const { completados, total, porcentaje: progreso } = progresoDelPlan(plan.pasos);
   const dia = diaDelPlan(plan.carePlan.period?.start);
 
   return (
@@ -228,7 +233,7 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
           <Stack gap="xs" style={{ flex: 1, minWidth: 220 }}>
             <Group justify="space-between">
               <Text fw={600}>
-                {completados} de {marcables.length} pasos completados
+                {completados} de {total} pasos completados
               </Text>
               <Badge size="lg" variant="light" color="teal" radius="xl">
                 {progreso}%
