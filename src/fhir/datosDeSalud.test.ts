@@ -3,6 +3,8 @@
 import { entradaLe8DesdeFhir } from '@epa/careplan-menopausia';
 import type { Observation, Patient } from '@medplum/fhirtypes';
 import {
+  CAMPOS_CASA,
+  CUANDO_MEDIR,
   calcularImc,
   egfrDeLaCreatinina,
   hayDatos,
@@ -112,5 +114,33 @@ describe('Tus datos de salud — lo que se guarda', () => {
     expect(ultimoValor([...obs, anulado], '29463-7')).toEqual({ valor: 68, fecha: AHORA });
     expect(ultimoValor(obs, '8480-6')).toEqual({ valor: 124, fecha: AHORA });
     expect(ultimoValor(obs, '8302-2')).toBeUndefined();
+  });
+});
+
+describe('Tus datos de salud — cuándo medir (Anexo C bis firmado el 03/10/2026)', () => {
+  const cuando = (key: string): string | undefined => CUANDO_MEDIR.find((m) => m.key === key)?.cuando;
+
+  test('peso (R01) y cintura (R02): una vez por semana, siempre el mismo día', () => {
+    expect(CUANDO_MEDIR.map((m) => m.key)).toEqual(['peso', 'cintura', 'presion', 'presion-hta', 'altura']);
+    expect(cuando('peso')).toMatch(/^Una vez por semana, siempre el mismo día/);
+    expect(cuando('cintura')).toMatch(/^Una vez por semana, siempre el mismo día/);
+    expect(cuando('cintura')).toMatch(/punto medio entre la última costilla y el hueso de la cadera \(cresta ilíaca\)/);
+    expect(cuando('cintura')).toMatch(/dos veces y anotá el promedio/);
+  });
+
+  test('presión: los 2 días antes de cada control (P01) y semanal sólo con hipertensión (P02)', () => {
+    expect(cuando('presion')).toMatch(/^Los 2 días antes de cada control/);
+    expect(cuando('presion')).not.toMatch(/por semana/);
+    expect(CUANDO_MEDIR.find((m) => m.key === 'presion-hta')?.que).toBe('Si tenés hipertensión');
+    expect(cuando('presion-hta')).toMatch(/una vez por semana entre controles/);
+    // La presión semanal para todas no está firmada: ningún otro renglón la pide.
+    expect(
+      CUANDO_MEDIR.filter((m) => /presi|tomas/i.test(m.cuando + m.que) && /semana/.test(m.cuando)).map((m) => m.key)
+    ).toEqual(['presion-hta']);
+  });
+
+  test('altura: una sola vez; y la ayuda del campo cintura no cambia (la decide el equipo médico)', () => {
+    expect(cuando('altura')).toMatch(/^Una sola vez/);
+    expect(CAMPOS_CASA.find((c) => c.key === 'cintura')?.ayuda).toBe('A la altura del ombligo');
   });
 });

@@ -262,7 +262,7 @@ export function TableroLe8(props: TableroLe8Props): ReactElement | null {
               <Medida nombre="Cintura" cambio={respuesta.pesoCintura?.cintura} unidad="cm" />
             </SimpleGrid>
             <Text size="xs" c="dimmed">
-              Pesate un día fijo por semana y medí la cintura una vez al mes, siempre igual: el número que importa es la
+              Pesate y medí la cintura una vez por semana, el mismo día y siempre igual: el número que importa es la
               tendencia. Tu equipo revisa la respuesta contigo al día 100.
             </Text>
           </Stack>
