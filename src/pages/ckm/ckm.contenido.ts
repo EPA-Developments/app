@@ -31,7 +31,7 @@ export const QUE_ES_CKM = {
   titulo: 'Tu corazón, tus riñones y tu metabolismo trabajan en equipo',
   parrafos: [
     'La salud CKM (Cardio-Reno-Metabólica) mira a tu corazón, tus riñones y tu metabolismo como un solo sistema: cuando uno se desequilibra, arrastra a los otros. La presión, el azúcar, el colesterol, el peso y la función renal están conectados.',
-    'La Asociación Americana del Corazón (AHA) publicó en 2026 una guía (Ndumele y col.) que ordena esa conexión en fases o estadios, del 0 al 4. La idea es simple y poderosa: detectar en qué fase estás HOY para actuar ANTES de que aparezca un evento como un infarto o un ACV.',
+    'La Asociación Americana del Corazón (AHA) publicó en 2026 una guía (Ndumele y col.) que ordena esa conexión en fases o estadios, del 0 al 4. La idea es simple y poderosa: detectar en qué fase estás HOY para actuar ANTES de que aparezca una complicación como un infarto o un ACV.',
   ],
 } as const;
 
@@ -47,7 +47,7 @@ export const NOVEDADES_GUIA: { titulo: string; texto: string }[] = [
   },
   {
     titulo: 'Riesgo PREVENT a 10 y 30 años',
-    texto: 'Un score nuevo que estima tu probabilidad de eventos cardiovasculares, incluso a largo plazo, para decidir a tiempo.',
+    texto: 'Un cálculo nuevo que estima tu riesgo cardiovascular, incluso a largo plazo, para decidir a tiempo.',
   },
   {
     titulo: 'Prevención desde temprano',
@@ -106,13 +106,13 @@ export const ESTADIOS: EstadioInfo[] = [
       'Riesgo PREVENT alto, equivalente a enfermedad subclínica.',
     ],
     quePodesHacer:
-      'Momento clave para intensificar el tratamiento y evitar el primer evento. Una segunda opinión experta puede redefinir tu plan por completo.',
+      'Momento clave para intensificar el tratamiento y evitar la primera complicación. Una segunda opinión experta puede redefinir tu plan por completo.',
     color: 'orange',
   },
   {
     estadio: 4,
     nombre: 'Enfermedad cardiovascular establecida',
-    resumen: 'Ya hubo un evento o diagnóstico: infarto, angina, insuficiencia cardíaca, ACV, arritmia o enfermedad arterial.',
+    resumen: 'Ya hay un diagnóstico del corazón o de las arterias: infarto, angina, insuficiencia cardíaca, ACV, arritmia o enfermedad arterial.',
     ejemplos: [
       'Infarto, angioplastia o bypass previos.',
       'Insuficiencia cardíaca o fibrilación auricular.',

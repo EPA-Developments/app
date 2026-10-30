@@ -287,7 +287,7 @@ export const E2_ITEMS = [
     momentos: ['dia-0'],
     responsable: 'cardiologia',
     titulo: 'Meta: menos de 130/80',
-    texto: 'Es el valor que protege corazón, riñón y cerebro. Cada 10 mmHg menos de presión alta reduce los eventos.',
+    texto: 'Es el valor que protege corazón, riñón y cerebro. Cada 10 mmHg menos de presión alta baja el riesgo de complicaciones.',
     racional: 'Meta menor de 130/80 para adultos con síndrome CKM.',
     fuente: `${GUIA}, Sección 5.5.3`,
   }),

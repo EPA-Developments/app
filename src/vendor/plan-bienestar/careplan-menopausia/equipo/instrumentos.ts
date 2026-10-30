@@ -37,7 +37,8 @@ export type ClaveInstrumento =
   | 'reconciliacion'
   | 'ecg'
   | 'claseFuncional'
-  | 'sintomas';
+  | 'sintomas'
+  | 'ecografiaHepatica';
 
 /** Sufijos (bajo cualquier base aceptada) con que el día 0 y los detectores reconocen cada instrumento. */
 export const INSTRUMENTOS_EQUIPO: Record<ClaveInstrumento, string> = {
@@ -49,6 +50,7 @@ export const INSTRUMENTOS_EQUIPO: Record<ClaveInstrumento, string> = {
   ecg: 'Questionnaire/pb100d-ecg-v1',
   claseFuncional: 'Questionnaire/pb100d-clase-funcional-v1',
   sintomas: 'Questionnaire/pb100d-sintomas-cv-v1',
+  ecografiaHepatica: 'Questionnaire/pb100d-ecografia-hepatica-v1',
 };
 
 export const SYSTEM_INSTRUMENTOS = 'https://epa-bienestar.ar/fhir/CodeSystem/pb100d-instrumentos';
@@ -200,6 +202,15 @@ const SINTOMAS_CV: readonly OpcionInstrumento[] = [
   { code: 'claudicacion', display: 'Claudicación: dolor en las piernas al caminar que se va con el reposo' },
   { code: 'neurologico', display: 'Déficit neurológico: pérdida de fuerza, de sensibilidad, del habla o de la visión, aunque se haya ido' },
   { code: 'ninguno', display: 'Ninguno' },
+];
+
+/** Grado de esteatosis hepática que informa la ecografía abdominal (`valor` = grado; sin valor, no evaluable). */
+const ESTEATOSIS_ECOGRAFIA: readonly OpcionInstrumento[] = [
+  { code: 'no', display: 'Sin esteatosis', valor: 0 },
+  { code: 'leve', display: 'Esteatosis leve (grado 1)', valor: 1 },
+  { code: 'moderada', display: 'Esteatosis moderada (grado 2)', valor: 2 },
+  { code: 'severa', display: 'Esteatosis severa (grado 3)', valor: 3 },
+  { code: 'no-evaluable', display: 'No evaluable' },
 ];
 
 function def(d: Omit<InstrumentoDef, 'url' | 'sufijo'>): InstrumentoDef {
@@ -364,6 +375,20 @@ export const INSTRUMENTOS: Readonly<Record<ClaveInstrumento, InstrumentoDef>> = 
       { linkId: 'sintomas-nuevos', text: '¿Alguno es nuevo o empeoró desde el último control?', tipo: 'choice', opciones: SI_NO },
     ],
   }),
+  ecografiaHepatica: def({
+    clave: 'ecografiaHepatica',
+    version: '1.0',
+    nombre: 'PB100DEcografiaHepatica',
+    titulo: 'Ecografía abdominal: hígado graso',
+    descripcion:
+      'Si la ecografía abdominal informa esteatosis hepática (hígado graso) y su grado. Se carga la fecha del estudio: la que cuenta es la del informe. Es el criterio de grasa hepática del fenotipo metabólico de la obesidad.',
+    fuente:
+      'Hoja de firma médica, 30/10/2026 (F2): reemplaza la resonancia del criterio de Smith GI y Klein S, Nature Medicine 2026, Box 1',
+    preguntas: [
+      { linkId: 'eco-fecha', text: 'Fecha de la ecografía, si no es de hoy', tipo: 'date' },
+      { linkId: 'eco-esteatosis', text: 'Esteatosis hepática (hígado graso)', tipo: 'choice', opciones: ESTEATOSIS_ECOGRAFIA, requerida: true },
+    ],
+  }),
 });
 
 export const CLAVES_INSTRUMENTO: readonly ClaveInstrumento[] = Object.freeze([
@@ -375,6 +400,7 @@ export const CLAVES_INSTRUMENTO: readonly ClaveInstrumento[] = Object.freeze([
   'ecg',
   'claseFuncional',
   'sintomas',
+  'ecografiaHepatica',
 ]);
 
 /** `Questionnaire.url|version`, lo que guarda cada respuesta. */
@@ -588,6 +614,18 @@ export function puntuarInstrumento(clave: ClaveInstrumento, r: QuestionnaireResp
         condiciones: [],
       };
     }
+    case 'ecografiaHepatica': {
+      const codigo = codigos(r, 'eco-esteatosis')[0];
+      const grado = valorDe(pregunta(clave, 'eco-esteatosis'), r);
+      const nombre = ESTEATOSIS_ECOGRAFIA.find((o) => o.code === codigo)?.display ?? 'Esteatosis sin cargar';
+      return {
+        clave,
+        ...(grado !== undefined ? { puntaje: grado } : {}),
+        detalle: nombre,
+        positivo: grado !== undefined && grado >= 1,
+        condiciones: [],
+      };
+    }
     case 'sintomas': {
       const respondidos = codigos(r, 'sintomas');
       const marcados = respondidos.filter((c) => c !== 'ninguno');
@@ -621,6 +659,7 @@ export const DATO_DE_REGISTRO: Readonly<Partial<Record<ClaveInstrumento, DatoDeR
   ecg: { conDato: [{ linkId: 'ecg-ritmo' }, { linkId: 'ecg-hallazgos' }], fecha: 'ecg-fecha' },
   claseFuncional: { conDato: [{ linkId: 'nyha' }, { linkId: 'marcha-6m' }, { linkId: 'claudicacion-m' }] },
   sintomas: { conDato: [{ linkId: 'sintomas' }, { linkId: 'sintomas-nuevos', codigos: ['si'] }] },
+  ecografiaHepatica: { conDato: [{ linkId: 'eco-esteatosis' }], fecha: 'eco-fecha' },
 });
 
 /** Si la pregunta tiene alguna respuesta con valor (y, si se piden códigos, con alguno de ellos). */

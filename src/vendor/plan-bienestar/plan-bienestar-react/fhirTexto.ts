@@ -190,7 +190,7 @@ export function momentosDePaso(paso: Task): Momento[] {
   return [...new Set(momentos)];
 }
 
-/** Short labels of a step's moments ("Día 0", "Día 30", "Evento"). */
+/** Short labels of a step's moments ("Día 0", "Día 30", "Novedad de salud"). */
 export function etiquetasDeMomentos(paso: Task): string[] {
   return momentosDePaso(paso).map((momento) => MOMENTO_LABEL[momento]);
 }

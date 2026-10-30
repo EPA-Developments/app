@@ -83,7 +83,7 @@ export const MOMENTO_LABEL: Record<Momento, string> = {
   'dia-60': 'Día 60',
   'dia-100': 'Día 100',
   continuo: 'Continuo',
-  evento: 'Evento',
+  evento: 'Novedad de salud',
   semanal: 'Semanal',
   mensual: 'Mensual',
 };

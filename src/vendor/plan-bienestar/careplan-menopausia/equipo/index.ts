@@ -204,3 +204,14 @@ export {
   type TextoWhatsAppOpciones,
 } from './material.js';
 export { exportarBiblioteca, type BibliotecaExportada } from './exportar-biblioteca.js';
+export {
+  categoriaPeso,
+  fenotipoObesidad,
+  textoFenotipoObesidad,
+  UMBRAL_OBESIDAD_IMC,
+  type CategoriaPeso,
+  type ClaveCriterioFenotipo,
+  type CriterioFenotipo,
+  type FenotipoObesidad,
+  type ResultadoFenotipo,
+} from './fenotipo-obesidad.js';

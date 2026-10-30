@@ -1,6 +1,7 @@
 import type { CkmStage } from '../ckm/types.js';
 import { MOMENTO_LABEL } from '../model/catalogo.js';
 import type { ResultadoDia0 } from './dia0.js';
+import type { ResultadoFenotipo } from './fenotipo-obesidad.js';
 import { ESTADO_PLAN_CLINICO_LABEL, type EstadoPlanClinico } from './inscripcion.js';
 import type { MomentoControl } from './momentos.js';
 
@@ -28,6 +29,7 @@ export type ClaveModulo =
   | 'inscribir'
   | 'dia-0'
   | 'validar-estadio'
+  | 'fenotipo-obesidad'
   | 'condiciones'
   | 'eventos'
   | 'alertas'
@@ -61,6 +63,8 @@ export interface ContextoEquipo {
   inscripcion?: { inscripto: boolean; porAgendar: number };
   /** El plan clínico (`estadoPlanClinico`). */
   planClinico?: { estado: EstadoPlanClinico; dia?: number; pasos?: { total: number; completados: number } };
+  /** El fenotipo metabólico (`fenotipoObesidad`), con cualquier IMC. */
+  fenotipoObesidad?: { resultado: ResultadoFenotipo; parcial?: boolean };
 }
 
 export interface EstadoModulo {
@@ -136,6 +140,22 @@ export const MODULOS_EQUIPO: readonly ModuloEquipo[] = Object.freeze([
         estado: ctx.estadioEstimado !== undefined ? `Estimado ${ctx.estadioEstimado}, sin validar` : 'Faltan datos para estimar',
         pendiente: true,
       };
+    },
+  },
+  {
+    clave: 'fenotipo-obesidad',
+    titulo: 'Fenotipo metabólico',
+    descripcion:
+      'Metabólicamente sana o no sana con los criterios estrictos de Smith y Klein (2026), con cualquier IMC: el IMC solo no alcanza para asumir salud metabólica. Informativo: no cambia el estadío.',
+    roles: ['clinico'],
+    slice: 5,
+    implementado: true,
+    aplica: (ctx) => {
+      const f = ctx.fenotipoObesidad;
+      if (!f) return { visible: true, estado: 'Faltan datos' };
+      const estado =
+        f.resultado === 'sana' ? `Metabólicamente sana${f.parcial ? ' (parcial)' : ''}` : f.resultado === 'no-sana' ? 'Metabólicamente no sana' : 'Faltan datos';
+      return { visible: true, estado };
     },
   },
   {

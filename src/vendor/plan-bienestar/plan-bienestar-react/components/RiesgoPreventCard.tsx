@@ -89,7 +89,7 @@ export function RiesgoPreventCard(props: RiesgoPreventCardProps): ReactElement |
               </Badge>
             </Group>
             <Text size="sm">
-              Probabilidad de un evento cardiovascular en los próximos 10 años. También a 30 años:{' '}
+              Riesgo estimado de un problema del corazón o de las arterias en los próximos 10 años. También a 30 años:{' '}
               <b>{riesgo.resultado.treintaAnios.ascvd}%</b>.
             </Text>
           </Stack>

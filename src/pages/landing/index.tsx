@@ -168,8 +168,8 @@ export function LandingPage(): JSX.Element {
               Corazón, riñones y metabolismo: un solo sistema, cinco fases
             </Title>
             <Text c="gray.7" size="lg" ta="center" maw={720}>
-              La guía AHA 2023 (Ndumele y col.) ordena tu salud cardio-reno-metabólica en estadios 0 a 4 para actuar
-              antes del evento. Conocé tu fase y pedí tu segunda opinión con contexto.
+              La guía AHA 2026 (Ndumele y col.) ordena tu salud cardio-reno-metabólica en estadios 0 a 4 para actuar
+              a tiempo. Conocé tu fase y pedí tu segunda opinión con contexto.
             </Text>
           </Stack>
           <Group justify="center" gap="sm" mb="lg" wrap="wrap">
