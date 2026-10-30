@@ -20,6 +20,7 @@ import { useBasePath } from '../PlanBienestarContext';
 import { useBaseline } from '../hooks/useBaseline';
 import { useCobertura } from '../hooks/useCobertura';
 import { usePlanBienestar } from '../hooks/usePlanBienestar';
+import { TuAvanceCard } from '../components/TuAvanceCard';
 import {
   etiquetasDeMomentos,
   fraseDeAliento,
@@ -153,6 +154,36 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
   const cobertura = useCobertura({ patient: props.patient });
   const baseline = useBaseline({ patient: props.patient });
 
+  const grupoDePasos = (grupo: (typeof GRUPOS_DE_PASOS)[number]): ReactElement | null => {
+    const pasos = plan.pasos.filter((paso) => tipoDePaso(paso) === grupo.tipo);
+    if (pasos.length === 0) return null;
+    return (
+      <Stack key={grupo.tipo} gap="sm">
+        <div>
+          <Group gap="xs">
+            <Text component="span" fz="lg" aria-hidden>
+              {grupo.emoji}
+            </Text>
+            <Title order={4}>{grupo.titulo}</Title>
+          </Group>
+          <Text size="sm" c="dimmed">
+            {grupo.descripcion}
+          </Text>
+        </div>
+        {pasos.map((paso) => (
+          <PasoCard
+            key={paso.id}
+            paso={paso}
+            soloLectura={cobertura.soloLectura}
+            sinCasilla={grupo.soloLectura}
+            onCompletar={(completado) => plan.completarPaso(paso, completado)}
+            onCuestionario={() => navigate(`${basePath}/cuestionario/${paso.id}`)}
+          />
+        ))}
+      </Stack>
+    );
+  };
+
   if (plan.cargando) {
     return (
       <Stack gap="md">
@@ -183,6 +214,10 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
             </Anchor>
           </Stack>
         </Card>
+        {/* Con la inscripción de Recepción el corte del día 1 ya corre, aunque no haya plan clínico. */}
+        <TuAvanceCard {...(props.patient ? { patient: props.patient } : {})} />
+        {/* Las acciones que el equipo activó antes del plan clínico se ven y se marcan igual. */}
+        {GRUPOS_DE_PASOS.filter((grupo) => grupo.tipo === 'accion').map(grupoDePasos)}
       </Stack>
     );
   }
@@ -262,35 +297,9 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
         </Group>
       </Card>
 
-      {GRUPOS_DE_PASOS.map((grupo) => {
-        const pasos = plan.pasos.filter((paso) => tipoDePaso(paso) === grupo.tipo);
-        if (pasos.length === 0) return null;
-        return (
-          <Stack key={grupo.tipo} gap="sm">
-            <div>
-              <Group gap="xs">
-                <Text component="span" fz="lg" aria-hidden>
-                  {grupo.emoji}
-                </Text>
-                <Title order={4}>{grupo.titulo}</Title>
-              </Group>
-              <Text size="sm" c="dimmed">
-                {grupo.descripcion}
-              </Text>
-            </div>
-            {pasos.map((paso) => (
-              <PasoCard
-                key={paso.id}
-                paso={paso}
-                soloLectura={cobertura.soloLectura}
-                sinCasilla={grupo.soloLectura}
-                onCompletar={(completado) => plan.completarPaso(paso, completado)}
-                onCuestionario={() => navigate(`${basePath}/cuestionario/${paso.id}`)}
-              />
-            ))}
-          </Stack>
-        );
-      })}
+      <TuAvanceCard {...(props.patient ? { patient: props.patient } : {})} />
+
+      {GRUPOS_DE_PASOS.map(grupoDePasos)}
     </Stack>
   );
 }

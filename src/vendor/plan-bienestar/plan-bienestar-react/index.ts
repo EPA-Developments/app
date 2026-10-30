@@ -42,6 +42,12 @@ export {
 } from './hooks/usePlanBienestar';
 export { PlanBienestarCard, type PlanBienestarCardProps } from './components/PlanBienestarCard';
 export { EstadioCkmCard, type EstadioCkmCardProps } from './components/EstadioCkmCard';
+export { TuAvanceCard, type TuAvanceCardProps } from './components/TuAvanceCard';
+export {
+  useAvanceDelPlan,
+  type AvanceDelPlanCargado,
+  type UseAvanceDelPlanOptions,
+} from './hooks/useAvanceDelPlan';
 export { useCkm, type Ckm, type UseCkmOptions } from './hooks/useCkm';
 export { RiesgoPreventCard, type RiesgoPreventCardProps } from './components/RiesgoPreventCard';
 export { CargarDatosCkm, type CargarDatosCkmProps } from './components/CargarDatosCkm';
