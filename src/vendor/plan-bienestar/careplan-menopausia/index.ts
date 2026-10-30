@@ -627,4 +627,13 @@ export {
   type PasoMaterial,
   type SeccionMaterial,
   type TextoWhatsAppOpciones,
+  categoriaPeso,
+  fenotipoObesidad,
+  textoFenotipoObesidad,
+  UMBRAL_OBESIDAD_IMC,
+  type CategoriaPeso,
+  type ClaveCriterioFenotipo,
+  type CriterioFenotipo,
+  type FenotipoObesidad,
+  type ResultadoFenotipo,
 } from './equipo/index.js';
