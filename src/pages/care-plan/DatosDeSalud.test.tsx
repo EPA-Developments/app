@@ -115,11 +115,13 @@ test('«Cuándo medir» se despliega con el esquema firmado', async () => {
   await act(async () => fireEvent.click(toggle));
   expect(toggle.closest('[aria-expanded]')).toHaveAttribute('aria-expanded', 'true');
   const cuando = screen.getByTestId('cuando-medir');
-  expect(cuando).toHaveTextContent('Peso: Una vez por semana, siempre el mismo día');
-  expect(cuando).toHaveTextContent('Cintura: Una vez por semana, siempre el mismo día');
-  expect(cuando).toHaveTextContent('Presión: Los 2 días antes de cada control');
-  expect(cuando).toHaveTextContent('Si tenés hipertensión: Además, una vez por semana entre controles');
-  expect(cuando).toHaveTextContent('Altura: Una sola vez alcanza');
+  expect(cuando).toHaveTextContent('Tu día de mediciones: una vez por semana, siempre el mismo día.');
+  expect(cuando).toHaveTextContent('Presión: dos tomas a la mañana y dos a la noche');
+  expect(cuando).toHaveTextContent('Peso: a la mañana, después de orinar');
+  expect(cuando).toHaveTextContent('Cintura: de pie, al final de una espiración normal');
+  expect(cuando).toHaveTextContent('Los 2 días antes de cada control: presión, con la misma rutina.');
+  expect(cuando).toHaveTextContent('Altura: una sola vez alcanza.');
+  expect(cuando).not.toHaveTextContent('Si tenés hipertensión');
 });
 
 test('sin datos ni PDF no guarda; los errores se marcan en el campo', async () => {

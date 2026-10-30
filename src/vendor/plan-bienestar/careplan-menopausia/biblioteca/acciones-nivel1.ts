@@ -6,7 +6,7 @@ import { BIBLIOTECA_C_BIS } from './acciones-c-bis.js';
  * 40 acciones atómicas, cuantitativas y graduables para el Plan Bienestar
  * 100 Días. Población original: mujeres en peri/menopausia con resistencia a la
  * insulina, con o sin tratamiento GLP-1. El Anexo C bis (`acciones-c-bis.ts`)
- * suma 40 acciones neutras para adultos de 30 a 79 años por estadío CKM.
+ * suma 39 acciones neutras para adultos de 30 a 79 años por estadío CKM.
  *
  * POR QUÉ ESTE ARCHIVO EXISTE
  * ---------------------------
@@ -174,7 +174,7 @@ export type CodigoAccion =
   | 'A11' | 'A12' | 'A13' | 'A14' | 'A15' | 'A16' | 'A17'
   | 'S11' | 'S12'
   | 'C11' | 'C12' | 'C13' | 'C14' | 'C15'
-  | 'P01' | 'P02' | 'P03' | 'P04' | 'P05' | 'P06'
+  | 'P01' | 'P03' | 'P04' | 'P05' | 'P06'
   | 'M01' | 'M02' | 'M03' | 'M04' | 'M05' | 'M06' | 'M07' | 'M08'
   | 'T01' | 'T02' | 'T03'
   | 'R01' | 'R02';
@@ -673,7 +673,7 @@ export const BIBLIOTECA_NIVEL_1: readonly Accion[] = Object.freeze(
   [...NUTRICION, ...MOVIMIENTO, ...SUENO, ...CONDUCTA].map((accion) => Object.freeze({ ...accion, anexo: 'C' as const })),
 );
 
-/** Anexo C más Anexo C bis: las 80 acciones. Es la biblioteca por defecto de la selección. */
+/** Anexo C más Anexo C bis: las 79 acciones. Es la biblioteca por defecto de la selección. */
 export const BIBLIOTECA_AMPLIADA: readonly Accion[] = Object.freeze([...BIBLIOTECA_NIVEL_1, ...BIBLIOTECA_C_BIS]);
 
 const POR_CODIGO = new Map<string, Accion>(BIBLIOTECA_AMPLIADA.map((a) => [a.codigo, a]));
