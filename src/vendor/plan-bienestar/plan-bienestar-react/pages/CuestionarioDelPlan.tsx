@@ -5,6 +5,7 @@ import { Card, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState, type ReactElement } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useBasePath, usePaciente } from '../PlanBienestarContext';
+import { pasoMarcado } from '../fhirTexto';
 
 export interface CuestionarioDelPlanProps {
   patient?: Patient;
@@ -57,9 +58,9 @@ export function CuestionarioDelPlan(props: CuestionarioDelPlanProps): ReactEleme
       subject: paciente ? createReference(paciente) : respuesta.subject,
     });
     if (paso) {
+      // Con la fecha en que lo marcó, como al tildarlo (cuenta para «Tu avance»).
       await medplum.updateResource<Task>({
-        ...paso,
-        status: 'completed',
+        ...pasoMarcado(paso, true, new Date().toISOString()),
         output: [
           {
             type: { text: 'QuestionnaireResponse' },

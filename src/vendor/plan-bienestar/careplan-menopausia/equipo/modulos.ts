@@ -35,6 +35,7 @@ export type ClaveModulo =
   | 'alertas'
   | 'acciones'
   | 'seguimiento'
+  | 'avance'
   | 'material';
 
 /** Lo que el registro necesita saber de la persona para decidir qué módulos aplican. */
@@ -65,6 +66,8 @@ export interface ContextoEquipo {
   planClinico?: { estado: EstadoPlanClinico; dia?: number; pasos?: { total: number; completados: number } };
   /** El fenotipo metabólico (`fenotipoObesidad`), con cualquier IMC. */
   fenotipoObesidad?: { resultado: ResultadoFenotipo; parcial?: boolean };
+  /** «Tu avance» (`avanceDelPlan`): el próximo corte, o el último cerrado. */
+  avance?: { inscripto: boolean; corte?: { dia: number; puntaje: number; estado: 'cerrado' | 'en-curso' } };
 }
 
 export interface EstadoModulo {
@@ -232,6 +235,24 @@ export const MODULOS_EQUIPO: readonly ModuloEquipo[] = Object.freeze([
       if (s.pendientes > 0) partes.push(`${s.pendientes} por cargar`);
       if (s.respuesta) partes.push(s.respuesta);
       return { visible: ctx.tienePlan, estado: partes.join(' · '), ...(s.pendientes > 0 ? { pendiente: true } : {}) };
+    },
+  },
+  {
+    clave: 'avance',
+    titulo: 'Avance en el plan',
+    descripcion:
+      'Cuánto del plan hizo la persona en sus tres consultas (días 1, 50 y 100): un puntaje de 0 a 100 con su detalle. No mide sus valores.',
+    roles: ['operativo', 'clinico'],
+    slice: 5,
+    implementado: true,
+    aplica: (ctx) => {
+      const a = ctx.avance;
+      if (!a?.inscripto) return { visible: false };
+      if (!a.corte) return { visible: true };
+      return {
+        visible: true,
+        estado: `Corte del día ${a.corte.dia} · ${a.corte.puntaje} de 100${a.corte.estado === 'en-curso' ? ' hasta ahora' : ''}`,
+      };
     },
   },
   {

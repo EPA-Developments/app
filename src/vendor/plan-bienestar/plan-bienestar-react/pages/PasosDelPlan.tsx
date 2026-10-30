@@ -20,6 +20,7 @@ import { useBasePath } from '../PlanBienestarContext';
 import { useBaseline } from '../hooks/useBaseline';
 import { useCobertura } from '../hooks/useCobertura';
 import { usePlanBienestar } from '../hooks/usePlanBienestar';
+import { TuAvanceCard } from '../components/TuAvanceCard';
 import {
   etiquetasDeMomentos,
   fraseDeAliento,
@@ -183,6 +184,8 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
             </Anchor>
           </Stack>
         </Card>
+        {/* Con la inscripción de Recepción el corte del día 1 ya corre, aunque no haya plan clínico. */}
+        <TuAvanceCard {...(props.patient ? { patient: props.patient } : {})} />
       </Stack>
     );
   }
@@ -261,6 +264,8 @@ export function PasosDelPlan(props: PasosDelPlanProps): ReactElement {
           </Stack>
         </Group>
       </Card>
+
+      <TuAvanceCard {...(props.patient ? { patient: props.patient } : {})} />
 
       {GRUPOS_DE_PASOS.map((grupo) => {
         const pasos = plan.pasos.filter((paso) => tipoDePaso(paso) === grupo.tipo);

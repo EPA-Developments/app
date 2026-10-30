@@ -1,7 +1,9 @@
 import {
+  CODIGO_TASK_ACCION,
   MENOPAUSE_QUESTIONNAIRE_URL,
   PLAN_DEFINITION_SUFIJO_MENOPAUSIA,
   PLAN_DEFINITION_URL,
+  SYSTEM,
   buildMenopauseCarePlanBundle,
   buildPb100dCarePlanBundle,
   coincide,
@@ -9,6 +11,7 @@ import {
   estadioValidado,
   etapaRegistrada,
   perfilDeLaPersona,
+  unirPorId,
   type PerfilCatalogo,
 } from '@epa/careplan-menopausia';
 import { createReference, getReferenceString } from '@medplum/core';
@@ -211,10 +214,18 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
 
       // Tolerante a referencias rotas: un Goal/Task borrado en el servidor no
       // puede tirar abajo la pagina entera (mostramos lo que si existe).
-      const [tareas, objetivos] = await Promise.all([
+      // Las acciones de la biblioteca se buscan además por la persona: las que el equipo
+      // activó antes de que hubiera plan clínico (o con otro plan) no tienen este `basedOn`.
+      const sujeto = plan.subject?.reference;
+      const [tareas, acciones, objetivos] = await Promise.all([
         medplum
           .searchResources('Task', { 'based-on': getReferenceString(plan), _count: '200' })
           .catch(() => [] as Task[]),
+        sujeto
+          ? medplum
+              .searchResources('Task', { patient: sujeto, code: `${SYSTEM.epa}|${CODIGO_TASK_ACCION}`, _count: '200' })
+              .catch(() => [] as Task[])
+          : Promise.resolve([] as Task[]),
         Promise.all(
           (plan.goal ?? [])
             .filter((referencia) => referencia.reference)
@@ -225,7 +236,7 @@ export function usePlanBienestar(options: UsePlanBienestarOptions = {}): PlanBie
       ]);
       if (cancelado) return;
 
-      setPasos(tareas.filter(pasoVigente));
+      setPasos(unirPorId(tareas, acciones).filter(pasoVigente));
       setMetas(objetivos.filter((objetivo) => objetivo !== undefined));
       setErrorDetalles(objetivos.some((objetivo) => objetivo === undefined));
       setCargando(false);
