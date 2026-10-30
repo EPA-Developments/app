@@ -69,7 +69,8 @@ export function useAvanceDelPlan(options: UseAvanceDelPlanOptions = {}): AvanceD
       const buscar = <T,>(tipo: string, params: Record<string, string>): Promise<T[]> =>
         (medplum.searchResources(tipo as never, params) as Promise<T[]>).catch(() => [] as T[]);
       const [carePlans, consultas, pasos, lecturas, estadios, mediciones, questionnaireResponses, conditions] = await Promise.all([
-        buscar<CarePlan>('CarePlan', { subject: ref, status: 'active', _count: '50' }),
+        // Todos: la inscripción activa y los planes clínicos, también los cerrados (anclan los cortes cerrados).
+        buscar<CarePlan>('CarePlan', { subject: ref, _count: '50' }),
         buscar<Task>('Task', { patient: ref, code: 'agendar-consulta-pb100d', _count: '20' }),
         buscar<Task>('Task', { patient: ref, intent: 'plan', _count: '500' }),
         buscar<Observation>('Observation', { subject: ref, _sort: '-date', _count: '200' }),

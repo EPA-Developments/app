@@ -166,7 +166,7 @@ export interface AvanceDelPlan {
 
 export interface ContextoAvance {
   patient?: Patient;
-  /** Los CarePlan activos de la persona: la inscripción y el plan clínico. */
+  /** Los CarePlan de la persona: la inscripción (activa) y los planes clínicos (también los cerrados). */
   carePlans?: CarePlan[];
   /** Todas sus Tasks: las consultas de Recepción, los pasos del plan y las acciones. */
   tasks?: Task[];
@@ -278,6 +278,9 @@ function diaDeAlta(t: Task): string | undefined {
 
 const TURNO_CAIDO = new Set<Appointment['status']>(['cancelled', 'noshow', 'entered-in-error']);
 
+/** Un plan clínico que corrió: el activo, uno cerrado al terminar o uno en pausa. */
+const PLAN_CLINICO_VIGENTE = new Set<CarePlan['status']>(['active', 'completed', 'on-hold']);
+
 function actividadDeConsulta(carePlan: CarePlan | undefined, clave: ClaveCorte): CarePlanActivity | undefined {
   return (carePlan?.activity ?? []).find((a) =>
     (a.detail?.code?.coding ?? []).some((k) => coincide(k.system, SYS_SUFIJO.consultaPlanBienestar) && k.code === clave),
@@ -328,11 +331,14 @@ export function avanceDelPlan(ctx: ContextoAvance): AvanceDelPlan {
 
   // El día 0 del plan clínico ancla los controles de los cuestionarios, como en el
   // seguimiento del equipo; sin plan clínico, el día 1 de la inscripción (es la misma fecha
-  // cuando el plan clínico arranca en la consulta inicial).
-  const clinico = carePlans
-    .filter((cp) => cp.status === 'active' && !esCarePlanDeInscripcion(cp) && esCarePlanDelPrograma(cp.instantiatesCanonical))
-    .sort((a, b) => (b.period?.start ?? b.created ?? '').localeCompare(a.period?.start ?? a.created ?? ''))[0];
-  const ancla = diaEnArgentina(clinico?.period?.start ?? clinico?.created) ?? inicio;
+  // cuando el plan clínico arranca en la consulta inicial). Cada corte usa el plan clínico
+  // que ya había empezado hasta su fecha: uno que empieza (o se cierra) después no lo cambia.
+  const iniciosClinicos = carePlans
+    .filter((cp) => PLAN_CLINICO_VIGENTE.has(cp.status) && !esCarePlanDeInscripcion(cp) && esCarePlanDelPrograma(cp.instantiatesCanonical))
+    .map((cp) => diaEnArgentina(cp.period?.start ?? cp.created))
+    .filter((d): d is string => d !== undefined)
+    .sort();
+  const anclaHasta = (hasta: string): string => [...iniciosClinicos].reverse().find((d) => d <= hasta) ?? inicio;
 
   const observations = (ctx.observations ?? []).filter((o) => !ESTADOS_OBS_FUERA.has(o.status));
   const respuestas = (ctx.questionnaireResponses ?? []).filter((r) => r.status !== 'entered-in-error');
@@ -355,6 +361,12 @@ export function avanceDelPlan(ctx: ContextoAvance): AvanceDelPlan {
       const fecha = diaEnArgentina(r.authored);
       return registradoHasta(r, hasta) && (fecha === undefined || fecha <= hasta);
     });
+    // Las condiciones estiman el estadío, y el estadío dice qué cuestionarios se piden.
+    const condicionesHasta = (ctx.conditions ?? []).filter((c) => {
+      const fecha = diaEnArgentina(c.recordedDate);
+      return registradoHasta(c, hasta) && (fecha === undefined || fecha <= hasta);
+    });
+    const ancla = anclaHasta(hasta);
 
     const componentes: ComponenteAvance[] = [];
 
@@ -397,7 +409,7 @@ export function avanceDelPlan(ctx: ContextoAvance): AvanceDelPlan {
         {
           ...(ctx.patient ? { patient: ctx.patient } : {}),
           observations: obsHasta,
-          conditions: ctx.conditions ?? [],
+          conditions: condicionesHasta,
           questionnaireResponses: respuestasHasta,
           medicationRequests: ctx.medicationRequests ?? [],
           hoy: hasta,
