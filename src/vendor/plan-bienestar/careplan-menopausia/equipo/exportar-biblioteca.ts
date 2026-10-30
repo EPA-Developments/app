@@ -20,7 +20,7 @@ export interface BibliotecaExportada {
   /** Estado de firma de cada anexo (`ANEXOS`). */
   firmas: Readonly<Record<Anexo, EstadoAnexo>>;
   pilares: Readonly<Record<Pilar, { nombre: string; emoji: string }>>;
-  /** Las 80 acciones, tal como están en la biblioteca. */
+  /** Las 79 acciones, tal como están en la biblioteca. */
   acciones: readonly Accion[];
   exclusionesMutuas: readonly (readonly [string, string])[];
   /** La escalera, con sus puertas de seguridad. */

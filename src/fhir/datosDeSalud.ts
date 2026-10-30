@@ -77,7 +77,9 @@ export const CAMPOS_CASA: readonly CampoSalud[] = [
     loinc: loinc('8280-0', 'Waist Circumference at umbilicus by Tape measure'),
     min: 40,
     max: 200,
-    ayuda: 'A la altura del ombligo',
+    // Técnica de R02 (B5, firmada el 30/10/2026). El código 8280-0 dice «a la altura del ombligo»: el
+    // cambio de código se decide aparte.
+    ayuda: 'En el punto medio entre la última costilla y el hueso de la cadera',
   },
 ];
 
@@ -89,43 +91,42 @@ export interface CuandoMedir {
 }
 
 /**
- * «Cuándo medir»: sólo el esquema firmado en el Anexo C bis (03/10/2026). Peso R01, cintura
- * R02 (con su técnica), presión P01 (los 2 días antes de cada control) y P02 (además semanal,
- * sólo con hipertensión). La presión semanal para todas es una propuesta sin firmar: no va.
- * La ayuda del campo cintura («A la altura del ombligo», 8280-0) no se toca: la diferencia con
- * R02 la resuelven los médicos. Si cambia la firma, se cambia acá.
+ * «Cuándo medir»: el esquema firmado el 30/10/2026 (hoja de firma médica, B3 y B4). Un solo
+ * «día de mediciones» por semana con presión (P01), peso (R01) y cintura (R02, con su técnica),
+ * y además la presión los 2 días antes de cada control. P02 quedó incluida en P01. Se muestra
+ * debajo de `CUANDO_MEDIR_INTRO`, con el texto firmado. Si cambia la firma, se cambia acá.
  */
+export const CUANDO_MEDIR_INTRO = 'Tu día de mediciones: una vez por semana, siempre el mismo día.';
+
 export const CUANDO_MEDIR: readonly CuandoMedir[] = [
+  {
+    key: 'presion',
+    que: 'Presión',
+    cuando:
+      'dos tomas a la mañana y dos a la noche, sentada, con 5 minutos de reposo, la espalda apoyada, el brazo a la ' +
+      'altura del corazón y sin hablar. Anotá las cuatro.',
+  },
   {
     key: 'peso',
     que: 'Peso',
-    cuando:
-      'Una vez por semana, siempre el mismo día: a la mañana, después de orinar, con la misma balanza y la misma ropa.',
+    cuando: 'a la mañana, después de orinar, con la misma balanza y la misma ropa.',
   },
   {
     key: 'cintura',
     que: 'Cintura',
     cuando:
-      'Una vez por semana, siempre el mismo día: de pie, al final de una espiración normal, en el punto medio entre la ' +
-      'última costilla y el hueso de la cadera (cresta ilíaca). Medila dos veces y anotá el promedio.',
+      'de pie, al final de una espiración normal, en el punto medio entre la última costilla y el hueso de la cadera. ' +
+      'Medila dos veces y anotá el promedio.',
   },
   {
-    key: 'presion',
-    que: 'Presión',
-    cuando:
-      'Los 2 días antes de cada control: dos tomas a la mañana y dos a la noche, sentada, con 5 minutos de reposo, la ' +
-      'espalda apoyada, el brazo a la altura del corazón y sin hablar. Anotá las cuatro.',
-  },
-  {
-    key: 'presion-hta',
-    que: 'Si tenés hipertensión',
-    cuando:
-      'Además, una vez por semana entre controles, un día fijo: dos tomas a la mañana y dos a la noche, con la misma técnica.',
+    key: 'presion-control',
+    que: 'Los 2 días antes de cada control',
+    cuando: 'presión, con la misma rutina. Si tu día de mediciones cae en esos días, cuenta como uno.',
   },
   {
     key: 'altura',
     que: 'Altura',
-    cuando: 'Una sola vez alcanza: si ya la cargaste, no hace falta repetirla.',
+    cuando: 'una sola vez alcanza.',
   },
 ];
 

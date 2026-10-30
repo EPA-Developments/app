@@ -326,29 +326,6 @@ export {
   type ValorFechado,
 } from './respuesta/index.js';
 
-// MDPA — monitoreo domiciliario de presión arterial ---------------------------
-export {
-  MDPA_DIAS_ALTOS_PARA_REVISION,
-  MDPA_DIAS_DE_SERIE,
-  MDPA_OBJETIVO_CLINICO,
-  MDPA_OBJETIVO_IDEAL,
-  MDPA_PASOS_MEDICION,
-  MDPA_TOMAS_DESCARTADAS,
-  MDPA_TOMAS_POR_DIA,
-  MDPA_UMBRAL_DIA,
-  MDPA_UMBRAL_PROMEDIO,
-  MDPA_UMBRAL_URGENTE,
-  controlesPorDia,
-  evaluarMdpa,
-  mensajeParaPaciente,
-  type DiaMdpa,
-  type NivelAviso,
-  type PasoMedicion,
-  type PresionObjetivo,
-  type ResultadoMdpa,
-  type TomaPresion,
-} from './mdpa/index.js';
-
 // Biblioteca cerrada de acciones (Anexo C + Anexo C bis) + escalera de niveles --
 export {
   BIBLIOTECA_AMPLIADA,

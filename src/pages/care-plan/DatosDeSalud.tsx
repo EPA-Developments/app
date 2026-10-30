@@ -47,6 +47,7 @@ import {
   CAMPOS_LABORATORIO,
   CODIGOS_CASA,
   CUANDO_MEDIR,
+  CUANDO_MEDIR_INTRO,
   calcularImc,
   egfrDeLaCreatinina,
   hayDatos,
@@ -330,6 +331,7 @@ export function DatosDeSalud(): JSX.Element {
           </Anchor>
           <Collapse in={verCuando}>
             <Stack gap={6} data-testid="cuando-medir">
+              <Text size="sm">{CUANDO_MEDIR_INTRO}</Text>
               {CUANDO_MEDIR.map((m) => (
                 <Text key={m.key} size="sm">
                   <Text span fw={600}>

@@ -3,7 +3,7 @@ import type { Accion } from './acciones-nivel1.js';
 /**
  * Anexo C bis — Biblioteca de acciones ampliada.
  *
- * 40 acciones neutras (ambos sexos, 30 a 79 años) que operacionalizan los ítems
+ * 39 acciones neutras (ambos sexos, 30 a 79 años) que operacionalizan los ítems
  * de conducta y monitoreo de los catálogos firmados el 27/09/2026 (estadíos CKM
  * 0 a 4). Cubren lo que el Anexo C, escrito para la mujer en menopausia, no
  * tenía: nicotina, presión en casa, sodio, alcohol, apnea, días de enfermedad
@@ -35,7 +35,15 @@ import type { Accion } from './acciones-nivel1.js';
  * el título dice "medicamentos" en vez de "remedios". También aprobaron que las seis
  * acciones de piso pélvico y sofocos del Anexo C requieran menopausia y los pares
  * excluyentes. Hoja de firma: `docs/anexo-c-bis.md`.
+ *
+ * Firma del 30/10/2026 (hoja de firma médica, B3 a B6): P01 suma un día fijo por
+ * semana y se activa desde el estadío 0; P02 (presión semanal con HTA) queda
+ * incluida en P01 y se retira; R01 y R02 son para todas, el mismo «día de
+ * mediciones».
  */
+
+/** Para todas las personas del plan con estadío CKM validado (firma del 30/10/2026). */
+const TODOS_LOS_ESTADIOS = ['estadio:0', 'estadio:1', 'estadio:2', 'estadio:3', 'estadio:4'] as const;
 
 const N: Accion[] = [
   {
@@ -406,32 +414,19 @@ const P: Accion[] = [
     codigo: 'P01',
     anexo: 'C-bis',
     pilar: 'presion-corazon',
-    nombre: 'Presión en casa los 2 días antes de cada control',
+    nombre: 'Presión en casa: un día por semana y los 2 días antes de cada control',
     practica:
-      'Los 2 días previos al control: dos tomas a la mañana y dos a la noche, sentado, 5 minutos de reposo, espalda ' +
-      'apoyada, brazo a la altura del corazón, sin hablar; anotar las cuatro en la app.',
+      'Un día fijo por semana, el mismo en que te pesás y te medís la cintura: dos tomas a la mañana y dos a la ' +
+      'noche, sentado, 5 minutos de reposo, espalda apoyada, brazo a la altura del corazón, sin hablar. Además, los 2 ' +
+      'días previos a cada control, la misma rutina. Anotar todas las tomas en la app.',
     racional:
-      'AMPA antes del control: detecta HTA incipiente (paso a estadío 2), de bata blanca y enmascarada. La guía HTA ' +
-      '2025 promedia 7 días; el esquema de 2 días lo fijó la firma del 03/10/2026.',
-    activadaPor: ['estadio:1', 'estadio:2', 'estadio:3', 'estadio:4', 'condicion:pa-elevada'],
+      'AMPA semanal y antes del control: detecta HTA incipiente (paso a estadío 2), de bata blanca y enmascarada, y ' +
+      'sigue la PA bajo tratamiento; el promedio ≥ 130/80 al día 30, 60 o 100 dispara la alerta de intensificación al ' +
+      'médico (E2-HTA-MED-02). La guía HTA 2025 promedia 7 días; el día semanal más los 2 días antes de cada control ' +
+      'los fijó la firma del 30/10/2026, que incluyó en P01 a la antigua P02.',
+    activadaPor: [...TODOS_LOS_ESTADIOS, 'condicion:pa-elevada'],
     generaRegistro: true,
     items: ['E1-PA-01', 'E2-HTA-01'],
-  },
-  {
-    codigo: 'P02',
-    anexo: 'C-bis',
-    pilar: 'presion-corazon',
-    nombre: 'Presión en casa una vez por semana',
-    practica:
-      'Entre controles, un día fijo por semana: dos tomas a la mañana y dos a la noche, con la misma técnica, anotadas ' +
-      'en la app.',
-    racional:
-      'Seguimiento de la PA bajo tratamiento (E2-EVAL-03); el promedio ≥ 130/80 al día 30, 60 o 100 dispara la alerta ' +
-      'de intensificación al médico (E2-HTA-MED-02).',
-    activadaPor: ['condicion:hta', 'condicion:toma-antihipertensivo'],
-    requiere: ['condicion:hta'],
-    generaRegistro: true,
-    items: ['E2-HTA-01'],
   },
   {
     codigo: 'P03',
@@ -692,12 +687,13 @@ const R: Accion[] = [
     pilar: 'medicion-registro',
     nombre: 'Pesate una vez por semana',
     practica:
-      'Pesarse un día fijo por semana, a la mañana, después de orinar, con la misma balanza y la misma ropa, y ' +
-      'anotarlo en la app.',
+      'Pesarse un día fijo por semana, el mismo de la presión y la cintura, a la mañana, después de orinar, con la ' +
+      'misma balanza y la misma ropa, y anotarlo en la app.',
     racional:
       'Automonitoreo del peso para la respuesta a 100 días (≥ 5 % / 3 a < 5 % / < 3 %); el protocolo único evita ' +
-      'ruido. Con pre-IC o IC va P05, que suma el aviso ante síntomas de congestión.',
-    activadaPor: ['condicion:exceso-adiposidad', 'etapa:preparacion', 'etapa:accion'],
+      'ruido. Con pre-IC o IC va P05, que suma el aviso ante síntomas de congestión. Para todas desde la firma del ' +
+      '30/10/2026 (cualquier estadío): un solo «día de mediciones» con la presión y la cintura.',
+    activadaPor: [...TODOS_LOS_ESTADIOS, 'condicion:exceso-adiposidad', 'etapa:preparacion', 'etapa:accion'],
     generaRegistro: true,
     items: ['E1-PESO-03', 'E0-PESO-02'],
   },
@@ -707,18 +703,19 @@ const R: Accion[] = [
     pilar: 'medicion-registro',
     nombre: 'Medite la cintura una vez por semana',
     practica:
-      'Una vez por semana, el mismo día, de pie y al final de una espiración normal, medir la cintura en el punto medio ' +
-      'entre la última costilla y la cresta ilíaca, dos veces, y anotar el promedio; mirar primero el video de un minuto.',
+      'Una vez por semana, el mismo día del peso y la presión, de pie y al final de una espiración normal, medir la ' +
+      'cintura en el punto medio entre la última costilla y la cresta ilíaca, dos veces, y anotar el promedio.',
     racional:
       'Protocolo de cintura OMS firmado, dos mediciones promediadas; la cintura vale como respuesta alternativa al peso ' +
-      '(5 cm menos como meta). Frecuencia semanal fijada en la firma del 03/10/2026.',
-    activadaPor: ['condicion:exceso-adiposidad', 'condicion:sindrome-metabolico'],
+      '(5 cm menos como meta). Frecuencia semanal fijada en la firma del 03/10/2026; para todas desde la del ' +
+      '30/10/2026 (cualquier estadío).',
+    activadaPor: [...TODOS_LOS_ESTADIOS, 'condicion:exceso-adiposidad', 'condicion:sindrome-metabolico'],
     generaRegistro: true,
     items: ['E1-PESO-03', 'E2-TG-03'],
   },
 ];
 
-/** Las 40 acciones del Anexo C bis, firmado el 03/10/2026; misma regla cerrada que el Anexo C. */
+/** Las 39 acciones del Anexo C bis (firmado el 03/10/2026; P02 retirada el 30/10/2026); misma regla cerrada que el Anexo C. */
 export const BIBLIOTECA_C_BIS: readonly Accion[] = Object.freeze(
   [...N, ...A, ...S, ...C, ...P, ...M, ...T, ...R].map((accion) => Object.freeze(accion)),
 );

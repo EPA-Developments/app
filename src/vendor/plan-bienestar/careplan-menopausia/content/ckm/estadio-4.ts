@@ -557,9 +557,9 @@ export const E4_ITEMS = [
     condiciones: ['ic'],
     momentos: ['continuo'],
     responsable: 'persona',
-    titulo: 'Pesate todos los días y anotá los síntomas',
-    texto: 'Misma balanza, a la mañana, después de orinar. 2 kg más en 3 días, más almohadas para dormir o piernas más hinchadas: avisá ese día.',
-    racional: 'Automonitoreo de congestión; plan de acción.',
+    titulo: 'Pesate una vez por semana, el mismo día, a la mañana',
+    texto: 'Todos los días si tu cardiólogo te lo indica. Si se te hinchan los tobillos, te falta el aire o dormís con más almohadas, pesate ese día y avisá. Si te pesás todos los días y subís 2 kg en 3 días, avisá ese día.',
+    racional: 'Automonitoreo de congestión; plan de acción. Semanal como P05 y diario si lo indica el cardiólogo (firma del 30/10/2026).',
     fuente: 'Guía IC 2022',
   }),
   conducta({

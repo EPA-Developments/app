@@ -450,9 +450,9 @@ export const E3_ITEMS = [
     condiciones: ['pre-ic'],
     momentos: ['continuo'],
     responsable: 'persona',
-    titulo: 'Pesate todos los días, a la mañana',
-    texto: 'Anotalo en la app. Si subís 2 kg en 3 días o tenés las piernas más hinchadas, avisá ese día.',
-    racional: 'Detección temprana de congestión; regla de 2 kg en 3 días.',
+    titulo: 'Pesate una vez por semana, el mismo día, a la mañana',
+    texto: 'Todos los días si tu cardiólogo te lo indica. Si se te hinchan los tobillos, te falta el aire o dormís con más almohadas, pesate ese día y avisá. Si te pesás todos los días y subís 2 kg en 3 días, avisá ese día.',
+    racional: 'Detección temprana de congestión. Semanal como P05 y diario si lo indica el cardiólogo (firma del 30/10/2026); regla de 2 kg en 3 días con el peso diario.',
     fuente: 'Guía IC 2022',
   }),
   monitoreo({
